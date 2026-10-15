@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Icons } from "@/components/icons";
 import { Button, buttonVariants } from "./ui/button";
 import { EditorMenubar } from "./editor-menubar";
-import { Download, Loader2Icon, Settings } from "lucide-react";
+import { Download, Loader2Icon, Package, Settings } from "lucide-react";
 import Pager from "./pager";
 import { FilenameForm } from "./forms/filename-form";
 import { BringYourKeysDialog } from "@/components/api-keys-dialog";
@@ -23,10 +23,18 @@ export type MainNavItem = NavItem;
 interface MainNavProps {
   handlePrint: () => void;
   isPrinting: boolean;
+  handleDownloadPngs: () => void;
+  isExporting: boolean;
   className?: string;
 }
 
-export function MainNav({ handlePrint, isPrinting, className }: MainNavProps) {
+export function MainNav({
+  handlePrint,
+  isPrinting,
+  handleDownloadPngs,
+  isExporting,
+  className,
+}: MainNavProps) {
   return (
     <div
       className={cn(
@@ -50,12 +58,35 @@ export function MainNav({ handlePrint, isPrinting, className }: MainNavProps) {
         <div className="hidden md:block">
           <FilenameForm />
         </div>
-        <Button variant="ghost" size={"icon"} onClick={handlePrint}>
+        <Button variant="ghost" size={"icon"} onClick={handlePrint} title="Baixar PDF (um slide por página)">
           <div className="flex flex-row gap-1 items-center">
             {isPrinting ? (
               <Loader2Icon className="w-4 h-4 animate-spin" />
             ) : (
               <Download />
+            )}
+          </div>
+        </Button>
+        {/* PNG e o formato que o Instagram aceita. Sem rotulo, ninguem
+            descobriria que existe outro botao alem do de PDF. */}
+        <Button
+          variant="outline"
+          size={"sm"}
+          onClick={handleDownloadPngs}
+          disabled={isExporting}
+          title="Baixar PNGs 1080×1350, um por slide, prontos para o Instagram"
+        >
+          <div className="flex flex-row gap-1.5 items-center">
+            {isExporting ? (
+              <>
+                <Loader2Icon className="w-4 h-4 animate-spin" />
+                <span className="hidden sm:inline">Gerando…</span>
+              </>
+            ) : (
+              <>
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline">PNGs</span>
+              </>
             )}
           </div>
         </Button>

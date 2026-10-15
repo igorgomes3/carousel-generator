@@ -47,6 +47,7 @@
     "geist": "^1.0.0",
     "html-to-image": "^1.11.11",
     "jspdf": "^2.5.1",
+    "jszip": "^3.10.2",
     "langchain": "^0.0.209",
     "lucide-react": "^0.268.0",
     "next": "14.0.4",
@@ -74,5 +75,12 @@
     "@eslint/eslintrc": "^3.0.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.13"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "canvas",
+      "core-js",
+      "esbuild"
+    ]
   }
 }

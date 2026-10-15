@@ -9,7 +9,8 @@ import { RefProvider } from "@/lib/providers/reference-context";
 import { MainNav } from "./main-nav";
 
 export default function Editor({}: {}) {
-  const { componentRef, handlePrint, isPrinting } = useComponentPrinter();
+  const { componentRef, handlePrint, handleDownloadPngs, isPrinting, isExporting } =
+    useComponentPrinter();
 
   return (
     <RefProvider myRef={componentRef}>
@@ -18,6 +19,8 @@ export default function Editor({}: {}) {
           className="h-14 border-b px-6 "
           handlePrint={handlePrint}
           isPrinting={isPrinting}
+          handleDownloadPngs={handleDownloadPngs}
+          isExporting={isExporting}
         />
         <div className="flex-1 flex flex-start  md:grid md:grid-cols-[320px_minmax(0,1fr)] ">
           <SidebarPanel />

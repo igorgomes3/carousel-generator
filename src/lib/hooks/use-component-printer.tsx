@@ -7,6 +7,11 @@ import { DocumentFormReturn } from "@/lib/document-form-types";
 import { toCanvas } from "html-to-image";
 import { Options as HtmlToImageOptions } from "html-to-image/lib/types";
 import { jsPDF, jsPDFOptions } from "jspdf";
+import JSZip from "jszip";
+
+// Um slide tem SIZE.width x SIZE.height em CSS (400x500). Para sair em
+// 1080x1350 — o 4:5 do Instagram — usa-se esse tamanho como alvo do canvas.
+const INTROSPECCAO = { width: 1080, height: 1350 };
 
 // TODO: Create a reusable component and package with this code
 
@@ -107,6 +112,7 @@ export function useComponentPrinter() {
   const { watch }: DocumentFormReturn = useFormContext();
 
   const [isPrinting, setIsPrinting] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
   // TODO: Show animation on loading
   const componentRef = React.useRef(null);
 
@@ -122,15 +128,7 @@ export function useComponentPrinter() {
       // @ts-ignore should type narrow more precisely
       const clone = current.cloneNode(true);
       // Change from horizontal to vertical for printing and remove gap
-      proxyImgSources(clone);
-      removeSelectionStyleById(clone, "page-base-");
-      removeSelectionStyleById(clone, "content-image-");
-      removePaddingStyleById(clone, "carousel-item-");
-      removeStyleById(clone, "slide-wrapper-", "px-2");
-      removeAllById(clone, "add-slide-");
-      removeAllById(clone, "add-element-");
-      removeAllById(clone, "element-menubar-");
-      removeAllById(clone, "slide-menubar-");
+      limparParaExportacao(clone);
       insertFonts(clone);
       // Remove styling from container
       clone.className = "flex flex-col";
@@ -197,11 +195,119 @@ export function useComponentPrinter() {
     },
   });
 
+  // Exporta cada slide como um PNG 1080x1350 e entrega tudo num ZIP. Diferente
+  // do PDF, que junta os slides num arquivo so: aqui cada slide sai solto, que
+  // e o que o Instagram pede. Vai compactado porque o navegador bloqueia
+  // varios downloads disparados em sequencia.
+  const handleDownloadPngs = React.useCallback(async () => {
+    const atual = componentRef.current as unknown as HTMLElement | null;
+    if (!atual) return;
+
+    setIsExporting(true);
+
+    // html-to-image precisa do elemento realmente renderizado na pagina —
+    // fora da tela serve, com display:none nao.
+    const palco = document.createElement("div");
+    palco.style.cssText =
+      "position:fixed;left:-100000px;top:0;background:#ffffff;";
+    const clone = atual.cloneNode(true) as HTMLElement;
+    limparParaExportacao(clone);
+    insertFonts(clone);
+    clone.style.cssText = "display:flex;flex-direction:column;";
+    palco.appendChild(clone);
+    document.body.appendChild(palco);
+
+    try {
+      const slides = Array.from(
+        clone.querySelectorAll<HTMLElement>('[id^="page-base-"]'),
+      );
+      if (slides.length === 0) {
+        console.error("[carrossel] nenhum slide encontrado para exportar");
+        return;
+      }
+
+      const nomeBase = String(watch("filename") || "carousel").replace(
+        /\.(zip|pdf)$/i,
+        "",
+      );
+      const zip = new JSZip();
+      let dentro = 0;
+
+      for (let i = 0; i < slides.length; i++) {
+        const blob = await renderSlideParaPng(slides[i]);
+        if (!blob) continue;
+        dentro += 1;
+        zip.file(`${nomeBase}-${String(dentro).padStart(2, "0")}.png`, blob);
+      }
+
+      if (dentro === 0) {
+        console.error("[carrossel] nenhum slide pode ser convertido em imagem");
+        return;
+      }
+
+      const conteudo = await zip.generateAsync({ type: "blob" });
+      baixarArquivo(conteudo, `${nomeBase}.zip`);
+    } catch (e) {
+      console.error("[carrossel] falha ao exportar os PNGs:", e);
+    } finally {
+      palco.remove();
+      setIsExporting(false);
+    }
+  }, [componentRef, watch]);
+
   return {
     componentRef,
     handlePrint,
+    handleDownloadPngs,
     isPrinting,
+    isExporting,
   };
+}
+
+/** Limpeza comum as duas exportacoes: tira a interface do editor do clone. */
+function limparParaExportacao(clone: HTMLElement) {
+  proxyImgSources(clone);
+  removeSelectionStyleById(clone, "page-base-");
+  removeSelectionStyleById(clone, "content-image-");
+  removePaddingStyleById(clone, "carousel-item-");
+  removeStyleById(clone, "slide-wrapper-", "px-2");
+  removeAllById(clone, "add-slide-");
+  removeAllById(clone, "add-element-");
+  removeAllById(clone, "element-menubar-");
+  removeAllById(clone, "slide-menubar-");
+}
+
+/** Converte um slide em PNG 1080x1350. Devolve null se a imagem nao sair. */
+async function renderSlideParaPng(slide: HTMLElement): Promise<Blob | null> {
+  try {
+    const canvas = await toCanvas(slide, {
+      width: SIZE.width,
+      height: SIZE.height,
+      canvasWidth: INTROSPECCAO.width,
+      canvasHeight: INTROSPECCAO.height,
+      // Sem isto o html-to-image multiplica de novo pelo devicePixelRatio e o
+      // PNG sai maior que o alvo.
+      pixelRatio: 1,
+      backgroundColor: "#ffffff",
+    });
+    return await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/png"),
+    );
+  } catch (e) {
+    console.error("[carrossel] falha ao converter um slide em PNG:", e);
+    return null;
+  }
+}
+
+function baixarArquivo(blob: Blob, nome: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function proxyImgSources(html: HTMLElement) {
