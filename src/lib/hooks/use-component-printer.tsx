@@ -179,7 +179,12 @@ export function useComponentPrinter() {
 
       // TODO Create buttons to download as png / svg / etc from 'html-to-image'
       const canvas = await toCanvas(html, options.htmlToImage).catch((err) => {
-        console.error(err);
+        // A causa mais comum e uma imagem que o navegador se recusa a ler
+        // (CORS). Sem dizer isso, quem exporta so ve "Failed to create canvas".
+        console.error(
+          "Falha ao converter os slides em imagem. Normalmente e uma imagem externa bloqueada por CORS — verifique /api/proxy.",
+          err,
+        );
       });
       if (!canvas) {
         console.error("Failed to create canvas");
