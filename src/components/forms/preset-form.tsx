@@ -86,7 +86,11 @@ export function PresetPicker() {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
+      {/* Uma coluna, nao duas. O painel tem 190px: em duas colunas cada cartao
+          fica com 91px, a miniatura consome 51px e sobram 14px para o texto —
+          que entao vaza por cima do cartao vizinho. Em uma coluna o nome e a
+          descricao cabem de verdade. */}
+      <div className="flex flex-col gap-2">
         {PRESETS.map((p) => (
           <button
             key={p.slug}
@@ -94,18 +98,20 @@ export function PresetPicker() {
             onClick={() => aplicar(p)}
             title={`${p.nome} — ${p.descricao}`}
             className={cn(
-              "flex items-center gap-2 rounded-md border p-2 text-left transition-colors",
+              "flex w-full items-center gap-2.5 overflow-hidden rounded-md border p-2 text-left transition-colors",
               ativo === p.slug
                 ? "border-primary ring-2 ring-primary/30"
                 : "hover:border-primary/40",
             )}
           >
             <PreviaDoPreset preset={p} />
-            <span className="min-w-0">
+            {/* min-w-0 deixa o bloco encolher; break-words impede que uma
+                palavra longa escape em vez de quebrar linha. */}
+            <span className="min-w-0 flex-1 break-words">
               <span className="block text-xs font-semibold leading-tight">
                 {p.nome}
               </span>
-              <span className="block text-[10px] leading-tight text-muted-foreground">
+              <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
                 {p.descricao}
               </span>
             </span>
@@ -143,7 +149,7 @@ export function FundoPicker() {
           </button>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="break-words text-xs leading-snug text-muted-foreground">
         {ESTILOS_FUNDO.find((e) => e.slug === estilo)?.nome ?? "Sólido"} —{" "}
         {ESTILOS_FUNDO.find((e) => e.slug === estilo)?.descricao ?? "Cor chapada"}
       </p>
