@@ -280,6 +280,12 @@ function limparParaExportacao(clone: HTMLElement) {
 /** Converte um slide em PNG 1080x1350. Devolve null se a imagem nao sair. */
 async function renderSlideParaPng(slide: HTMLElement): Promise<Blob | null> {
   try {
+    // Nao passar uma cor fixa aqui: o html-to-image escreve a cor recebida no
+    // proprio elemento raiz, sobrescrevendo o fundo do slide. Com um branco
+    // fixo, todo slide saia branco no PNG — inclusive os de fundo escuro.
+    const fundoDoSlide =
+      getComputedStyle(slide).backgroundColor || "#ffffff";
+
     const canvas = await toCanvas(slide, {
       width: SIZE.width,
       height: SIZE.height,
@@ -288,7 +294,7 @@ async function renderSlideParaPng(slide: HTMLElement): Promise<Blob | null> {
       // Sem isto o html-to-image multiplica de novo pelo devicePixelRatio e o
       // PNG sai maior que o alvo.
       pixelRatio: 1,
-      backgroundColor: "#ffffff",
+      backgroundColor: fundoDoSlide,
     });
     return await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png"),

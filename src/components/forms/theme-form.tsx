@@ -17,6 +17,8 @@ import { CustomIndicatorRadioGroupItem } from "../custom-indicator-radio-group-i
 import { ColorThemeDisplay } from "../color-theme-display";
 import { DocumentFormReturn } from "@/lib/document-form-types";
 import { Checkbox } from "../ui/checkbox";
+import { Separator } from "../ui/separator";
+import { FundoPicker, PresetPicker } from "./preset-form";
 
 function PalletteSelector({ form }: { form: DocumentFormReturn }) {
   const { control, setValue } = form;
@@ -117,6 +119,25 @@ export function ThemeForm({}: {}) {
     // TODO: check on custom color to enable/disable pallette custom colors
     <Form {...form}>
       <form className="space-y-6 w-full py-4">
+        {/* Um preset escreve fundo, cores e fontes de uma vez; por isso vem
+            primeiro, como ponto de partida, e o ajuste fino fica abaixo. */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium leading-none">Cara do carrossel</p>
+          <p className="text-xs text-muted-foreground">
+            Muda fundo, cores e fontes de todos os slides de uma vez.
+          </p>
+          <PresetPicker />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium leading-none">Fundo dos slides</p>
+          <FundoPicker />
+        </div>
+
+        <Separator />
+
         <FormField
           control={form.control}
           name="config.theme.isCustom"
