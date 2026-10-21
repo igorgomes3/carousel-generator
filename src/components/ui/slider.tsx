@@ -20,7 +20,14 @@ const Slider = React.forwardRef<
     <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary data-[disabled]:cursor-not-allowed">
       <SliderPrimitive.Range className="absolute h-full bg-primary data-[disabled]:cursor-not-allowed data-[disabled]:bg-primary/20" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[disabled]:cursor-not-allowed data-[disabled]:border-primary/50" />
+    {/* O Radix expõe role="slider" no Thumb, não no Root. Sem repassar o
+        rótulo aqui, o controle fica sem nome acessível mesmo com aria-label
+        no Root. */}
+    <SliderPrimitive.Thumb
+      className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[disabled]:cursor-not-allowed data-[disabled]:border-primary/50"
+      aria-label={props["aria-label"]}
+      aria-labelledby={props["aria-labelledby"]}
+    />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;

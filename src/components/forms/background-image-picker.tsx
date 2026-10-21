@@ -88,6 +88,7 @@ export function BackgroundImagePicker({ form }: BackgroundImagePickerProps) {
             step={1}
             value={[opacity]}
             onValueChange={([v]) => form.setValue(`${fieldName}.style.opacity`, v)}
+            aria-label="Opacidade da imagem de fundo"
           />
         </div>
 

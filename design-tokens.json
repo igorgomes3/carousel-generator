@@ -1,0 +1,72 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "color": {
+    "light": {
+      "background": { "value": "0 0% 100%", "type": "color" },
+      "foreground": { "value": "222.2 84% 4.9%", "type": "color" },
+      "card": { "value": "0 0% 100%", "type": "color" },
+      "card-foreground": { "value": "222.2 84% 4.9%", "type": "color" },
+      "popover": { "value": "0 0% 100%", "type": "color" },
+      "popover-foreground": { "value": "222.2 84% 4.9%", "type": "color" },
+      "primary": { "value": "222.2 47.4% 11.2%", "type": "color" },
+      "primary-foreground": { "value": "210 40% 98%", "type": "color" },
+      "secondary": { "value": "210 40% 96.1%", "type": "color" },
+      "secondary-foreground": { "value": "222.2 47.4% 11.2%", "type": "color" },
+      "muted": { "value": "210 40% 96.1%", "type": "color" },
+      "muted-foreground": { "value": "215.4 16.3% 46.9%", "type": "color" },
+      "accent": { "value": "210 40% 96.1%", "type": "color" },
+      "accent-foreground": { "value": "222.2 47.4% 11.2%", "type": "color" },
+      "destructive": { "value": "0 84.2% 60.2%", "type": "color" },
+      "destructive-foreground": { "value": "210 40% 98%", "type": "color" },
+      "border": { "value": "214.3 31.8% 91.4%", "type": "color" },
+      "input": { "value": "214.3 31.8% 91.4%", "type": "color" },
+      "ring": { "value": "222.2 84% 4.9%", "type": "color" }
+    },
+    "dark": {
+      "background": { "value": "222.2 84% 4.9%", "type": "color" },
+      "foreground": { "value": "210 40% 98%", "type": "color" },
+      "card": { "value": "222.2 84% 4.9%", "type": "color" },
+      "card-foreground": { "value": "210 40% 98%", "type": "color" },
+      "popover": { "value": "222.2 84% 4.9%", "type": "color" },
+      "popover-foreground": { "value": "210 40% 98%", "type": "color" },
+      "primary": { "value": "210 40% 98%", "type": "color" },
+      "primary-foreground": { "value": "222.2 47.4% 11.2%", "type": "color" },
+      "secondary": { "value": "217.2 32.6% 17.5%", "type": "color" },
+      "secondary-foreground": { "value": "210 40% 98%", "type": "color" },
+      "muted": { "value": "217.2 32.6% 17.5%", "type": "color" },
+      "muted-foreground": { "value": "215 20.2% 65.1%", "type": "color" },
+      "accent": { "value": "217.2 32.6% 17.5%", "type": "color" },
+      "accent-foreground": { "value": "210 40% 98%", "type": "color" },
+      "destructive": { "value": "0 62.8% 30.6%", "type": "color" },
+      "destructive-foreground": { "value": "210 40% 98%", "type": "color" },
+      "border": { "value": "217.2 32.6% 17.5%", "type": "color" },
+      "input": { "value": "217.2 32.6% 17.5%", "type": "color" },
+      "ring": { "value": "212.7 26.8% 83.9%", "type": "color" }
+    }
+  },
+  "radius": {
+    "base": { "value": "0.5rem", "type": "dimension" },
+    "lg": { "value": "{radius.base}", "type": "dimension" },
+    "md": { "value": "calc({radius.base} - 2px)", "type": "dimension" },
+    "sm": { "value": "calc({radius.base} - 4px)", "type": "dimension" }
+  },
+  "font": {
+    "dm-sans": { "value": "var(--font-dm-sans)", "type": "fontFamily" },
+    "dm-serif-display": { "value": "var(--font-dm-serif-display)", "type": "fontFamily" },
+    "geist-sans": { "value": "var(--font-geist-sans)", "type": "fontFamily" },
+    "montserrat": { "value": "var(--font-montserrat)", "type": "fontFamily" },
+    "pt-serif": { "value": "var(--font-pt-serif)", "type": "fontFamily" },
+    "roboto": { "value": "var(--font-roboto)", "type": "fontFamily" },
+    "roboto-condensed": { "value": "var(--font-roboto-condensed)", "type": "fontFamily" },
+    "ultra": { "value": "var(--font-ultra)", "type": "fontFamily" },
+    "inter": { "value": "var(--font-inter)", "type": "fontFamily" },
+    "syne": { "value": "var(--font-syne)", "type": "fontFamily" },
+    "archivo-black": { "value": "var(--font-archivo-black)", "type": "fontFamily" }
+  },
+  "slide": {
+    "width": { "value": 400, "type": "number" },
+    "height": { "value": 500, "type": "number" },
+    "export-width": { "value": 1080, "type": "number" },
+    "export-height": { "value": 1350, "type": "number" }
+  }
+}

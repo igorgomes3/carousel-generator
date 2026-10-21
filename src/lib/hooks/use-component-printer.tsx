@@ -1,204 +1,27 @@
 import React from "react";
-import { useReactToPrint } from "react-to-print";
 import { SIZE } from "@/lib/page-size";
 import { useFieldArrayValues } from "@/lib/hooks/use-field-array-values";
 import { useFormContext } from "react-hook-form";
 import { DocumentFormReturn } from "@/lib/document-form-types";
 import { toCanvas } from "html-to-image";
-import { Options as HtmlToImageOptions } from "html-to-image/lib/types";
-import { jsPDF, jsPDFOptions } from "jspdf";
 import JSZip from "jszip";
 
 // Um slide tem SIZE.width x SIZE.height em CSS (400x500). Para sair em
 // 1080x1350 — o 4:5 do Instagram — usa-se esse tamanho como alvo do canvas.
 const INTROSPECCAO = { width: 1080, height: 1350 };
 
-// TODO: Create a reusable component and package with this code
-
-type HtmlToPdfOptions = {
-  margin: [number, number, number, number];
-  filename: string;
-  image: { type: string; quality: number };
-  htmlToImage: HtmlToImageOptions;
-  jsPDF: jsPDFOptions;
-};
-
-// Convert units to px using the conversion value 'k' from jsPDF.
-export const toPx = function toPx(val: number, k: number) {
-  return Math.floor(((val * k) / 72) * 96);
-};
-
-function getPdfPageSize(opt: HtmlToPdfOptions) {
-  // Retrieve page-size based on jsPDF settings, if not explicitly provided.
-  // @ts-ignore function not explicitly exported
-  const pageSize = jsPDF.getPageSize(opt.jsPDF);
-
-  // Add 'inner' field if not present.
-  if (!pageSize.hasOwnProperty("inner")) {
-    pageSize.inner = {
-      width: pageSize.width - opt.margin[1] - opt.margin[3],
-      height: pageSize.height - opt.margin[0] - opt.margin[2],
-    };
-    pageSize.inner.px = {
-      width: toPx(pageSize.inner.width, pageSize.k),
-      height: toPx(pageSize.inner.height, pageSize.k),
-    };
-    pageSize.inner.ratio = pageSize.inner.height / pageSize.inner.width;
-  }
-
-  // Attach pageSize to this.
-  return pageSize;
-}
-
-function canvasToPdf(canvas: HTMLCanvasElement, opt: HtmlToPdfOptions) {
-  const pdfPageSize = getPdfPageSize(opt);
-
-  // Calculate the number of pages.
-  var pxFullHeight = canvas.height;
-  var pxPageHeight = Math.floor(canvas.width * pdfPageSize.inner.ratio);
-  var nPages = Math.ceil(pxFullHeight / pxPageHeight);
-
-  // Define pageHeight separately so it can be trimmed on the final page.
-  var pageHeight = pdfPageSize.inner.height;
-
-  // Create a one-page canvas to split up the full image.
-  var pageCanvas = document.createElement("canvas");
-  var pageCtx = pageCanvas.getContext("2d");
-  if (!pageCtx) {
-    throw Error("Canvas context of created element not found");
-  }
-  pageCanvas.width = canvas.width;
-  pageCanvas.height = pxPageHeight;
-
-  // Initialize the PDF.
-  const pdf = new jsPDF(opt.jsPDF);
-
-  for (var page = 0; page < nPages; page++) {
-    // Trim the final page to reduce file size.
-    if (page === nPages - 1 && pxFullHeight % pxPageHeight !== 0) {
-      pageCanvas.height = pxFullHeight % pxPageHeight;
-      pageHeight =
-        (pageCanvas.height * pdfPageSize.inner.width) / pageCanvas.width;
-    }
-
-    // Display the page.
-    var w = pageCanvas.width;
-    var h = pageCanvas.height;
-
-    pageCtx.fillStyle = "white";
-    pageCtx.fillRect(0, 0, w, h);
-    pageCtx.drawImage(canvas, 0, page * pxPageHeight, w, h, 0, 0, w, h);
-
-    // Add the page to the PDF.
-    if (page) pdf.addPage();
-    var imgData = pageCanvas.toDataURL(
-      "image/" + opt.image.type,
-      opt.image.quality
-    );
-    pdf.addImage(
-      imgData,
-      opt.image.type,
-      opt.margin[1],
-      opt.margin[0],
-      pdfPageSize.inner.width,
-      pageHeight
-    );
-  }
-  return pdf;
-}
-
 export function useComponentPrinter() {
   const { numPages } = useFieldArrayValues("slides");
   const { watch }: DocumentFormReturn = useFormContext();
 
-  const [isPrinting, setIsPrinting] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
-  // TODO: Show animation on loading
   const componentRef = React.useRef(null);
 
-  // Packages and references
-  // react-to-print: https://github.com/gregnb/react-to-print
   // html-to-image: https://github.com/bubkoo/html-to-image
-  // jsPDF: https://rawgit.com/MrRio/jsPDF/master/docs/jsPDF.html
 
-  const reactToPrintContent = React.useCallback(() => {
-    const current = componentRef.current;
-
-    if (current && typeof current === "object") {
-      // @ts-ignore should type narrow more precisely
-      const clone = current.cloneNode(true);
-      // Change from horizontal to vertical for printing and remove gap
-      limparParaExportacao(clone);
-      insertFonts(clone);
-      // Remove styling from container
-      clone.className = "flex flex-col";
-      clone.style = {};
-
-      return clone;
-    }
-
-    return componentRef.current;
-  }, []);
-
-  const handlePrint = useReactToPrint({
-    content: reactToPrintContent,
-    removeAfterPrint: true,
-    onBeforePrint: () => setIsPrinting(true),
-    onAfterPrint: () => setIsPrinting(false),
-    pageStyle: `@page { size: ${SIZE.width}px ${SIZE.height}px;  margin: 0; } @media print { body { -webkit-print-color-adjust: exact; }}`,
-    print: async (printIframe) => {
-      const contentDocument = printIframe.contentDocument;
-      if (!contentDocument) {
-        console.error("iFrame does not have a document content");
-        return;
-      }
-
-      const html = contentDocument.getElementById("element-to-download-as-pdf");
-      if (!html) {
-        console.error("Couldn't find element to convert to PDF");
-        return;
-      }
-
-      const SCALE_TO_LINKEDIN_INTRINSIC_SIZE = 1.8;
-      // const fontEmbedCss = await getFontEmbedCSS(html);
-      const options: HtmlToPdfOptions = {
-        margin: [0, 0, 0, 0],
-        filename: watch("filename"),
-        image: { type: "webp", quality: 0.98 },
-        htmlToImage: {
-          height: SIZE.height * numPages,
-          width: SIZE.width,
-          canvasHeight:
-            SIZE.height * numPages * SCALE_TO_LINKEDIN_INTRINSIC_SIZE,
-          canvasWidth: SIZE.width * SCALE_TO_LINKEDIN_INTRINSIC_SIZE,
-        },
-        jsPDF: { unit: "px", format: [SIZE.width, SIZE.height] },
-      };
-
-      // TODO Create buttons to download as png / svg / etc from 'html-to-image'
-      const canvas = await toCanvas(html, options.htmlToImage).catch((err) => {
-        // A causa mais comum e uma imagem que o navegador se recusa a ler
-        // (CORS). Sem dizer isso, quem exporta so ve "Failed to create canvas".
-        console.error(
-          "Falha ao converter os slides em imagem. Normalmente e uma imagem externa bloqueada por CORS — verifique /api/proxy.",
-          err,
-        );
-      });
-      if (!canvas) {
-        console.error("Failed to create canvas");
-        return;
-      }
-      // DEBUG:
-      // document.body.appendChild(canvas);
-      const pdf = canvasToPdf(canvas, options);
-      pdf.save(options.filename);
-    },
-  });
-
-  // Exporta cada slide como um PNG 1080x1350 e entrega tudo num ZIP. Diferente
-  // do PDF, que junta os slides num arquivo so: aqui cada slide sai solto, que
-  // e o que o Instagram pede. Vai compactado porque o navegador bloqueia
-  // varios downloads disparados em sequencia.
+  // Exporta cada slide como um PNG 1080x1350 e entrega tudo num ZIP. Cada slide
+  // sai solto, que e o que o Instagram pede. Vai compactado porque o navegador
+  // bloqueia varios downloads disparados em sequencia.
   const handleDownloadPngs = React.useCallback(async () => {
     const atual = componentRef.current as unknown as HTMLElement | null;
     if (!atual) return;
@@ -231,10 +54,17 @@ export function useComponentPrinter() {
         "",
       );
       const zip = new JSZip();
-      let dentro = 0;
 
-      for (let i = 0; i < slides.length; i++) {
-        const blob = await renderSlideParaPng(slides[i]);
+      // Renderiza os slides em paralelo: cada slide e independente, e o custo
+      // e dominado pela espera (decodificar imagens, rasterizar), nao pela CPU.
+      // Em serie, 12 slides levavam dezenas de segundos sem motivo.
+      const blobs = await Promise.all(
+        slides.map((slide) => renderSlideParaPng(slide)),
+      );
+
+      let dentro = 0;
+      for (let i = 0; i < blobs.length; i++) {
+        const blob = blobs[i];
         if (!blob) continue;
         dentro += 1;
         zip.file(`${nomeBase}-${String(dentro).padStart(2, "0")}.png`, blob);
@@ -257,9 +87,7 @@ export function useComponentPrinter() {
 
   return {
     componentRef,
-    handlePrint,
     handleDownloadPngs,
-    isPrinting,
     isExporting,
   };
 }

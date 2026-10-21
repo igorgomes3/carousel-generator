@@ -44,7 +44,7 @@ export function ImageSourceFormField({
       defaultValue={tabValue}
       className="w-full"
     >
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-2 text-slate-600">
         <TabsTrigger value={ImageInputType.Url}>URL</TabsTrigger>
         <TabsTrigger value={ImageInputType.Upload}>Upload</TabsTrigger>
       </TabsList>
@@ -55,11 +55,12 @@ export function ImageSourceFormField({
           render={({ field }) => {
             return (
               <FormItem>
-                <FormLabel>{""}</FormLabel>
+                <FormLabel className="sr-only">Origem da imagem</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Url to an image"
                     className="resize-none"
+                    aria-label="URL da imagem"
                     {...field}
                   />
                 </FormControl>
@@ -76,11 +77,12 @@ export function ImageSourceFormField({
           render={({ field }) => {
             return (
               <FormItem>
-                <FormLabel>{""}</FormLabel>
+                <FormLabel className="sr-only">Origem da imagem</FormLabel>
                 <FormControl>
                   <Input
                     accept=".jpg, .jpeg, .png, .svg, .webp"
                     type="file"
+                    aria-label="Enviar arquivo de imagem"
                     onChange={async (e) => {
                       const file = e.target?.files ? e.target?.files[0] : null;
 

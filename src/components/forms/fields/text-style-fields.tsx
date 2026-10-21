@@ -60,6 +60,7 @@ export function TextStyleFields({
         <label className="text-sm font-medium">Cor do texto</label>
         <Input
           type="color"
+          aria-label="Cor do texto"
           value={color || "#000000"}
           onChange={(e) => {
             const val = e.target.value;
@@ -84,7 +85,7 @@ export function TextStyleFields({
             );
           }}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full" aria-label="Fonte do texto">
             <SelectValue placeholder="Usar fonte do tema" />
           </SelectTrigger>
           <SelectContent>
@@ -110,7 +111,7 @@ export function TextStyleFields({
             );
           }}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full" aria-label="Peso da fonte do texto">
             <SelectValue placeholder="Usar peso do tema" />
           </SelectTrigger>
           <SelectContent>

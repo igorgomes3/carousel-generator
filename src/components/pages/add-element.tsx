@@ -25,9 +25,10 @@ export function AddElement({
           id={"add-element-" + pageNumber}
           className="border-dashed border-2 w-full bg-transparent h-10"
           variant={"outline"}
+          aria-label="Adicionar elemento ao slide"
         >
           <div className={`flex flex-col justify-center items-center`}>
-            <Plus className="w-6 h-6" />
+            <Plus className="w-6 h-6" aria-hidden="true" />
           </div>
         </Button>
       </DialogTrigger>

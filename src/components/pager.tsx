@@ -25,16 +25,18 @@ export default function Pager({}: Props) {
           variant="outline"
           size="sm"
           disabled={currentPage == 0}
+          aria-label="Ir para o primeiro slide"
         >
-          <ChevronFirst className="w-4 h-4" />
+          <ChevronFirst className="w-4 h-4" aria-hidden="true" />
         </Button>
         <Button
           onClick={onPreviousClick}
           variant="outline"
           size="sm"
           disabled={currentPage == 0}
+          aria-label="Slide anterior"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
         </Button>
         <PageCounter></PageCounter>
         <Button
@@ -42,16 +44,18 @@ export default function Pager({}: Props) {
           variant="outline"
           size="sm"
           disabled={currentPage == numPages - 1 || numPages == 0}
+          aria-label="Próximo slide"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
         </Button>
         <Button
           onClick={() => setCurrentPage(numPages - 1)}
           variant="outline"
           size="sm"
           disabled={currentPage == numPages - 1 || numPages == 0}
+          aria-label="Ir para o último slide"
         >
-          <ChevronLast className="w-4 h-4" />
+          <ChevronLast className="w-4 h-4" aria-hidden="true" />
         </Button>
       </div>{" "}
     </div>

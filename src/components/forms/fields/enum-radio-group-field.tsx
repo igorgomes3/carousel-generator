@@ -57,6 +57,7 @@ export function EnumRadioGroupField<T extends string | number | symbol>({
                     <FormControl>
                       <CustomIndicatorRadioGroupItem
                         value={value}
+                        aria-label={value}
                         className={cn(
                           "h-5 w-5 flex flex-col items-center justify-center data-[state=unchecked]:border-transparent border",
                           itemClassName

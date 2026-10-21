@@ -9,7 +9,7 @@ import { RefProvider } from "@/lib/providers/reference-context";
 import { MainNav } from "./main-nav";
 
 export default function Editor({}: {}) {
-  const { componentRef, handlePrint, handleDownloadPngs, isPrinting, isExporting } =
+  const { componentRef, handleDownloadPngs, isExporting } =
     useComponentPrinter();
 
   return (
@@ -17,8 +17,6 @@ export default function Editor({}: {}) {
       <div className="flex-1 flex flex-col">
         <MainNav
           className="h-14 border-b px-6 "
-          handlePrint={handlePrint}
-          isPrinting={isPrinting}
           handleDownloadPngs={handleDownloadPngs}
           isExporting={isExporting}
         />

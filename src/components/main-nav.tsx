@@ -19,14 +19,12 @@ export type NavItem = {
 export type MainNavItem = NavItem;
 
 interface MainNavProps {
-  handlePrint: () => void;
-  isPrinting: boolean;
   handleDownloadPngs: () => void;
   isExporting: boolean;
   className?: string;
 }
 
-export function MainNav({ handlePrint, isPrinting, handleDownloadPngs, isExporting, className }: MainNavProps) {
+export function MainNav({ handleDownloadPngs, isExporting, className }: MainNavProps) {
   return (
     <div className={cn("flex gap-4 md:gap-10 justify-between items-center", className)}>
       <div className="flex gap-4">
