@@ -34,6 +34,7 @@ import {
   TypographyLarge,
 } from "@/components/typography";
 import { Separator } from "@/components/ui/separator";
+import { TextStyleFields } from "./forms/fields/text-style-fields";
 
 const fontSizeMap: Record<FontSizeType, React.ReactElement> = {
   [FontSizeType.enum.Small]: <Type className="h-2 w-2" />,
@@ -141,6 +142,11 @@ export function StyleMenu({
               }
             />
           </>
+        ) : null}
+        {type === ElementType.enum.Title ||
+        type === ElementType.enum.Subtitle ||
+        type === ElementType.enum.Description ? (
+          <TextStyleFields form={form} elementPath={elementPath as ElementFieldPath} />
         ) : null}
       </div>
     </div>

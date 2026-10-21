@@ -77,3 +77,11 @@ export type ImageStyleOpacityFieldPath =
 
 export type ImageStyleObjectFitFieldPath =
   | `slides.${number}.elements.${number}.style.objectFit`;
+
+// Novos campos de estilo por elemento de texto (fora do .style)
+export type TextStyleColorFieldPath =
+  | `slides.${number}.elements.${number}.color`;
+export type TextStyleFontFamilyFieldPath =
+  | `slides.${number}.elements.${number}.fontFamily`;
+export type TextStyleFontWeightFieldPath =
+  | `slides.${number}.elements.${number}.fontWeight`;
