@@ -14,4 +14,16 @@ export const ThemeSchema = ColorSchema.extend({
   // localStorage nao tem esse campo, e o carregamento faz safeParse — sem
   // default o parse falha e o carrossel salvo do usuario seria descartado.
   backgroundStyle: z.string().default("solido"),
+  // Imagem de fundo do slide (opcional)
+  backgroundImage: z
+    .object({
+      source: z.object({
+        src: z.string().url().or(z.literal("")),
+        type: z.enum(["URL", "UPLOAD", "GENERATED"]),
+      }).default({ src: "", type: "URL" }),
+      style: z.object({
+        opacity: z.number().min(0).max(100).default(100),
+      }).default({ opacity: 100 }),
+    })
+    .optional(),
 });

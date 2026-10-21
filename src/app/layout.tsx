@@ -13,7 +13,6 @@ import {
 import { GeistSans, GeistMono } from "geist/font";
 import { Toaster } from "@/components/ui/toaster";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
-import { SiteFooter } from "@/components/site-footer";
 
 const dm_sans = DM_Sans({
   subsets: ["latin"],
@@ -26,7 +25,7 @@ const dm_serif_display = DM_Serif_Display({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-dm-serif-display",
-  weight: ["400"],
+  weight: "400",
 });
 
 const montserrat = Montserrat({
@@ -57,18 +56,18 @@ const inter = Inter({
   weight: ["500", "700"],
 });
 
-const archivoBlack = Archivo_Black({
+const arquivoBlack = Archivo_Black({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-archivo-black",
-  weight: ["400"],
+  weight: "400",
 });
 
 const ultra = Ultra({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-ultra",
-  weight: ["400"],
+  weight: "400",
 });
 
 const roboto_condensed = Roboto_Condensed({
@@ -101,12 +100,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dm_sans.variable} ${dm_serif_display.variable} ${pt_serif.variable} ${roboto.variable} ${roboto_condensed.variable} ${ultra.variable} ${inter.variable} ${syne.variable} ${archivoBlack.variable}  ${montserrat.variable}  ${GeistSans.variable} flex flex-col min-h-screen items-stretch justify-between antialiased`}
+        className={`${dm_sans.variable} ${dm_serif_display.variable} ${pt_serif.variable} ${roboto.variable} ${roboto_condensed.variable} ${inter.variable} ${arquivoBlack.variable} ${syne.variable} ${montserrat.variable}  ${GeistSans.variable} flex flex-col min-h-screen items-stretch justify-between antialiased}`}
       >
         <div className="flex-1 h-full flex flex-col justify-stretch ">
           {children}
         </div>
-        <SiteFooter />
         <Toaster />
       </body>
     </html>

@@ -19,6 +19,7 @@ import { DocumentFormReturn } from "@/lib/document-form-types";
 import { Checkbox } from "../ui/checkbox";
 import { Separator } from "../ui/separator";
 import { FundoPicker, PresetPicker } from "./preset-form";
+import { BackgroundImagePicker } from "./background-image-picker";
 
 function PalletteSelector({ form }: { form: DocumentFormReturn }) {
   const { control, setValue } = form;
@@ -131,9 +132,18 @@ export function ThemeForm({}: {}) {
 
         <Separator />
 
+        {/* Fundo / Imagem de fundo por slide */}
         <div className="space-y-2">
           <p className="text-sm font-medium leading-none">Fundo dos slides</p>
           <FundoPicker />
+        </div>
+
+        <Separator />
+
+        {/* Imagem de fundo por slide */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium leading-none">Imagem de fundo do slide atual</p>
+          <BackgroundImagePicker form={form} />
         </div>
 
         <Separator />

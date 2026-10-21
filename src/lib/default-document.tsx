@@ -31,6 +31,11 @@ export const defaultValues = {
       backgroundStyle: "solido",
     },
     fonts: {
+      elementFonts: {
+        Title: "DM_Serif_Display",
+        Subtitle: "DM_Serif_Display",
+        Description: "DM_Sans",
+      },
       font1: "DM_Serif_Display",
       font2: "DM_Sans",
     },
