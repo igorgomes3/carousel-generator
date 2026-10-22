@@ -18,6 +18,7 @@ import { defaultValues } from "@/lib/default-document";
 import { KeysProvider } from "@/lib/providers/keys-context";
 import { useKeys } from "@/lib/hooks/use-keys";
 import { StatusProvider } from "@/lib/providers/editor-status-context";
+import { PlanoProvider } from "@/lib/providers/plano-context";
 
 const FORM_DATA_KEY = "documentFormKey";
 
@@ -45,11 +46,13 @@ export function DocumentProvider({ children }: { children: React.ReactNode }) {
     <KeysProvider value={keys}>
       <FormProvider {...documentForm}>
         <StatusProvider>
-          <SelectionProvider value={selection}>
-            <PagerProvider value={pager}>
-              <div className="flex-1 flex flex-col">{children}</div>
-            </PagerProvider>
-          </SelectionProvider>
+          <PlanoProvider>
+            <SelectionProvider value={selection}>
+              <PagerProvider value={pager}>
+                <div className="flex-1 flex flex-col">{children}</div>
+              </PagerProvider>
+            </SelectionProvider>
+          </PlanoProvider>
         </StatusProvider>
       </FormProvider>
     </KeysProvider>

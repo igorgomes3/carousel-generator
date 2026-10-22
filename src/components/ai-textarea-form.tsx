@@ -23,6 +23,7 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useKeysContext } from "@/lib/providers/keys-context";
 import { generateCarouselSlidesAction } from "@/app/actions";
+import { usePlanoContext } from "@/lib/providers/plano-context";
 
 const FormSchema = z.object({
   prompt: z.string().min(2, {
@@ -34,6 +35,7 @@ export function AITextAreaForm() {
   const { apiKey } = useKeysContext();
   const { setValue }: DocumentFormReturn = useFormContext(); // retrieve those props
   const [isLoading, setIsLoading] = useState(false);
+  const { setPlano } = usePlanoContext();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -44,26 +46,24 @@ export function AITextAreaForm() {
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsLoading(true);
 
-    // Use server action here instead of the local function
-    const generatedSlides = await generateCarouselSlidesAction(
-      `Generate a carousel from this article: "${data.prompt}"`
-    );
+    // Artigo colado: o planejamento continua valendo — a etapa 1 identifica o
+    // ângulo dentro do texto, em vez de pedir ao modelo que adivinhe.
+    const resultado = await generateCarouselSlidesAction(data.prompt);
 
-    // TODO: Restore local function for going over limit
-    // const generatedSlides = await generateCarouselSlides(
-    //   `Generate a carousel from this article: "${data.prompt}"`,
-    //   apiKey
-    // );
-
-    if (generatedSlides) {
-      setValue("slides", generatedSlides);
-      // TODO Fix toast not working
+    if (resultado) {
+      setValue("slides", resultado.slides);
+      setPlano(resultado.estrategia);
       toast({
-        title: "New carousel generated",
+        title: "Carrossel gerado",
+        description: resultado.estrategia.ideia.angulo
+          ? `Ângulo: ${resultado.estrategia.ideia.angulo.slice(0, 80)}`
+          : "Gerado sem planejamento — a etapa de estratégia falhou.",
       });
     } else {
       toast({
-        title: "Failed to generate carousel",
+        title: "Falha ao gerar",
+        description: "O modelo não devolveu um carrossel válido. Tente de novo.",
+        variant: "destructive",
       });
     }
     setIsLoading(false);

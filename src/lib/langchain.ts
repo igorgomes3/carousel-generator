@@ -27,16 +27,17 @@ const carouselFunctionSchema = {
 export async function generateCarouselSlides(
   topicPrompt: string,
   apiKey: string,
+  /** Quando presente, a copy segue o plano em vez de improvisar. */
+  promptPlanejado?: string,
 ): Promise<z.infer<typeof MultiSlideSchema> | null> {
   const model = startModelClient(apiKey);
 
-  const completion = await model.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    temperature: 0,
-    messages: [
-      {
-        role: "system",
-        content: `
+  // O prompt antigo pedia emoji em todo texto e não tinha planejamento — o
+  // resultado saía cru. Quando o planejamento existe, ele manda: o modelo
+  // recebe o ângulo e a função de cada slide em vez de "faça um carrossel".
+  const instrucoes = promptPlanejado
+    ? promptPlanejado
+    : `
       Create a Carousel of slides following these rules
 
       Arguments Schema Instructions:
@@ -46,14 +47,21 @@ export async function generateCarouselSlides(
 
       Guidelines:
        - Create 8-15 slides.
-       - Each slide has 2-3 different elements. E.g. [Title, Description], or [Title, Subtitle], or [Subtitle, Description].
-       - Each slide All the elements in that slide are about that idea.
+       - Each slide has 2-3 different elements.
        - Adapt, reorganize and rephrase the content to fit the slides format.
-       - Add Emojis to the text in Title, Subtitle and Description.
+       - SEM emoji. Nenhum.
        - Don't add slide numbers.
        - Description element text should be short.
        - Write in the same language as the topic.
-      `,
+      `;
+
+  const completion = await model.chat.completions.create({
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    temperature: 0,
+    messages: [
+      {
+        role: "system",
+        content: instrucoes,
       },
       { role: "user", content: topicPrompt },
     ],

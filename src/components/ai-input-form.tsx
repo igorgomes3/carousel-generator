@@ -25,6 +25,7 @@ import { useKeys } from "@/lib/hooks/use-keys";
 import { useKeysContext } from "@/lib/providers/keys-context";
 import { useStatusContext } from "@/lib/providers/editor-status-context";
 import { generateCarouselSlidesAction } from "@/app/actions";
+import { usePlanoContext } from "@/lib/providers/plano-context";
 
 const FormSchema = z.object({
   prompt: z.string().min(2, {
@@ -37,6 +38,7 @@ export function AIInputForm() {
   const { setValue }: DocumentFormReturn = useFormContext(); // retrieve those props
   const [isLoading, setIsLoading] = useState(false);
   const { status, setStatus } = useStatusContext();
+  const { setPlano } = usePlanoContext();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -49,23 +51,26 @@ export function AIInputForm() {
     setIsLoading(true);
     setStatus("loading");
 
-    const generatedSlides = await generateCarouselSlidesAction(
-      `A carousel with about "${data.prompt}"`
-    );
+    // Deixa de embrulhar o texto em "A carousel with about ..." — o
+    // planejamento já trata o tema como tema. Embrulhar fazia o modelo
+    // escrever sobre "um carrossel" em vez de sobre o assunto.
+    const resultado = await generateCarouselSlidesAction(data.prompt);
 
-    // const generatedSlides = await generateCarouselSlides(
-    //   `A carousel with about "${data.prompt}"`,
-    //   apiKey
-    // );
-    if (generatedSlides) {
-      setValue("slides", generatedSlides);
-      // TODO Fix toast not working
+    if (resultado) {
+      setValue("slides", resultado.slides);
+      // Guarda o material de estratégia para a aba de planejamento.
+      setPlano(resultado.estrategia);
       toast({
-        title: "New carousel generated",
+        title: "Carrossel gerado",
+        description: resultado.estrategia.ideia.angulo
+          ? `Ângulo: ${resultado.estrategia.ideia.angulo.slice(0, 80)}`
+          : "Gerado sem planejamento — a etapa de estratégia falhou.",
       });
     } else {
       toast({
-        title: "Failed to generate carousel",
+        title: "Falha ao gerar",
+        description: "O modelo não devolveu um carrossel válido. Tente de novo.",
+        variant: "destructive",
       });
     }
     setStatus("ready");
