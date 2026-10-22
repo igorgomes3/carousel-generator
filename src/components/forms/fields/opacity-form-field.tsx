@@ -52,6 +52,7 @@ export function OpacityFormField({
                   setOpacity(vals[0]);
                 }}
                 value={[opacity]}
+                aria-label={label}
               />
             </FormControl>
             <FormMessage />

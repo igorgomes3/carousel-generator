@@ -23,6 +23,7 @@ export function NewPage({
         <Button
           className={cn("border-dashed border-2", className)}
           variant={"outline"}
+          aria-label="Adicionar slide"
           style={{
             width: `${isSideButton ? size.width / 4 : size.width}px`,
             height: `${size.height}px`,
@@ -31,7 +32,7 @@ export function NewPage({
           }}
         >
           <div className={`flex flex-col justify-center items-center`}>
-            <Plus className="w-6 h-6" />
+            <Plus className="w-6 h-6" aria-hidden="true" />
           </div>
         </Button>
       </DialogTrigger>

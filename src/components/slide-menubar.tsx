@@ -50,9 +50,10 @@ export default function SlideMenubar({
         variant="ghost"
         size="icon"
         className="w-8 h-8"
+        aria-label="Mover slide para a esquerda"
         disabled={currentPage <= 0 || currentPage > numPages - 1}
       >
-        <ChevronLeft className="w-4 h-4" />
+        <ChevronLeft className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         onClick={() => {
@@ -71,9 +72,10 @@ export default function SlideMenubar({
         disabled={currentPage == 0 && numPages == 0}
         variant="ghost"
         className="w-8 h-8"
+        aria-label="Duplicar slide"
         size="icon"
       >
-        <Copy className="w-4 h-4" />
+        <Copy className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         onClick={() => {
@@ -90,9 +92,10 @@ export default function SlideMenubar({
         disabled={currentPage == 0 && numPages == 0}
         variant="ghost"
         className="w-8 h-8"
+        aria-label="Remover slide"
         size="icon"
       >
-        <Trash className="w-4 h-4" />
+        <Trash className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         onClick={() => {
@@ -101,10 +104,11 @@ export default function SlideMenubar({
         }}
         variant="ghost"
         className="w-8 h-8"
+        aria-label="Mover slide para a direita"
         size="icon"
         disabled={currentPage >= numPages - 1}
       >
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className="w-4 h-4" aria-hidden="true" />
       </Button>
     </div>
   );

@@ -79,9 +79,9 @@ export function SidebarPanel({ className }: { className?: string }) {
       </aside>
       <div className="block md:hidden h-0">
         <Drawer.Root modal={true}>
-          <DrawerTrigger>
+          <DrawerTrigger aria-label="Abrir configurações do carrossel">
             <CircularFloatingButton className="bottom-28 left-4">
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" aria-hidden="true" />
             </CircularFloatingButton>
           </DrawerTrigger>
           <DrawerContent className="h-[60%] ">
@@ -91,10 +91,10 @@ export function SidebarPanel({ className }: { className?: string }) {
       </div>
       <div className="block md:hidden h-0">
         <Drawer.Root modal={true}>
-          <DrawerTrigger>
+          <DrawerTrigger aria-label="Abrir estilo do elemento selecionado">
             {currentSelection ? (
               <CircularFloatingButton className="bottom-28 right-4">
-                <Brush className="w-4 h-4" />
+                <Brush className="w-4 h-4" aria-hidden="true" />
               </CircularFloatingButton>
             ) : null}
           </DrawerTrigger>
@@ -118,7 +118,7 @@ function VerticalTabTriggerButton({ tabInfo }: { tabInfo: TabInfo }) {
     >
       <tabInfo.icon className="h-4 w-4" />
       <span className="sr-only ">{tabInfo.name}</span>
-      <p className="text-xs">{tabInfo.name}</p>
+      <p className="text-xs text-slate-600">{tabInfo.name}</p>
     </VerticalTabsTrigger>
   );
 }
@@ -134,7 +134,7 @@ function HorizontalTabTriggerButton({ tabInfo }: { tabInfo: TabInfo }) {
     >
       <tabInfo.icon className="h-4 w-4" />
       <span className="sr-only ">{tabInfo.name}</span>
-      <p className="text-xs">{tabInfo.name}</p>
+      <p className="text-xs text-slate-600">{tabInfo.name}</p>
     </TabsTrigger>
   );
 }

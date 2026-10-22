@@ -25,6 +25,11 @@ export function Subtitle({
     `${fieldName}.style` as StyleFieldPath
   ) as TextFieldStyle;
   const textFieldName = (fieldName + ".text") as TextTextFieldPath;
+  // Valores do elemento (podem vir do schema estendido)
+  const element = getValues(fieldName as any);
+  const elementColor = element?.color;
+  const elementFontFamily = element?.fontFamily;
+  const elementFontWeight = element?.fontWeight;
 
   return (
     <TextAreaFormField
@@ -38,11 +43,13 @@ export function Subtitle({
           style: style,
           sizes: ["text-3xl", "text-2xl", "text-xl"],
         }),
-        fontIdToClassName(config.fonts.font1),
+        elementFontFamily ? "" : fontIdToClassName(config.fonts.elementFonts?.Subtitle || config.fonts.font1),
         className
       )}
       style={{
-        color: config.theme.secondary,
+        color: elementColor || config.theme.secondary,
+        fontFamily: elementFontFamily ? fontIdToClassName(elementFontFamily) : undefined,
+        fontWeight: elementFontWeight,
       }}
     />
   );

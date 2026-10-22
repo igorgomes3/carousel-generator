@@ -4,8 +4,8 @@ import { ConfigSchema } from "@/lib/validation/document-schema";
 import Footer from "../elements/footer";
 import { cn } from "@/lib/utils";
 import { CommonSlideSchema } from "@/lib/validation/slide-schema";
-import { BackgroundLayer } from "@/components/elements/background-layer";
 import { BackgroundImageLayer } from "@/components/elements/background-image-layer";
+import { cssDoFundo } from "@/lib/background-styles";
 import { PageBase } from "@/components/pages/page-base";
 import { Title } from "@/components/elements/title";
 import { Subtitle } from "@/components/elements/subtitle";
@@ -66,14 +66,20 @@ export function CommonPage({
     : 0;
 
   return (
-    <PageBase size={size} fieldName={backgroundImageField}>
-      <BackgroundLayer background={config.theme.background} className="-z-20" />
+    <PageBase
+      size={size}
+      fieldName={backgroundImageField}
+      style={cssDoFundo(config.theme.backgroundStyle, config.theme)}
+    >
+      {/* A imagem de fundo continua sendo uma camada propria, mas agora com
+          z-index zero e o conteudo acima dela. z negativo nao sobrevive a
+          exportacao (ver comentario em page-base). */}
       {slide.backgroundImage?.source.src ? (
-        <BackgroundImageLayer image={slide.backgroundImage} className="-z-10" />
+        <BackgroundImageLayer image={slide.backgroundImage} className="z-0" />
       ) : null}
       <PageFrame
         fieldName={backgroundImageField}
-        className={cn("p-10", className)}
+        className={cn("p-10 relative z-10", className)}
       >
         <PageLayout fieldName={backgroundImageField} className={"gap-2"}>
           {slide.elements.map((element, index) => {

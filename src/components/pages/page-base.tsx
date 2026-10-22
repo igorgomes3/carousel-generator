@@ -10,11 +10,13 @@ export function PageBase({
   children,
   fieldName,
   className,
+  style,
 }: {
   size: { width: number; height: number };
   children: React.ReactNode;
   fieldName: string;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const { currentSelection } = useSelectionContext();
   const pageNumber = getSlideNumber(fieldName);
@@ -33,6 +35,11 @@ export function PageBase({
         height: `${size.height}px`,
         minWidth: `${size.width}px`,
         minHeight: `${size.height}px`,
+        // O fundo fica aqui, no proprio elemento do slide, e nao numa camada
+        // filha com z-index negativo. A exportacao desenha o slide dentro de um
+        // SVG foreignObject, e ali um filho com z negativo e pintado atras da
+        // raiz: o fundo sumia e o PNG saia branco.
+        ...style,
       }}
     >
       {children}

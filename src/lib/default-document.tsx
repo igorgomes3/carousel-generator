@@ -28,8 +28,14 @@ export const defaultValues = {
       primary: "#0d0d0d",
       secondary: "#161616",
       background: "#ffffff",
+      backgroundStyle: "solido",
     },
     fonts: {
+      elementFonts: {
+        Title: "DM_Serif_Display",
+        Subtitle: "DM_Serif_Display",
+        Description: "DM_Sans",
+      },
       font1: "DM_Serif_Display",
       font2: "DM_Sans",
     },

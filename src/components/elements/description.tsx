@@ -26,6 +26,11 @@ export function Description({
     `${fieldName}.style` as StyleFieldPath
   ) as TextFieldStyle;
   const textFieldName = (fieldName + ".text") as TextTextFieldPath;
+  // Valores do elemento (podem vir do schema estendido)
+  const element = getValues(fieldName as any);
+  const elementColor = element?.color;
+  const elementFontFamily = element?.fontFamily;
+  const elementFontWeight = element?.fontWeight;
 
   return (
     <TextAreaFormField
@@ -39,11 +44,13 @@ export function Description({
           style: style,
           sizes: ["text-xl", "text-lg", "text-base"],
         }),
-        fontIdToClassName(config.fonts.font2),
+        elementFontFamily ? "" : fontIdToClassName(config.fonts.elementFonts?.Description || config.fonts.font2),
         className
       )}
       style={{
-        color: config.theme.secondary,
+        color: elementColor || config.theme.secondary,
+        fontFamily: elementFontFamily ? fontIdToClassName(elementFontFamily) : undefined,
+        fontWeight: elementFontWeight,
       }}
     />
   );

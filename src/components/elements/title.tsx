@@ -29,6 +29,12 @@ export function Title({
     `${fieldName}.style` as StyleFieldPath
   ) as TextFieldStyle;
   const textFieldName = (fieldName + ".text") as TextTextFieldPath;
+  // Valores do elemento (podem vir do schema estendido)
+  const element = getValues(fieldName as any);
+  const elementColor = element?.color;
+  const elementFontFamily = element?.fontFamily;
+  const elementFontWeight = element?.fontWeight;
+
   return (
     <TextAreaFormField
       fieldName={textFieldName}
@@ -42,11 +48,13 @@ export function Title({
           style: style,
           sizes: ["text-7xl", "text-5xl", "text-3xl"],
         }),
-        fontIdToClassName(config.fonts.font1),
+        elementFontFamily ? "" : fontIdToClassName(config.fonts.elementFonts?.Title || config.fonts.font1),
         className
       )}
       style={{
-        color: config.theme.primary,
+        color: elementColor || config.theme.primary,
+        fontFamily: elementFontFamily ? fontIdToClassName(elementFontFamily) : undefined,
+        fontWeight: elementFontWeight,
       }}
     />
   );

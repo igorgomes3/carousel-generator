@@ -1,5 +1,4 @@
-import { ChatOpenAI } from "langchain/chat_models/openai";
-import { HumanMessage, SystemMessage } from "langchain/schema";
+import OpenAI from "openai";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import {
@@ -27,13 +26,17 @@ const carouselFunctionSchema = {
 
 export async function generateCarouselSlides(
   topicPrompt: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<z.infer<typeof MultiSlideSchema> | null> {
   const model = startModelClient(apiKey);
 
-  const result = await model.invoke([
-    new SystemMessage(
-      `
+  const completion = await model.chat.completions.create({
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    temperature: 0,
+    messages: [
+      {
+        role: "system",
+        content: `
       Create a Carousel of slides following these rules
 
       Arguments Schema Instructions:
@@ -49,16 +52,48 @@ export async function generateCarouselSlides(
        - Add Emojis to the text in Title, Subtitle and Description.
        - Don't add slide numbers.
        - Description element text should be short.
-       `
-    ),
-    new HumanMessage(topicPrompt),
-  ]);
-  const jsonParsed = JSON.parse(
-    result.additional_kwargs.function_call?.arguments || ""
-  );
+       - Write in the same language as the topic.
+      `,
+      },
+      { role: "user", content: topicPrompt },
+    ],
+    // API moderna de ferramentas. A antiga (functions/function_call) e ignorada
+    // por boa parte dos provedores compativeis com OpenAI: eles respondem com
+    // texto puro, finish_reason "stop" e nenhuma chamada.
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: carouselFunctionSchema.name,
+          description: carouselFunctionSchema.description,
+          parameters: carouselFunctionSchema.parameters as Record<string, unknown>,
+        },
+      },
+    ],
+    tool_choice: {
+      type: "function",
+      function: { name: carouselFunctionSchema.name },
+    },
+  });
 
-  const unstyledDocumentParseResult =
-    UnstyledDocumentSchema.safeParse(jsonParsed);
+  const chamada = completion.choices[0]?.message?.tool_calls?.[0];
+  if (!chamada || chamada.type !== "function") {
+    console.error(
+      "[carrossel] o modelo nao chamou a ferramenta. finish_reason:",
+      completion.choices[0]?.finish_reason,
+    );
+    return null;
+  }
+
+  let jsonParsed: unknown;
+  try {
+    jsonParsed = JSON.parse(chamada.function.arguments || "");
+  } catch (e) {
+    console.error("[carrossel] argumentos da ferramenta nao sao JSON valido:", e);
+    return null;
+  }
+
+  const unstyledDocumentParseResult = UnstyledDocumentSchema.safeParse(jsonParsed);
   if (unstyledDocumentParseResult.success) {
     return MultiSlideSchema.parse(unstyledDocumentParseResult.data.slides);
   } else {
@@ -69,14 +104,15 @@ export async function generateCarouselSlides(
   }
 }
 
+/**
+ * O gerador roteia pelo endpoint compativel com OpenAI configurado em
+ * OPENAI_BASE_URL. Sem essa variavel o SDK usa api.openai.com — o
+ * comportamento original do projeto.
+ */
 function startModelClient(api_key: string) {
-  return new ChatOpenAI({
-    openAIApiKey: api_key,
-    modelName: "gpt-4o-mini",
-    temperature: 0,
-  }).bind({
-    // TODO Migrate to Tool and force to call the function with tool choice
-    functions: [carouselFunctionSchema],
-    function_call: { name: "carouselCreator" },
+  return new OpenAI({
+    apiKey: api_key,
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
+    maxRetries: 1,
   });
 }

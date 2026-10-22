@@ -54,11 +54,12 @@ function ElementMenubar({
         variant="ghost"
         size="icon"
         className="w-6 h-6"
+        aria-label="Mover elemento para cima"
         disabled={
           currentElementNumber <= 0 || currentElementNumber > numElements - 1
         }
       >
-        <ChevronUp className="w-4 h-4" />
+        <ChevronUp className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         onClick={() => {
@@ -75,8 +76,9 @@ function ElementMenubar({
         variant="ghost"
         size="icon"
         className="w-6 h-6"
+        aria-label="Duplicar elemento"
       >
-        <Copy className="w-4 h-4" />
+        <Copy className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         onClick={() => {
@@ -93,8 +95,9 @@ function ElementMenubar({
         variant="ghost"
         size="icon"
         className="w-6 h-6"
+        aria-label="Remover elemento"
       >
-        <Trash className="w-4 h-4" />
+        <Trash className="w-4 h-4" aria-hidden="true" />
       </Button>
       <Button
         onClick={() => {
@@ -103,9 +106,10 @@ function ElementMenubar({
         variant="ghost"
         size="icon"
         className="w-6 h-6"
+        aria-label="Mover elemento para baixo"
         disabled={currentElementNumber >= numElements - 1}
       >
-        <ChevronDown className="w-4 h-4" />
+        <ChevronDown className="w-4 h-4" aria-hidden="true" />
       </Button>
     </div>
   );

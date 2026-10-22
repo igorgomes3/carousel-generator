@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     if (!imageUrl) {
       return new NextResponse("URL Not provided", { status: 500 });
     }
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
     // Make a GET request to the external URL
     const { contentType, body } = await fetchExternalImageUrl(imageUrl);
@@ -23,7 +22,13 @@ export async function GET(request: NextRequest) {
     }
 
     const headers = new Headers();
-    headers.set("Access-Control-Allow-Origin", siteUrl);
+    // A exportacao busca as imagens daqui de dentro do navegador. Fixar a
+    // origem em NEXT_PUBLIC_APP_URL quebra tudo quando a aplicacao e acessada
+    // por outro nome (IP da rede interna, localhost): o navegador bloqueia a
+    // leitura, a imagem nao vira data URL e a exportacao morre com
+    // "Failed to create canvas", sem dizer o motivo. Nao ha credencial nesta
+    // rota — ela apenas devolve uma imagem publica — entao liberar geral e seguro.
+    headers.set("Access-Control-Allow-Origin", "*");
     headers.set("Content-Type", contentType);
     // Return the response as-is
     return new NextResponse(body, {
