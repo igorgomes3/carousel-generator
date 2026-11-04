@@ -9,7 +9,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /** Rotas que não exigem sessão: login, link público e assets do Next. */
-const LIVRES = [/^\/login/, /^\/p\//, /^\/_next\//, /^\/favicon/, /^\/api\/auth\//, /^\/api\/ac\//, /^\/api\/proxy/];
+const LIVRES = [
+  /^\/login/,
+  /^\/p\//,
+  /^\/_next\//,
+  /^\/favicon/,
+  /^\/api\/auth\//,
+  /^\/api\/ac\//,
+  /^\/api\/proxy/,
+  // Geração da fila de conteúdo: rota interna, autenticada por segredo próprio
+  // (x-interno-token). Se dependesse de sessão, o cron não conseguiria chamar.
+  /^\/api\/conteudo\//,
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

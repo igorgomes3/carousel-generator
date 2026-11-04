@@ -230,7 +230,10 @@ export default function ProjetosPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Meus carrosséis</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Salvo na conta, não no navegador. Autor vê os próprios; gestor e dono veem a
-              organização.
+              organização.{" "}
+              <Link href="/fila" className="underline underline-offset-2 hover:text-foreground">
+                Fila de conteúdo
+              </Link>
             </p>
           </div>
           <div className="flex gap-2">
