@@ -11,8 +11,12 @@ export function AIPanel() {
   return (
     <div className="flex flex-col gap-2 w-full items-center">
       <TypographyH3 className="flex flex-row items-center gap-2">
-        <Sparkles className="w-6 h-6" /> Generate with AI
+        <Sparkles className="w-6 h-6" /> Gerar com IA
       </TypographyH3>
+      <p className="text-xs text-muted-foreground text-center max-w-sm">
+        Seis etapas antes de desenhar: ângulo, esqueleto, copy, direção visual, montagem e
+        publicação. O plano aparece abaixo para você conferir.
+      </p>
       {apiKey ? (
         <>
           <AIInputForm />

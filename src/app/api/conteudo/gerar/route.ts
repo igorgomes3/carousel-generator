@@ -10,9 +10,7 @@
  * resultado poder ser aberto, editado e publicado como qualquer outro carrossel.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { defaultValues } from "@/lib/default-document";
-import { planejarConteudo, promptDeCopy } from "@/lib/conteudo";
-import { generateCarouselSlides } from "@/lib/langchain";
+import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,39 +65,19 @@ export async function POST(request: NextRequest) {
   const tema = temaDoBriefing(briefing);
   const slides = Math.min(Math.max(6, 6), 10);
 
-  // Cada etapa do pipeline devolve null quando o modelo hesita (JSON fora do
-  // schema, resposta vazia). Uma tentativa só transforma hesitação em pauta
-  // perdida; duas tentativas resolvem quase todo caso e não custam caro.
-  const tentar = async <T,>(fn: () => Promise<T | null>): Promise<T | null> => {
-    for (let i = 0; i < 2; i++) {
-      const r = await fn();
-      if (r) return r;
-      if (i === 0) await new Promise((ok) => setTimeout(ok, 1500));
-    }
-    return null;
-  };
-
-  const estrategia = await tentar(() => planejarConteudo({ tema, slides }));
-  if (!estrategia) {
+  const gerado = await gerarDocumentoCompleto(tema, chave, 7);
+  if (!gerado) {
     return NextResponse.json(
-      { erro: "O planejamento do conteúdo falhou duas vezes (modelo não respondeu)" },
-      { status: 502 },
-    );
-  }
-
-  const copy = await tentar(() =>
-    generateCarouselSlides(tema, chave, promptDeCopy({ tema, slides }, estrategia)),
-  );
-  if (!copy) {
-    return NextResponse.json(
-      { erro: "A copy falhou depois do planejamento" },
+      { erro: "A geração falhou duas vezes (modelo não respondeu)" },
       { status: 502 },
     );
   }
 
   return NextResponse.json({
     ok: true,
-    documento: { ...defaultValues, slides: copy },
-    estrategia,
+    documento: gerado.documento,
+    estrategia: gerado.estrategia,
+    tentativas: gerado.tentativas,
+    problemas: gerado.problemas,
   });
 }

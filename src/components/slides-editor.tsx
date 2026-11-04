@@ -18,6 +18,8 @@ import { useKeys } from "@/lib/hooks/use-keys";
 import { NoApiKeysText } from "./no-api-keys-text";
 import { useKeysContext } from "@/lib/providers/keys-context";
 import { AIPanel } from "@/components/ai-panel";
+import { PlanoPanel } from "@/components/plano-panel";
+import { SugestoesPanel } from "@/components/sugestoes-panel";
 import { useEffect, useState } from "react";
 import { useStatusContext } from "@/lib/providers/editor-status-context";
 import { DocumentSkeleton } from "@/components/editor-skeleton";
@@ -93,7 +95,15 @@ export function SlidesEditor({}: SlidesEditorProps) {
             </Button>
           </div> */}
         </div>
+        <SugestoesPanel
+          onDocumento={(slides) => {
+            // Desenha na hora o que a fila gerou: sem isso a pessoa gera e não vê
+            // nada mudar, que é exatamente a queixa de "não mudou nada".
+            form.setValue("slides", slides as never, { shouldDirty: true });
+          }}
+        />
         <AIPanel />
+        <PlanoPanel />
       </div>
     </div>
   );

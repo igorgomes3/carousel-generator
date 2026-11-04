@@ -100,7 +100,27 @@ export const PlanoSchema = z.object({
     .max(12)
     // Numera pelo índice, sempre. Isso também conserta o caso em que o modelo
     // numera 0-based ou pula números.
-    .transform((slides) => slides.map((s, i) => ({ ...s, posicao: i + 1 }))),
+    //
+    // E resolve o elemento por função: um slide de gancho precisa de título com
+    // subtítulo; um slide de desenvolvimento precisa de título com descrição.
+    // Deixar isso a cargo do modelo produzia carrossel de títulos soltos.
+    .transform((slides) =>
+      slides.map((s, i) => {
+        const derivado: ElementoSugerido =
+          s.funcao === "gancho"
+            ? "titulo+subtitulo"
+            : s.funcao === "virada"
+              ? "subtitulo+descricao"
+              : "titulo+descricao";
+        // Só mantém a sugestão do modelo quando ela traz mais de um elemento.
+        const dele = s.elemento_sugerido ?? "titulo";
+        return {
+          ...s,
+          posicao: i + 1,
+          elemento_sugerido: dele === "titulo" ? derivado : dele,
+        };
+      }),
+    ),
 });
 
 /** Etapa 4 — direção visual. Ligada ao briefing, não solta. */
@@ -384,8 +404,14 @@ ${linhaPorSlide}
 
 REGRAS DE ESCRITA
 - Uma ideia por slide. Não repita o que já foi dito em outro slide.
+- TODO slide tem DOIS elementos no mínimo: título + (subtítulo ou descrição).
+  Slide só com título é carrossel vazio e será recusado.
 - Título: no máximo 6 palavras. Curto o bastante para ser lido de relance.
-- Descrição: no máximo 20 palavras. Se precisar de mais, o slide está errado.
+- Descrição: entre 12 e 24 palavras. Concreta, com o detalhe que sustenta o título.
+  Descrição com menos de 8 palavras é recusada.
+- Subtítulo: no máximo 10 palavras, funciona como a segunda linha do gancho.
+- Arco: slide 1 atenção, 2 e 3 identificação, 4 a 6 conteúdo com autoridade,
+  último slide desejo + CTA. O conteúdo não pode ficar todo no meio.
 - SEM emoji. Nenhum. O visual já carrega a ênfase.
 - Português do Brasil com acentuação correta. Erro de acento em imagem não tem conserto.
 - Não invente número, pesquisa ou depoimento. Se não tem dado real, escreva sem dado.
