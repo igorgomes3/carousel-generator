@@ -31,6 +31,7 @@ export function CommonPage({
   size,
   fieldName,
   className,
+  somenteLeitura = false,
 }: {
   index: number;
   config: z.infer<typeof ConfigSchema>;
@@ -38,6 +39,12 @@ export function CommonPage({
   size: { width: number; height: number };
   fieldName: SlideFieldPath;
   className?: string;
+  /**
+   * Somente leitura (link público): sem menubar por elemento e sem botão de
+   * adicionar elemento. O pipeline de render é o mesmo de propósito, para o
+   * cliente ver exatamente o que foi aprovado no editor.
+   */
+  somenteLeitura?: boolean;
 }) {
   const LAYOUT_GAP = 8;
   const FRAME_PADDING = 40;
@@ -90,6 +97,7 @@ export function CommonPage({
               <ElementMenubarWrapper
                 key={currentField}
                 fieldName={currentField}
+                readOnly={somenteLeitura}
                 ref={(el) => {
                   el ? (inputRefs.current[index] = el) : null;
                 }}
@@ -127,12 +135,13 @@ export function CommonPage({
                 <ContentImage
                   fieldName={currentField as ElementFieldPath}
                   className="h-40"
+                  somenteLeitura={somenteLeitura}
                 />
               </ElementMenubarWrapper>
             ) : null;
           })}
           {/* // TODO Replace 50 by the element size of element to introduce or minimum of all elements */}
-          {remainingHeight && remainingHeight >= 50 ? (
+          {!somenteLeitura && remainingHeight && remainingHeight >= 50 ? (
             <AddElement
               fieldName={(fieldName + ".elements") as ElementArrayFieldPath}
             />

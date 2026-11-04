@@ -122,6 +122,8 @@ const ElementMenubarWrapper = React.forwardRef<
     fieldName: ElementFieldPath;
     children: React.ReactNode;
     className?: string;
+    /** Link público: sem barra de ações por elemento. */
+    readOnly?: boolean;
   }
 >(function ElementMenubarWrapper(
   {
@@ -129,6 +131,7 @@ const ElementMenubarWrapper = React.forwardRef<
     fieldName, //TODO Maybe change with number or expose onclciks
     children,
     className = "",
+    readOnly = false,
   },
   ref
 ) {
@@ -139,7 +142,7 @@ const ElementMenubarWrapper = React.forwardRef<
         id={`element-menubar-${fieldName}`}
         className={cn(
           "flex flex-row absolute -top-7 right-0",
-          currentSelection != fieldName && "hidden",
+          (readOnly || currentSelection != fieldName) && "hidden",
           className
         )}
       >

@@ -19,9 +19,12 @@ import {
 export function ContentImage({
   fieldName,
   className,
+  somenteLeitura = false,
 }: {
   fieldName: ElementFieldPath;
   className?: string;
+  /** No link público não existe placeholder de editor nem borda de seleção. */
+  somenteLeitura?: boolean;
 }) {
   const form: DocumentFormReturn = useFormContext();
   const { getValues } = form;
@@ -30,6 +33,9 @@ export function ContentImage({
   const { setCurrentPage } = usePagerContext();
   const { currentSelection, setCurrentSelection } = useSelectionContext();
   const pageNumber = getSlideNumber(fieldName);
+  // Placeholder "400 x 200" é ferramenta de editor: no link público ele vira
+  // conteúdo falso na cara do cliente. Sem imagem, não renderiza nada.
+  if (somenteLeitura && !image.source.src) return null;
   const source = image.source.src || "https://placehold.co/400x200";
 
   // TODO: Convert to Toggle to make it accessible. Control with selection
