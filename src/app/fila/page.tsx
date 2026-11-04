@@ -112,6 +112,12 @@ export default function FilaPage() {
   const [confirmandoPublicar, setConfirmandoPublicar] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<string>("todos");
   const [config, setConfig] = useState({ obrigatorias: "", proibidas: "", max: 3 });
+  const [padrao, setPadrao] = useState<{
+    resumo: string;
+    amostra: number;
+    gerado_em: string;
+    estrutura: { gancho?: { padrao?: string }; cta?: string; densidade_texto?: string; evitar?: string[] };
+  } | null>(null);
 
   const org = "autoclinic";
 
@@ -119,7 +125,7 @@ export default function FilaPage() {
     setCarregando(true);
     setErro(null);
     try {
-      const [f, s, m, c, cfg] = await Promise.all([
+      const [f, s, m, c, cfg, pad] = await Promise.all([
         apiJson<{ fila: ItemFila[] }>(`/conteudo/fila?org=${org}`),
         apiJson<{ sinais: Sinal[] }>(`/conteudo/sinais?org=${org}&limite=15`),
         apiJson<{ fontes: MetricaFonte[] }>(`/conteudo/metricas?org=${org}`),
@@ -129,6 +135,7 @@ export default function FilaPage() {
         apiJson<{ config: { palavras_obrigatorias: string[]; palavras_proibidas: string[]; max_por_dia: number } }>(
           `/conteudo/config?org=${org}`,
         ),
+        apiJson<{ padrao: typeof padrao }>(`/conteudo/padrao?org=${org}`),
       ]);
       setFila(f.fila ?? []);
       setSinais(s.sinais ?? []);
@@ -139,6 +146,7 @@ export default function FilaPage() {
         proibidas: (cfg.config?.palavras_proibidas ?? []).join(", "),
         max: cfg.config?.max_por_dia ?? 3,
       });
+      setPadrao(pad.padrao ?? null);
     } catch (e) {
       setErro((e as Error).message);
     } finally {
@@ -571,6 +579,76 @@ export default function FilaPage() {
                 )}
               </article>
             ))
+          )}
+        </section>
+
+        {/* Referência de performance: mede o que funciona, não copia. */}
+        <section className="rounded-xl border bg-card p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold">Referência de performance</h2>
+              <p className="text-xs text-muted-foreground">
+                Coleta posts de Instagram e TikTok do nicho, mede engajamento e extrai o padrão de
+                escrita. O padrão entra no briefing; o conteúdo de ninguém é reaproveitado.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={ocupado === "ref-coletar"}
+                onClick={() =>
+                  agir("ref-coletar", `/conteudo/referencias/coletar?org=${org}`, {
+                    method: "POST",
+                    body: JSON.stringify({ limite: 8 }),
+                  })
+                }
+              >
+                {ocupado === "ref-coletar" ? "Coletando…" : "Coletar referências"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={ocupado === "ref-modelar"}
+                onClick={() =>
+                  agir("ref-modelar", `/conteudo/padrao/modelar?org=${org}`, {
+                    method: "POST",
+                    body: JSON.stringify({}),
+                  })
+                }
+              >
+                {ocupado === "ref-modelar" ? "Modelando…" : "Modelar padrão"}
+              </Button>
+            </div>
+          </div>
+          {padrao ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm">{padrao.resumo}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground/70">
+                <span>{padrao.amostra} posts medidos</span>
+                <span>
+                  atualizado em {new Date(padrao.gerado_em).toLocaleDateString("pt-BR")}
+                </span>
+                {padrao.estrutura?.densidade_texto && (
+                  <span>densidade: {padrao.estrutura.densidade_texto}</span>
+                )}
+              </div>
+              {padrao.estrutura?.gancho?.padrao && (
+                <p className="text-sm">
+                  <span className="font-medium text-foreground/70">Gancho que funciona: </span>
+                  {padrao.estrutura.gancho.padrao}
+                </p>
+              )}
+              {Array.isArray(padrao.estrutura?.evitar) && padrao.estrutura.evitar.length > 0 && (
+                <p className="text-xs text-foreground/70">
+                  Evitar: {padrao.estrutura.evitar.slice(0, 4).join("; ")}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Nenhum padrão medido ainda. Colete referências e depois modele.
+            </p>
           )}
         </section>
 
