@@ -67,6 +67,7 @@ export default function ProjetosPage() {
   const [historico, setHistorico] = useState<{ projeto: Projeto; versoes: Versao[] } | null>(null);
   const [rascunhoLocal, setRascunhoLocal] = useState<string | null>(null);
   const [confirmandoLink, setConfirmandoLink] = useState<string | null>(null);
+  const [excluindo, setExcluindo] = useState<string | null>(null);
 
   async function carregar() {
     const lista = await apiJson<{ projetos: Projeto[] }>(
@@ -309,6 +310,45 @@ export default function ProjetosPage() {
                     </span>
                   )}
                 </div>
+
+                {excluindo === p.id && (
+                  <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+                    <p className="text-xs">
+                      Excluir <strong>{p.titulo}</strong> apaga o carrossel e todo o histórico de
+                      versões. Não tem como desfazer, e o link público deixa de abrir.
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={acao === `del-${p.id}`}
+                        onClick={async () => {
+                          setAcao(`del-${p.id}`);
+                          try {
+                            const res = await apiFetch(`/carrossel/projetos/${p.id}?org=autoclinic`, {
+                              method: "DELETE",
+                            });
+                            if (!res.ok) {
+                              const corpo = (await res.json().catch(() => ({}))) as { erro?: string };
+                              throw new Error(corpo.erro ?? `Erro ${res.status}`);
+                            }
+                            setExcluindo(null);
+                            await carregar();
+                          } catch (e) {
+                            setErro((e as Error).message);
+                          } finally {
+                            setAcao(null);
+                          }
+                        }}
+                      >
+                        Excluir de vez
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setExcluindo(null)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {confirmandoLink === p.id && (
                   <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
