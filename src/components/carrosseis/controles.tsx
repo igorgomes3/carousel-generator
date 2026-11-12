@@ -136,7 +136,7 @@ export function ChipsAbas({
     <div
       role="group"
       aria-label="Filtrar por aba"
-      className="-mx-page flex gap-1.5 overflow-x-auto px-page pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex w-full min-w-0 max-w-full snap-x gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [contain:paint] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {ABAS.map((def) => (
         <Chip
@@ -166,7 +166,7 @@ export function ChipsEstados({
     <div
       role="group"
       aria-label="Filtrar por estado exato"
-      className="-mx-page flex gap-1.5 overflow-x-auto px-page pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex w-full min-w-0 max-w-full snap-x gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [contain:paint] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <Chip
         rotulo="Todos os estados"

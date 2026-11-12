@@ -1,0 +1,213 @@
+{
+  "slides": [
+    {
+      "elements": [
+        {
+          "type": "Title",
+          "text": "YOUR TITLE",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        },
+        {
+          "type": "ContentImage",
+          "source": {
+            "src": "",
+            "type": "URL"
+          },
+          "style": {
+            "opacity": 100,
+            "objectFit": "Cover"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "source": {
+          "src": "",
+          "type": "URL"
+        },
+        "style": {
+          "opacity": 30
+        }
+      }
+    },
+    {
+      "elements": [
+        {
+          "type": "Title",
+          "text": "YOUR TITLE",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        },
+        {
+          "type": "Subtitle",
+          "text": "Your awesome subtitle",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        },
+        {
+          "type": "ContentImage",
+          "source": {
+            "src": "",
+            "type": "URL"
+          },
+          "style": {
+            "opacity": 100,
+            "objectFit": "Cover"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "source": {
+          "src": "",
+          "type": "URL"
+        },
+        "style": {
+          "opacity": 30
+        }
+      }
+    },
+    {
+      "elements": [
+        {
+          "type": "Title",
+          "text": "YOUR TITLE",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        },
+        {
+          "type": "Description",
+          "text": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Expedita, dolorum. awesome subtitle",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "source": {
+          "src": "",
+          "type": "URL"
+        },
+        "style": {
+          "opacity": 30
+        }
+      }
+    },
+    {
+      "elements": [
+        {
+          "type": "Title",
+          "text": "YOUR TITLE",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        },
+        {
+          "type": "Description",
+          "text": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Expedita, dolorum. awesome subtitle",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "source": {
+          "src": "",
+          "type": "URL"
+        },
+        "style": {
+          "opacity": 30
+        }
+      }
+    },
+    {
+      "elements": [
+        {
+          "type": "Title",
+          "text": "YOUR TITLE",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        },
+        {
+          "type": "Subtitle",
+          "text": "Your awesome subtitle",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        },
+        {
+          "type": "Description",
+          "text": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Expedita, dolorum. awesome subtitle",
+          "style": {
+            "fontSize": "Medium",
+            "align": "Left"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "source": {
+          "src": "",
+          "type": "URL"
+        },
+        "style": {
+          "opacity": 30
+        }
+      }
+    }
+  ],
+  "config": {
+    "brand": {
+      "avatar": {
+        "type": "Image",
+        "source": {
+          "src": "",
+          "type": "URL"
+        },
+        "style": {
+          "opacity": 100
+        }
+      },
+      "name": "",
+      "handle": ""
+    },
+    "theme": {
+      "primary": "#0d0d0d",
+      "secondary": "#161616",
+      "background": "#ffffff",
+      "isCustom": false,
+      "pallette": "black",
+      "backgroundStyle": "solido"
+    },
+    "fonts": {
+      "elementFonts": {
+        "Title": "DM_Serif_Display",
+        "Subtitle": "DM_Serif_Display",
+        "Description": "DM_Sans"
+      },
+      "font1": "DM_Serif_Display",
+      "font2": "DM_Sans"
+    },
+    "pageNumber": {
+      "showNumbers": true
+    }
+  },
+  "filename": "My Carousel File"
+}

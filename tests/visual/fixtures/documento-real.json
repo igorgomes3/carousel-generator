@@ -2,8 +2,10 @@
   "config": {
     "brand": {
       "avatar": {
+        "type": "Image",
         "source": {
-          "src": ""
+          "src": "",
+          "type": "URL"
         },
         "style": {
           "opacity": 100

@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import documentoReal from "./fixtures/documento-real.json";
+import documentoPadrao from "./fixtures/documento-padrao.json";
 
 /**
  * Ajudantes dos testes visuais.
@@ -182,6 +183,13 @@ export interface OpcoesMock {
   aprovacao?: { status: number; corpo: unknown } | null;
   /** Resposta de `POST /carrosseis/<id>/gerar` — o critério 8 usa 409. */
   geracao?: { status: number; corpo: unknown } | null;
+  /**
+   * Documento que o `GET /carrosseis/<id>` devolve.
+   * `null` = carrossel SEM `documento`, que é como os testes de editor medem o
+   * documento padrão (`defaultValues`): o zod recusa `undefined` e o editor cai
+   * no padrão, exatamente como o editor "novo" da direção A fazia.
+   */
+  documento?: unknown | null;
 }
 
 const ID_NA_ROTA = /\/carrossel\/carrosseis\/([0-9a-f-]{36})(?:\/|$|\?)/;
@@ -190,6 +198,7 @@ const ID_NA_ROTA = /\/carrossel\/carrosseis\/([0-9a-f-]{36})(?:\/|$|\?)/;
 export async function prepararSessao(page: Page, opcoes: OpcoesMock = {}) {
   const carrosseis = opcoes.carrosseis ?? CARROSSEIS_MOCK;
   const marca = opcoes.marca === undefined ? MARCA_MOCK : opcoes.marca;
+  const documento = opcoes.documento === undefined ? DOCUMENTO_MOCK : opcoes.documento;
 
   await page.route("**/api/auth/refresh", (rota) =>
     rota.fulfill({
@@ -236,11 +245,10 @@ export async function prepararSessao(page: Page, opcoes: OpcoesMock = {}) {
     if (ID_NA_ROTA.test(url) && metodo === "GET") {
       const id = ID_NA_ROTA.exec(url)![1];
       const achado = (carrosseis as Record<string, unknown>[]).find((c) => c.id === id);
+      const base = achado ?? { id, titulo: "Sem título", briefing: {} };
       return rota.fulfill({
         json: {
-          carrossel: achado
-            ? { ...achado, documento: DOCUMENTO_MOCK }
-            : { id, titulo: "Sem título", documento: DOCUMENTO_MOCK, briefing: {} },
+          carrossel: documento === null ? base : { ...base, documento },
         },
       });
     }
@@ -265,12 +273,34 @@ export async function prepararSessao(page: Page, opcoes: OpcoesMock = {}) {
   });
 }
 
+/**
+ * Documento padrão do editor com a marca da organização aplicada.
+ *
+ * É o que o editor "novo" entregava na direção A: `defaultValues` + nome e @ de
+ * `/carrossel/marca`. A baseline visual foi medida nesse estado, e o teste da
+ * marca procura justamente esses dois textos no slide. O fixture
+ * `documento-padrao.json` é `DocumentSchema.parse(defaultValues)` congelado.
+ */
+function documentoPadraoCom(marca: typeof MARCA_MOCK | null) {
+  return {
+    ...documentoPadrao,
+    config: {
+      ...documentoPadrao.config,
+      brand: {
+        ...documentoPadrao.config.brand,
+        name: marca?.nome ?? "",
+        handle: marca?.handle ?? "",
+      },
+    },
+  };
+}
+
 /** Editor com documento limpo, pronto para medir. */
 export async function abrirEditorLimpo(
   page: Page,
   marca: typeof MARCA_MOCK | null = MARCA_MOCK,
 ) {
-  await prepararSessao(page, { marca });
+  await prepararSessao(page, { marca, documento: documentoPadraoCom(marca) });
   await page.goto(`/carrossel/${ID_EDITOR}/editar`);
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
@@ -283,7 +313,7 @@ export async function abrirLista(page: Page, opcoes: OpcoesMock = {}, url = "/")
   await prepararSessao(page, opcoes);
   await page.goto(url);
   await page.waitForSelector(
-    "[data-lista], [data-estado='vazio'], [data-estado='vazio-aba'], [data-estado='vazio-busca'], [data-estado='erro']",
+    "[data-lista], [data-estado='carregando'], [data-estado='vazio'], [data-estado='vazio-aba'], [data-estado='vazio-busca'], [data-estado='erro']",
     { timeout: 60_000 },
   );
   await page.evaluate(() => document.fonts.ready);

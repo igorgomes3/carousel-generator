@@ -401,11 +401,15 @@ export function ListaCarrosseis({ estadosDevLiberados }: { estadosDevLiberados: 
 
   const semResultado = !vamosCarregar && !listaVazia && resultado.filtrados.length === 0;
 
+  // `overflow-x-clip` na raiz: os grupos de chips são faixas roláveis que sangram
+  // para fora do container (`-mx-page`). Sem recorte aqui, a largura do conteúdo
+  // rolável deles entra no `scrollWidth` do documento e a página inteira ganha
+  // rolagem horizontal — medido 603 px em 360, 390 e 768.
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-clip bg-background">
       <NavPrincipal usuario={usuario} />
 
-      <main className="mx-auto w-full max-w-[1180px] px-page pb-16 pt-page">
+      <main className="mx-auto w-full min-w-0 max-w-[1180px] overflow-x-clip px-page pb-16 pt-page">
         {/* Cabeçalho: título + resumo de um lado, a única ação preenchida da tela. */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">

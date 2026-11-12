@@ -24,9 +24,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Clock, Copy, Link2, MoreHorizontal, Trash2, Unlink } from "lucide-react";
+import { Check, Clock, Copy, Link2, MoreHorizontal, Trash2, Unlink } from "lucide-react";
 
-import { Checkbox } from "@/components/ui/checkbox";
 import { EtiquetaEstado } from "@/components/ui/etiqueta-estado";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -104,7 +103,10 @@ export function CartaoCarrossel({
           aria-hidden="true"
           data-preview="1"
           data-capa-real={capa.real ? "1" : "0"}
-          className="flex aspect-[4/5] w-thumb shrink-0 flex-col justify-between overflow-hidden rounded-sm p-1.5"
+          // `self-start`: com o `align-items: stretch` padrão do flex, a miniatura
+          // esticava até a altura da coluna de texto (78 × 107) e deixava de ser
+          // 4:5 — que é o que a §2.2 pede e o que o teste de proporção mede.
+          className="flex aspect-[4/5] w-thumb shrink-0 self-start flex-col justify-between overflow-hidden rounded-sm p-1.5"
           style={{ backgroundColor: capa.fundo, color: capa.texto }}
         >
           <span className="overflow-hidden text-[7.5px] font-semibold leading-[1.25] tracking-[-0.01em] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4]">
@@ -154,21 +156,36 @@ export function CartaoCarrossel({
           esconder o alvo no toque deixaria a ação em lote inalcançável no
           celular, que é onde "long press" do plano não tem gesto padrão. O
           quadrado de toque é 44 px; o `Checkbox` é 16 px, como pede a §2.5. */}
-      <label
+      {/* Alvo de 44×44 com desenho de 16 px dentro.
+          O `Checkbox` do Radix é ele mesmo o botão de 16 px: um `<label>` de
+          44 px em volta não conta para o alvo medido (@media de toque), então o
+          teste de 44 px do mobile reprovava com três alvos de 16 px. Aqui o
+          botão é o alvo e a caixinha é `aria-hidden`. */}
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={selecionado}
+        aria-label={`Selecionar ${carrossel.titulo}`}
+        onClick={() => onSelecionar(carrossel.id, !selecionado)}
         className={cn(
-          "absolute left-1 top-1 grid size-11 place-items-center rounded-md transition-opacity md:size-8",
+          "absolute left-0 top-0 grid size-11 place-items-center rounded-md transition-opacity md:size-8",
           selecionado
             ? "opacity-100"
             : "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
         )}
       >
-        <span className="sr-only">Selecionar {carrossel.titulo}</span>
-        <Checkbox
-          checked={selecionado}
-          onCheckedChange={(v: boolean | "indeterminate") => onSelecionar(carrossel.id, v === true)}
-          aria-label={`Selecionar ${carrossel.titulo}`}
-        />
-      </label>
+        <span
+          aria-hidden="true"
+          className={cn(
+            "grid size-4 place-items-center rounded-sm border transition-colors",
+            selecionado
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-input bg-background hover:border-primary",
+          )}
+        >
+          {selecionado && <Check className="size-3" strokeWidth={3} />}
+        </span>
+      </button>
 
       <div className="mt-auto flex items-center gap-0.5 border-t border-border px-1.5 py-1">
         {/* Ação primária do cartão, por estado (§2.3). Na fase 1 só `Gerar`

@@ -66,7 +66,7 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioCarrossel | null }) 
         // acessível — axe reprova em `link-name`, e teclado/voz chegam num
         // controle anônimo.
         aria-label="Carrossel"
-        className="flex shrink-0 items-center gap-2 rounded-sm text-body font-semibold tracking-[-0.01em]"
+        className="flex size-11 shrink-0 items-center justify-center gap-2 rounded-sm text-body font-semibold tracking-[-0.01em] md:size-auto md:justify-start"
       >
         <Marca />
         <span className="hidden sm:inline">Carrossel</span>
@@ -102,7 +102,7 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioCarrossel | null }) 
         <button
           type="button"
           onClick={aoSair}
-          className="inline-flex h-11 items-center rounded-sm px-2 text-control text-subtle hover:bg-secondary hover:text-foreground md:h-8"
+          className="inline-flex h-11 min-w-11 items-center justify-center rounded-sm px-2 text-control text-subtle hover:bg-secondary hover:text-foreground md:min-w-0 md:h-8"
         >
           Sair
         </button>
