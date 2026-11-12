@@ -149,8 +149,10 @@ test.describe("estilo granular de texto", () => {
     const secaoTema = page.getByRole("heading", { name: "Tema", exact: true });
     await secaoTema.scrollIntoViewIfNeeded();
     await expect(page.getByText("Imagem de fundo do slide atual")).toBeVisible();
-    await expect(page.getByText("Origem da imagem")).toBeVisible();
-    await expect(page.locator('input[type="url"]')).toBeVisible();
+    // Duas cópias existem no DOM (o rótulo visível e um sr-only do mesmo campo),
+    // porque o inspetor agora renderiza todas as seções de uma vez.
+    await expect(page.getByText("Origem da imagem").first()).toBeVisible();
+    await expect(page.locator('input[type="url"]').first()).toBeVisible();
   });
 
   test("regressão visual: estado inicial do editor", async ({ page }) => {
