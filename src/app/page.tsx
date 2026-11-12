@@ -1,47 +1,39 @@
-"use client";
-
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import Editor from "@/components/editor";
-import { DocumentProvider } from "@/lib/providers/document-provider";
+
+import { ListaCarrosseis } from "@/components/carrosseis/lista-carrosseis";
 
 /**
- * O editor aceita `?projeto=<id>`: abre o documento salvo e liga o autosave.
- * Sem o parâmetro continua sendo o editor "novo", que persiste no navegador —
- * é o modo que a galeria oferece para importar uma vez e aposentar.
+ * `/` — a tela inicial de carrosséis (§2 do plano de UI).
  *
- * A faixa "Projeto salvo — as alterações são gravadas automaticamente" saiu daqui
- * na direção A: virou a linha de status do palco, que já diz a mesma coisa e
- * ainda informa quantos slides existem e em que escala. Duas faixas dizendo
- * "está salvo" era o tipo de ruído que a direção remove.
+ * Server component de propósito, mesmo com a tela inteira sendo cliente: é
+ * aqui, e só aqui, que `process.env` significa algo em runtime. O `next start`
+ * roda com `NODE_ENV=production`, então os estados de dev da §2.6
+ * (`?estado=vazio|carregando|erro`) precisam de uma porta explícita —
+ * `ESTADOS_DEV=1` no ambiente do servidor. Em `next dev` ela já vem aberta.
+ * Ler isso dentro de um componente cliente não funcionaria: `process.env` sem
+ * prefixo `NEXT_PUBLIC_` é trocado por `undefined` no bundle do navegador.
+ *
+ * `Suspense` porque `useSearchParams` no cliente exige fronteira: sem ela o
+ * build falha com "useSearchParams() should be wrapped in a suspense boundary".
  */
-function EditorComProjeto() {
-  const params = useSearchParams();
-  const projetoId = params.get("projeto");
-
-  return (
-    <DocumentProvider projetoId={projetoId}>
-      <Editor />
-    </DocumentProvider>
-  );
-}
+// Renderização por requisição: `ESTADOS_DEV` é lido em runtime. Como página
+// estática, o `next build` congela `process.env` e o portão dos estados de dev
+// nasceria sempre fechado em `next start`.
+export const dynamic = "force-dynamic";
 
 export default function Home() {
+  const estadosDevLiberados =
+    process.env.NODE_ENV !== "production" || process.env.ESTADOS_DEV === "1";
+
   return (
-    // `fixed inset-0` e não `h-screen`: dentro de um body flex de altura
-    // automática, `flex-1` + `h-screen` resolvia para a altura do CONTEÚDO
-    // (2159 px em 1280×900), e o filmstrip caía fora da dobra. Preso à viewport,
-    // a cadeia de flex ganha altura definida e só o palco rola.
-    <main className="fixed inset-0 flex flex-col overflow-hidden bg-background">
-      <Suspense
-        fallback={
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-body text-muted-foreground">Carregando editor…</p>
-          </div>
-        }
-      >
-        <EditorComProjeto />
-      </Suspense>
-    </main>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <p className="text-body text-muted-foreground">Carregando carrosséis…</p>
+        </div>
+      }
+    >
+      <ListaCarrosseis estadosDevLiberados={estadosDevLiberados} />
+    </Suspense>
   );
 }

@@ -41,7 +41,7 @@ export function MainNav({ handleDownloadPngs, isExporting, className }: MainNavP
       )}
     >
       <Link
-        href="/projetos"
+        href="/"
         className="flex shrink-0 items-center gap-2 rounded-sm text-body font-semibold tracking-[-0.01em]"
       >
         <span
@@ -96,10 +96,10 @@ export function MainNav({ handleDownloadPngs, isExporting, className }: MainNavP
         </Button>
         {temProjeto && (
           <Link
-            href="/projetos"
+            href="/"
             className="hidden rounded-sm px-2 text-meta font-medium text-subtle hover:bg-secondary hover:text-foreground md:inline-flex md:h-8 md:items-center"
           >
-            Galeria
+            Carrosséis
           </Link>
         )}
       </div>
