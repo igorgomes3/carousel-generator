@@ -78,13 +78,13 @@ export function StyleMenu({
       key={elementPath}
     >
       <div className="space-y-2">
-        <TypographyH3>Style</TypographyH3>
-        <p className="text-sm text-muted-foreground">
-          Set the selected element style.
+        <TypographyH3 className="text-body font-semibold">Estilo do elemento</TypographyH3>
+        <p className="text-meta text-muted-foreground">
+          Vale só para o elemento selecionado.
         </p>
       </div>
       <Separator orientation="horizontal"></Separator>
-      <div className="flex flex-col gap-6 items-start">
+      <div className="flex flex-col gap-4 items-start">
         {style && Object.hasOwn(style, "fontSize") ? (
           <EnumRadioGroupField
             name="Font Size"

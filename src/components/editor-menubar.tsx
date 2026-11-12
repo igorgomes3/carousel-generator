@@ -44,7 +44,7 @@ export function EditorMenubar({}: {}) {
     <div className="flex items-center flex-row gap-2">
       <Menubar>
         <MenubarMenu>
-          <MenubarTrigger>File</MenubarTrigger>
+          <MenubarTrigger>Arquivo</MenubarTrigger>
           <MenubarContent>
             {/* <MenubarItem > */}
             <FilenameForm className={"text-left my-1"} />
@@ -54,7 +54,7 @@ export function EditorMenubar({}: {}) {
               values={watch("config")}
               filename={"carousel-settings.json"}
             >
-              <MenubarItem>Export Settings</MenubarItem>
+              <MenubarItem>Exportar configurações</MenubarItem>
             </JsonExporter>
             <Dialog
               open={isConfigDialogOpen}
@@ -62,12 +62,12 @@ export function EditorMenubar({}: {}) {
             >
               <DialogTrigger asChild>
                 <MenubarItem onSelect={(e) => e.preventDefault()}>
-                  Import Settings
+                  Importar configurações
                 </MenubarItem>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Load a file with Settings</DialogTitle>
+                  <DialogTitle>Carregar um arquivo de configurações</DialogTitle>
                 </DialogHeader>
 
                 <FileInputForm
@@ -75,8 +75,8 @@ export function EditorMenubar({}: {}) {
                     handleConfigFileSubmission(files);
                     setIsConfigDialogOpen(false);
                   }}
-                  label={"Settings File"}
-                  description="Select a json file to load"
+                  label={"Arquivo de configurações"}
+                  description="Selecione um arquivo JSON"
                 />
               </DialogContent>
             </Dialog>
@@ -85,7 +85,7 @@ export function EditorMenubar({}: {}) {
               values={watch("slides")}
               filename={"carousel-content.json"}
             >
-              <MenubarItem>Export Content</MenubarItem>
+              <MenubarItem>Exportar conteúdo</MenubarItem>
             </JsonExporter>
             <Dialog
               open={isContentDialogOpen}
@@ -93,12 +93,12 @@ export function EditorMenubar({}: {}) {
             >
               <DialogTrigger asChild>
                 <MenubarItem onSelect={(e) => e.preventDefault()}>
-                  Import Content
+                  Importar conteúdo
                 </MenubarItem>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Load a file with content</DialogTitle>
+                  <DialogTitle>Carregar um arquivo de conteúdo</DialogTitle>
                 </DialogHeader>
 
                 <FileInputForm
@@ -106,8 +106,8 @@ export function EditorMenubar({}: {}) {
                     handleContentFileSubmission(files);
                     setIsContentDialogOpen(false);
                   }}
-                  label={"Content File"}
-                  description="Select a json file to load"
+                  label={"Arquivo de conteúdo"}
+                  description="Selecione um arquivo JSON"
                 />
               </DialogContent>
             </Dialog>
@@ -121,7 +121,7 @@ export function EditorMenubar({}: {}) {
               }}
             >
               {/* TODO: This should have a confirmation alert dialog */}
-              Reset to defaults
+              Restaurar padrões
             </MenubarItem>
             {/* <MenubarSeparator /> */}
             {/* <MenubarItem>Print</MenubarItem> */}

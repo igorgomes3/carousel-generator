@@ -61,7 +61,7 @@ test.describe("acessibilidade", () => {
 
     const titulo = page.locator('[id^="page-base-"] textarea').first();
     await titulo.click();
-    await expect(page.getByRole("heading", { name: "Style" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Estilo do elemento" })).toBeVisible();
 
     const violacoes = await violacoesBloqueantes(page);
     expect(

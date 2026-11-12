@@ -57,6 +57,33 @@ function blocoRaio() {
     .join("\n");
 }
 
+/** Grupos escalares que saem como `--prefixo-nome`. */
+const GRUPOS_ESCALARES = [
+  ["font-size", "text", "dimension"],
+  ["line-height", "leading", "number"],
+  ["font-weight", "weight", "number"],
+  ["space", "space", "dimension"],
+  ["size", "size", "dimension"],
+  ["shadow", "shadow", "shadow"],
+];
+
+/**
+ * Emite um grupo escalar. Aceita `{radius.base}` como referência, então
+ * espaçamento e tamanho continuam podendo apontar para o raio base.
+ */
+function blocoEscalar(grupo, prefixo) {
+  const valores = tokens[grupo];
+  if (!valores) return "";
+  return Object.entries(valores)
+    .map(([nome, token]) => `    --${prefixo}-${nome}: ${resolver(token.value)};`)
+    .join("\n");
+}
+
+function blocoTipografia() {
+  const familia = tokens.font?.sans?.value;
+  return familia ? `    --font-sans: ${resolver(familia)};` : "";
+}
+
 const cabecalho = `/* GERADO POR scripts/build-tokens.mjs — NÃO EDITAR À MÃO.
  * Fonte da verdade: design-tokens.json
  * Regenerar: node scripts/build-tokens.mjs
@@ -67,6 +94,10 @@ const conteudo = `${cabecalho}
 :root {
 ${blocoCores("light")}
 ${blocoRaio()}
+${blocoTipografia()}
+${GRUPOS_ESCALARES.map(([grupo, prefixo]) => blocoEscalar(grupo, prefixo))
+  .filter(Boolean)
+  .join("\n")}
 }
 
 .dark {

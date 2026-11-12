@@ -2,6 +2,11 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Input denso: 32 px no desktop, 44 px no mobile (alvo de toque), raio 6 px,
+ * texto de 14 px — nunca abaixo disso, porque input é conteúdo digitado.
+ * O anel de foco vem de `:focus-visible` em globals.css.
+ */
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
 
@@ -11,7 +16,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-11 w-full rounded-sm border border-input bg-background px-2.5 py-2 text-control text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 md:h-8",
           className
         )}
         ref={ref}

@@ -1,63 +1,49 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import { useFieldArrayValues } from "@/lib/hooks/use-field-array-values";
 import { usePagerContext } from "@/lib/providers/pager-context";
-import {
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { PageCounter } from "./page-counter";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-interface Props extends React.HTMLAttributes<HTMLElement> {}
-
-export default function Pager({}: Props) {
-  const { currentPage, onPreviousClick, onNextClick, setCurrentPage } =
-    usePagerContext();
+/**
+ * Paginador compacto da direção A: duas setas e o contador dentro de uma caixa
+ * de borda fina, 32 px de altura. Antes eram quatro botões outline de 36 px que
+ * ocupavam 220 px da barra e gritavam mais que o conteúdo.
+ *
+ * Alvo de toque: 44 px no mobile (min-h-11 no container), 26 px no desktop.
+ */
+export default function Pager() {
+  const { currentPage, onPreviousClick, onNextClick } = usePagerContext();
   const { numPages } = useFieldArrayValues("slides");
+  const total = numPages ?? 0;
+  const primeiro = currentPage === 0;
+  const ultimo = currentPage === total - 1 || total === 0;
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 items-center ">
-      <div className="flex flex-row gap-1 items-center">
-        <Button
-          onClick={() => setCurrentPage(0)}
-          variant="outline"
-          size="sm"
-          disabled={currentPage == 0}
-          aria-label="Ir para o primeiro slide"
-        >
-          <ChevronFirst className="w-4 h-4" aria-hidden="true" />
-        </Button>
-        <Button
-          onClick={onPreviousClick}
-          variant="outline"
-          size="sm"
-          disabled={currentPage == 0}
-          aria-label="Slide anterior"
-        >
-          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-        </Button>
-        <PageCounter></PageCounter>
-        <Button
-          onClick={onNextClick}
-          variant="outline"
-          size="sm"
-          disabled={currentPage == numPages - 1 || numPages == 0}
-          aria-label="Próximo slide"
-        >
-          <ChevronRight className="w-4 h-4" aria-hidden="true" />
-        </Button>
-        <Button
-          onClick={() => setCurrentPage(numPages - 1)}
-          variant="outline"
-          size="sm"
-          disabled={currentPage == numPages - 1 || numPages == 0}
-          aria-label="Ir para o último slide"
-        >
-          <ChevronLast className="w-4 h-4" aria-hidden="true" />
-        </Button>
-      </div>{" "}
+    <div className="flex h-11 items-center rounded-md border border-border bg-background p-0.5 md:h-8">
+      <button
+        type="button"
+        onClick={onPreviousClick}
+        disabled={primeiro}
+        aria-label="Slide anterior"
+        className="grid size-10 place-items-center rounded-sm text-subtle hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40 md:size-[26px]"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+      </button>
+      <span
+        className="min-w-12 border-x border-border px-2 text-center text-meta font-medium tabular-nums text-subtle"
+        aria-live="polite"
+        suppressHydrationWarning
+      >
+        {Math.min(currentPage + 1, Math.max(total, 1))} / {total}
+      </span>
+      <button
+        type="button"
+        onClick={onNextClick}
+        disabled={ultimo}
+        aria-label="Próximo slide"
+        className="grid size-10 place-items-center rounded-sm text-subtle hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40 md:size-[26px]"
+      >
+        <ChevronRight className="size-4" aria-hidden="true" />
+      </button>
     </div>
   );
 }

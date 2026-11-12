@@ -4,37 +4,39 @@ import {
   SlidesFieldArrayReturn,
 } from "@/lib/document-form-types";
 import { Document } from "./pages/document";
-import useWindowDimensions from "@/lib/hooks/use-window-dimensions";
 import { SIZE } from "@/lib/page-size";
-import { LoadingSpinner } from "./loading-spinner";
 import { usePagerContext } from "@/lib/providers/pager-context";
 import { useFieldArrayValues } from "@/lib/hooks/use-field-array-values";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useSelectionContext } from "@/lib/providers/selection-context";
-import { AIInputForm } from "@/components/ai-input-form";
-import { AITextAreaForm } from "@/components/ai-textarea-form";
-import { useKeys } from "@/lib/hooks/use-keys";
-import { NoApiKeysText } from "./no-api-keys-text";
-import { useKeysContext } from "@/lib/providers/keys-context";
-import { AIPanel } from "@/components/ai-panel";
-import { PlanoPanel } from "@/components/plano-panel";
-import { SugestoesPanel } from "@/components/sugestoes-panel";
-import { useEffect, useState } from "react";
 import { useStatusContext } from "@/lib/providers/editor-status-context";
 import { DocumentSkeleton } from "@/components/editor-skeleton";
+import { EditorStatusBar } from "@/components/editor-status-bar";
+import { Filmstrip } from "@/components/filmstrip";
+import { SugestoesPanel } from "@/components/sugestoes-panel";
+import { AIPanel } from "@/components/ai-panel";
+import { PlanoPanel } from "@/components/plano-panel";
+import { useEscalaSlide } from "@/lib/hooks/use-escala-slide";
+import { useEffect } from "react";
 
+/**
+ * Palco do editor.
+ *
+ * Direção A: superfície neutra (`bg-canvas`), o slide como única peça colorida,
+ * linha de status acima e filmstrip abaixo. Saiu o empilhamento
+ * `bg-muted/20` + `bg-primary/10` que o DESIGN.md apontava como lilás sem
+ * intenção — agora o palco é um cinza neutro e o slide é o que chama atenção.
+ *
+ * O palco continua sendo um carrossel do embla com todos os slides na mesma
+ * faixa (é o que permite arrastar e editar o slide vizinho); a largura da faixa
+ * é de um slide só, então a tela mostra o slide atual, não dois.
+ */
 interface SlidesEditorProps {}
 
 export function SlidesEditor({}: SlidesEditorProps) {
   const form: DocumentFormReturn = useFormContext();
   const { control, watch } = form;
   const document = watch();
-  const { width } = useWindowDimensions();
-  const windowWidth = width || 0;
-  const isLoadingWidth = !windowWidth;
-  const { currentPage, onPreviousClick, onNextClick, setCurrentPage } =
-    usePagerContext();
+  const { escala, larguraPronta } = useEscalaSlide();
   const { numPages } = useFieldArrayValues("slides");
   const slidesFieldArray: SlidesFieldArrayReturn = useFieldArray({
     control, // control props comes from useForm (optional: if you are using FormContext)
@@ -47,64 +49,45 @@ export function SlidesEditor({}: SlidesEditorProps) {
     setStatus("ready");
   }, [setStatus]);
 
-  // Screen with larger than md side have smaller slides because the sidebar is present
-  const mdWindowWidthPx = 770;
-  const screenToSlideMinRatio = windowWidth > mdWindowWidthPx ? 2.5 : 1.2;
-  const scale = Math.min(1, windowWidth / screenToSlideMinRatio / SIZE.width);
-
   return (
-    <div
-      className="flex flex-col w-full items-center justify-start bg-muted/20 flex-1 h-full"
-      // TODO: When background gets clicked element gets unselected
-      onClick={(event) => {
-        // Only clear selection if this element started the event
-        setCurrentSelection("", event);
-      }}
-    >
-      <div className=" flex flex-col p-4 w-full h-full items-center justify-start gap-8 font-mono text-sm bg-primary/10">
-        <div className="w-full px-4 py-10">
-          {isLoadingWidth || status == "loading" ? (
+    <div className="flex min-h-0 w-full flex-1 flex-col bg-canvas">
+      <EditorStatusBar />
+
+      <div
+        className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden"
+        // Clicar no palco desmarca o elemento selecionado.
+        onClick={(event) => {
+          setCurrentSelection("", event);
+        }}
+      >
+        <div className="flex w-full flex-col items-center px-2 py-4 md:px-5 md:py-5">
+          {!larguraPronta || status == "loading" ? (
             <DocumentSkeleton />
           ) : (
             <Document
               document={document}
               slidesFieldArray={slidesFieldArray}
-              scale={scale}
+              scale={escala}
             />
           )}
-          {/* <div className="absolute left-0 top-1/2 transform -translate-y-1/2 px-4 py-2 ">
-            <Button
-              onClick={onPreviousClick}
-              variant="outline"
-              size="icon"
-              className="border-2 border-primary"
-              disabled={currentPage == 0}
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </Button>
-          </div>
-          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 px-4 py-2 ">
-            <Button
-              onClick={onNextClick}
-              variant="outline"
-              size="icon"
-              className="border-2 border-primary"
-              disabled={currentPage == numPages - 1 || numPages == 0}
-            >
-              <ChevronRight className="w-6 h-6" />
-            </Button>
-          </div> */}
         </div>
-        <SugestoesPanel
-          onDocumento={(slides) => {
-            // Desenha na hora o que a fila gerou: sem isso a pessoa gera e não vê
-            // nada mudar, que é exatamente a queixa de "não mudou nada".
-            form.setValue("slides", slides as never, { shouldDirty: true });
-          }}
-        />
-        <AIPanel />
-        <PlanoPanel />
+
+        {/* Os painéis de pauta/plano são conteúdo, não chrome: ficam na coluna
+            do palco, com largura de leitura, abaixo do slide. */}
+        <div className="flex w-full flex-col items-center gap-3 px-3 pb-4 md:px-5">
+          <SugestoesPanel
+            onDocumento={(slides) => {
+              // Desenha na hora o que a fila gerou: sem isso a pessoa gera e não
+              // vê nada mudar, que é exatamente a queixa de "não mudou nada".
+              form.setValue("slides", slides as never, { shouldDirty: true });
+            }}
+          />
+          <AIPanel />
+          <PlanoPanel />
+        </div>
       </div>
+
+      {numPages ? <Filmstrip /> : null}
     </div>
   );
 }

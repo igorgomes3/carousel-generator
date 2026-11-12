@@ -23,8 +23,6 @@ import {
   CarouselApi,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
 
 export function Document({
@@ -60,17 +58,20 @@ export function Document({
   }, [currentPage, api]);
 
   return (
-    <div className=" flex flex-row justify-center w-full">
+    <div className="flex w-full flex-row justify-center">
       <Carousel
         setApi={setApi}
         opts={{
           align: "start",
         }}
-        className="w-full sm:w-4/5 min-w-[400px]"
+        // Uma largura de um slide: o palco mostra o slide atual (direção A), não
+        // dois lado a lado. O embla continua dono do gesto de arrastar, e a
+        // exportação lê a faixa inteira — os outros slides seguem no DOM.
+        className="w-full"
         style={{
           transform: `scale(${scale})`,
           transformOrigin: "top",
-          minWidth: `${400 + SLIDE_PADDING_X * 2}px`,
+          maxWidth: `${SIZE.width + SLIDE_PADDING_X * 2}px`,
           height: scale * (SIZE.height + PADDING_TOP + PADDING_BOTTOM),
         }}
       >
@@ -146,18 +147,9 @@ export function Document({
             />
           </CarouselItem>
         </CarouselContent>
-        <CarouselPrevious
-          className="sm:-left-12 -left-4"
-          style={{
-            transform: `scale(${1 / scale})`,
-          }}
-        />
-        <CarouselNext
-          className="sm:-right-12 -right-4"
-          style={{
-            transform: `scale(${1 / scale})`,
-          }}
-        />
+        {/* Setas do embla desligadas na direção A: o paginador da barra e o
+            filmstrip já mudam de slide, e três controles para a mesma ação
+            (setas flutuantes, paginador, miniaturas) é ruído. O arrasto continua. */}
       </Carousel>
     </div>
   );

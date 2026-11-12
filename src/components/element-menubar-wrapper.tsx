@@ -42,6 +42,9 @@ function ElementMenubar({
 
   return (
     <div
+      // Mesmo caso do menu do slide: o menu do elemento é desenhado dentro do
+      // slide escalado. Ver docs/design/impl-a-divergencias.md.
+      data-alvo-menor=""
       className={cn(
         "flex flex-row gap-0 bg-background rounded-t-md rounded-br-md rounded-bl-none px-1",
         className

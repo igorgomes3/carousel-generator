@@ -1,7 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import {
-  Inter,
   PT_Serif,
   Roboto,
   Roboto_Condensed,
@@ -10,6 +9,7 @@ import {
   Archivo_Black,
   Montserrat,
 } from "next/font/google";
+import localFont from "next/font/local";
 import { GeistSans, GeistMono } from "geist/font";
 import { Toaster } from "@/components/ui/toaster";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
@@ -49,11 +49,17 @@ const roboto = Roboto({
   weight: ["500", "700"],
 });
 
-const inter = Inter({
-  subsets: ["latin"],
+/**
+ * Inter variável local, o mesmo woff2 do mockup aprovado (docs/design/mockups/
+ * fonts/Inter-variable.woff2). Local e não next/font/google por duas razões: o
+ * build não depende de rede para pegar a fonte, e a tela sai com os mesmos
+ * pesos 400/500/600 do contrato visual — a versão do Google trazia só 500 e 700.
+ */
+const inter = localFont({
+  src: "./fonts/Inter-variable.woff2",
   display: "swap",
   variable: "--font-inter",
-  weight: ["500", "700"],
+  weight: "100 900",
 });
 
 const arquivoBlack = Archivo_Black({

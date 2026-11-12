@@ -1,105 +1,99 @@
 "use client";
 
-import Link from "next/link";
-// import { SidebarNavItem } from "types/nav";
-
+/**
+ * Inspetor do editor — direção A.
+ *
+ * O que mudou e por quê:
+ *   - saiu o rail de ícones de 80 px (Brand/Theme/Fonts/Numbers) e as seções
+ *     passaram a ser uma coluna única de 280 px com rótulos de 12 px. O rail
+ *     gastava largura para repetir o que o rótulo da seção já diz, e obrigava a
+ *     dois cliques para chegar ao campo;
+ *   - padding de 14 px, linhas de 44 px, borda fina entre seções. Densidade é o
+ *     eixo da direção: o operador passa o dia aqui;
+ *   - quando há um elemento selecionado, o painel mostra o estilo dele no topo
+ *     (mesmo componente StyleMenu de antes), porque a tarefa do momento é
+ *     aquela, não o tema do documento.
+ *
+ * No mobile o painel vira dois drawers (configurações e estilo do elemento) com
+ * gatilhos de 44 px, que é o alvo mínimo de toque.
+ */
 import { cn } from "@/lib/utils";
 import { BrandForm } from "@/components/forms/brand-form";
 import { ThemeForm } from "@/components/forms/theme-form";
-import {
-  VerticalTabs,
-  VerticalTabsContent,
-  VerticalTabsList,
-  VerticalTabsTrigger,
-} from "@/components/ui/vertical-tabs";
-import { usePagerContext } from "@/lib/providers/pager-context";
-import { Separator } from "@/components/ui/separator";
 import { FontsForm } from "@/components/forms/fonts-form";
 import { PageNumberForm } from "./forms/page-number-form";
-import { ScrollArea } from "@radix-ui/react-scroll-area";
-import {
-  Briefcase,
-  Brush,
-  FileDigit,
-  LucideIcon,
-  Palette,
-  Plus,
-  Type,
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Brush, Plus } from "lucide-react";
 import { Drawer } from "vaul";
 import { DrawerContent, DrawerTrigger } from "@/components/drawer";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 import { buttonVariants } from "./ui/button";
-import { ScrollBar } from "./ui/scroll-area";
 import { useSelectionContext } from "@/lib/providers/selection-context";
-import { useFieldsFileImporter } from "@/lib/hooks/use-fields-file-importer";
-import { set } from "zod";
 import { StyleMenu } from "@/components/style-menu";
 import { useFormContext } from "react-hook-form";
 import { DocumentFormReturn } from "@/lib/document-form-types";
 
-type TabInfo = {
-  name: string;
-  value: string;
-  icon: LucideIcon;
-};
-
-const ALL_FORMS: Record<string, TabInfo> = {
-  brand: {
-    name: "Brand",
-    value: "brand",
-    icon: Briefcase,
-  },
-  theme: {
-    name: "Theme",
-    value: "theme",
-    icon: Palette,
-  },
-  fonts: {
-    name: "Fonts",
-    value: "fonts",
-    icon: Type,
-  },
-  pageNumber: {
-    name: "Numbers",
-    value: "number",
-    icon: FileDigit,
-  },
-};
+/** Cabeçalho de seção do inspetor: 12 px, caixa alta, discreto. */
+function SecaoInspetor({
+  titulo,
+  extra,
+  children,
+  primeiro = false,
+}: {
+  titulo: string;
+  extra?: ReactNode;
+  children: ReactNode;
+  primeiro?: boolean;
+}) {
+  return (
+    <section className={cn(!primeiro && "border-t border-border", "p-section")}>
+      <h2 className="rotulo-secao mb-3">
+        <span>{titulo}</span>
+        {extra}
+      </h2>
+      {children}
+    </section>
+  );
+}
 
 export function SidebarPanel({ className }: { className?: string }) {
   const form: DocumentFormReturn = useFormContext();
   const { currentSelection } = useSelectionContext();
 
   return (
-    <div className={cn("h-full flex flex-1", className)}>
-      <aside className="top-14 z-30 hidden h-full w-full shrink-0 md:sticky md:block border-r">
-        <SidebarTabsPanel />
+    <div className={cn("flex min-h-0 shrink-0 md:h-full", className)}>
+      <aside
+        className="hidden h-full w-inspector shrink-0 overflow-y-auto border-r border-border bg-background md:block"
+        aria-label="Configurações do carrossel"
+      >
+        <InspetorConteudo />
       </aside>
-      <div className="block md:hidden h-0">
+
+      {/* Mobile: dois gatilhos, dois drawers. 44 px de alvo. */}
+      <div className="block h-0 md:hidden">
         <Drawer.Root modal={true}>
           <DrawerTrigger aria-label="Abrir configurações do carrossel">
-            <CircularFloatingButton className="bottom-28 left-4">
-              <Plus className="w-4 h-4" aria-hidden="true" />
+            <CircularFloatingButton className="bottom-28 left-3">
+              <Plus className="size-4" aria-hidden="true" />
             </CircularFloatingButton>
           </DrawerTrigger>
-          <DrawerContent className="h-[60%] ">
-            <DrawerFormsPanel className="mt-8" />
+          <DrawerContent className="h-[60%]">
+            <div className="mt-8 overflow-y-auto">
+              <InspetorConteudo />
+            </div>
           </DrawerContent>
         </Drawer.Root>
       </div>
-      <div className="block md:hidden h-0">
+      <div className="block h-0 md:hidden">
         <Drawer.Root modal={true}>
           <DrawerTrigger aria-label="Abrir estilo do elemento selecionado">
             {currentSelection ? (
-              <CircularFloatingButton className="bottom-28 right-4">
-                <Brush className="w-4 h-4" aria-hidden="true" />
+              <CircularFloatingButton className="bottom-28 right-3">
+                <Brush className="size-4" aria-hidden="true" />
               </CircularFloatingButton>
             ) : null}
           </DrawerTrigger>
-          <DrawerContent className="h-[40%] ">
-            <StyleMenu form={form} className={"m-4"} />
+          <DrawerContent className="h-[40%]">
+            <StyleMenu form={form} className="m-4" />
           </DrawerContent>
         </Drawer.Root>
       </div>
@@ -107,173 +101,34 @@ export function SidebarPanel({ className }: { className?: string }) {
   );
 }
 
-function VerticalTabTriggerButton({ tabInfo }: { tabInfo: TabInfo }) {
-  const { setCurrentSelection } = useSelectionContext();
-  //  TODO Convert this comp into a forwardref like its child
-  return (
-    <VerticalTabsTrigger
-      value={tabInfo.value}
-      className="h-16 flex flex-col gap-2 items-center py-2 justify-center"
-      onFocus={() => setCurrentSelection("", null)}
-    >
-      <tabInfo.icon className="h-4 w-4" />
-      <span className="sr-only ">{tabInfo.name}</span>
-      <p className="text-xs text-slate-600">{tabInfo.name}</p>
-    </VerticalTabsTrigger>
-  );
-}
-
-function HorizontalTabTriggerButton({ tabInfo }: { tabInfo: TabInfo }) {
-  const { setCurrentSelection } = useSelectionContext();
-  //  TODO Convert this comp into a forwardref like its child
-  return (
-    <TabsTrigger
-      value={tabInfo.value}
-      className="h-16 flex flex-col gap-2 items-center py-2 justify-center"
-      onFocus={() => setCurrentSelection("", null)}
-    >
-      <tabInfo.icon className="h-4 w-4" />
-      <span className="sr-only ">{tabInfo.name}</span>
-      <p className="text-xs text-slate-600">{tabInfo.name}</p>
-    </TabsTrigger>
-  );
-}
-
-export function SidebarTabsPanel() {
-  const { currentSelection } = useSelectionContext();
-  const [tab, setTab] = useState(ALL_FORMS.brand.value);
+function InspetorConteudo() {
   const form: DocumentFormReturn = useFormContext();
-
-  return (
-    <VerticalTabs
-      value={currentSelection ? "" : tab}
-      onValueChange={(val) => {
-        if (val) {
-          // Don't lost previous state when showing current selection
-          setTab(val);
-        }
-      }}
-      className="flex-1 h-full p-0"
-    >
-      <div className="flex flex-row h-full w-full">
-        <ScrollArea className="border-r h-full bg-muted">
-          <VerticalTabsList className="grid grid-cols-1 gap-2 w-20 rounded-none">
-            <VerticalTabTriggerButton tabInfo={ALL_FORMS.brand} />
-            <VerticalTabTriggerButton tabInfo={ALL_FORMS.theme} />
-            <VerticalTabTriggerButton tabInfo={ALL_FORMS.fonts} />
-            <VerticalTabTriggerButton tabInfo={ALL_FORMS.pageNumber} />
-          </VerticalTabsList>
-        </ScrollArea>
-        <div className="p-2 flex flex-col items-stretch w-full ">
-          {/* //TODO: Share this area with stylemenu */}
-          {currentSelection ? (
-            <StyleMenu form={form} className={"m-4"} />
-          ) : // TODO: Create consistent styles between tabs and StyleMenu
-          null}
-          <VerticalTabsContent
-            value={ALL_FORMS.brand.value}
-            className="mt-0 border-0 p-0 m-4"
-          >
-            <h4 className="text-xl font-semibold">{ALL_FORMS.brand.name}</h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <BrandForm />
-          </VerticalTabsContent>
-          <VerticalTabsContent
-            value={ALL_FORMS.theme.value}
-            className="mt-0 border-0 p-0 m-4"
-          >
-            <h4 className="text-xl font-semibold">{ALL_FORMS.theme.name}</h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <ThemeForm />
-          </VerticalTabsContent>
-          <VerticalTabsContent
-            value={ALL_FORMS.fonts.value}
-            className="mt-0 border-0 p-0 m-4"
-          >
-            <h4 className="text-xl font-semibold">{ALL_FORMS.fonts.name}</h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <FontsForm />
-          </VerticalTabsContent>
-          <VerticalTabsContent
-            value={ALL_FORMS.pageNumber.value}
-            className="mt-0 border-0 p-0 m-4"
-          >
-            <h4 className="text-xl font-semibold">
-              {ALL_FORMS.pageNumber.name}
-            </h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <PageNumberForm />
-          </VerticalTabsContent>
-        </div>
-      </div>
-    </VerticalTabs>
-  );
-}
-
-export function DrawerFormsPanel({ className }: { className: string }) {
   const { currentSelection } = useSelectionContext();
-  const [tab, setTab] = useState(ALL_FORMS.brand.value);
-  // TODO: Lift state to not loose it when drawer gets closed ?
 
   return (
-    <Tabs
-      value={currentSelection ? "" : tab}
-      onValueChange={(val) => {
-        if (val) {
-          // Don't lost previous state when showing current selection
-          setTab(val);
-        }
-      }}
-      className={cn("flex-1 w-full", className)}
-    >
-      <div className="flex flex-col h-full ">
-        <ScrollArea className=" border-b h-full bg-muted">
-          <TabsList className="grid grid-cols-4 gap-2 h-20 rounded-none">
-            <HorizontalTabTriggerButton tabInfo={ALL_FORMS.brand} />
-            <HorizontalTabTriggerButton tabInfo={ALL_FORMS.theme} />
-            <HorizontalTabTriggerButton tabInfo={ALL_FORMS.fonts} />
-            <HorizontalTabTriggerButton tabInfo={ALL_FORMS.pageNumber} />
-          </TabsList>
-        </ScrollArea>
-        <div className="p-2 w-[320px] m-auto">
-          {/* // TODO Should be in a ScrollArea but it does not scroll */}
-          <TabsContent
-            value={ALL_FORMS.brand.value}
-            className="mt-0 border-0 p-0 m-4 "
-          >
-            <h4 className="text-xl font-semibold">{ALL_FORMS.brand.name}</h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <BrandForm />
-          </TabsContent>
-          <TabsContent
-            value={ALL_FORMS.theme.value}
-            className="mt-0 border-0 p-0 m-4 "
-          >
-            <h4 className="text-xl font-semibold">{ALL_FORMS.theme.name}</h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <ThemeForm />
-          </TabsContent>
-          <TabsContent
-            value={ALL_FORMS.fonts.value}
-            className="mt-0 border-0 p-0 m-4"
-          >
-            <h4 className="text-xl font-semibold">{ALL_FORMS.fonts.name}</h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <FontsForm />
-          </TabsContent>
-          <TabsContent
-            value={ALL_FORMS.pageNumber.value}
-            className="mt-0 border-0 p-0 m-4"
-          >
-            <h4 className="text-xl font-semibold">
-              {ALL_FORMS.pageNumber.name}
-            </h4>
-            <Separator className="mt-2 mb-4"></Separator>
-            <PageNumberForm />
-          </TabsContent>
+    <div className="flex flex-col">
+      {currentSelection ? (
+        <div className="border-b border-border p-section">
+          <StyleMenu form={form} />
         </div>
-      </div>
-    </Tabs>
+      ) : null}
+
+      <SecaoInspetor titulo="Marca" primeiro={!currentSelection}>
+        <BrandForm />
+      </SecaoInspetor>
+
+      <SecaoInspetor titulo="Tema">
+        <ThemeForm />
+      </SecaoInspetor>
+
+      <SecaoInspetor titulo="Tipografia">
+        <FontsForm />
+      </SecaoInspetor>
+
+      <SecaoInspetor titulo="Numeração">
+        <PageNumberForm />
+      </SecaoInspetor>
+    </div>
   );
 }
 
@@ -291,7 +146,7 @@ const CircularFloatingButton = ({
           variant: "default",
           size: "icon",
         }),
-        "fixed bottom-4 right-4 rounded-full w-12 h-12 ",
+        "fixed size-11 rounded-pill p-0",
         className
       )}
     >

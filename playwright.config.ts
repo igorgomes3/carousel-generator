@@ -1,11 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Testes visuais e de acessibilidade do editor de carrossel.
+ * Testes visuais, de acessibilidade e de responsividade do carrossel.
  *
- * O editor usa localStorage, então cada projeto já entra com documento limpo.
- * O servidor de produção é reaproveitado quando já está rodando (porta 8099),
- * evitando subir um segundo Next.
+ * Sessão: o middleware exige o cookie `ac_sessao=1` para renderizar `/` e
+ * `/projetos`. Sem ele todo teste caía em `/login` e falhava por timeout — o
+ * estado encontrado no início da direção A (7 de 7 vermelhos). O `storageState`
+ * abaixo injeta o marcador e o refresh token; a API é mockada por teste.
+ *
+ * Servidor: reaproveita o de produção quando já está rodando (porta 8099).
  */
 export default defineConfig({
   testDir: "./tests/visual",
@@ -21,6 +24,19 @@ export default defineConfig({
     viewport: { width: 1600, height: 1000 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    storageState: {
+      cookies: ["127.0.0.1", "localhost"].map((dominio) => ({
+        name: "ac_sessao",
+        value: "1",
+        domain: dominio,
+        path: "/",
+        expires: Math.floor(Date.now() / 1000) + 86_400,
+        httpOnly: false,
+        secure: false,
+        sameSite: "Lax" as const,
+      })),
+      origins: [],
+    },
   },
   projects: [
     {

@@ -79,7 +79,7 @@ async function selecionarTitulo(page: Page) {
   const titulo = page.locator('[id^="page-base-"] textarea').first();
   await expect(titulo).toBeVisible();
   await titulo.click();
-  await expect(page.getByRole("heading", { name: "Style" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Estilo do elemento" })).toBeVisible();
 }
 
 /** Exporta o ZIP dos PNGs e devolve o buffer. */

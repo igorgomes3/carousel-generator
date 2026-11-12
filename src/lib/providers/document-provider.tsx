@@ -22,6 +22,7 @@ import { StatusProvider } from "@/lib/providers/editor-status-context";
 import { PlanoProvider } from "@/lib/providers/plano-context";
 import { apiJson } from "@/lib/auth/sessao";
 import { useAutosaveProjeto } from "@/lib/hooks/use-autosave-projeto";
+import { SalvamentoProvider } from "@/lib/providers/salvamento-context";
 
 const FORM_DATA_KEY = "documentFormKey";
 
@@ -144,7 +145,19 @@ export function DocumentProvider({
           <PlanoProvider>
             <SelectionProvider value={selection}>
               <PagerProvider value={pager}>
-                <div className="flex-1 flex flex-col">{children}</div>
+                <SalvamentoProvider
+                  value={{
+                    estado: autosave.estado,
+                    erro: autosave.erro,
+                    titulo,
+                    projetoId,
+                  }}
+                >
+                  {/* min-h-0 é obrigatório: sem ele o `min-height: auto` do
+                      flex deixa o palco crescer até a altura do conteúdo e o
+                      filmstrip sai da dobra. */}
+                  <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+                </SalvamentoProvider>
               </PagerProvider>
             </SelectionProvider>
           </PlanoProvider>

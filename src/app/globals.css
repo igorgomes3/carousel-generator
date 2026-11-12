@@ -1,6 +1,7 @@
-/* Os tokens de cor e raio vivem em design-tokens.json e são gerados para
- * src/app/tokens.css por scripts/build-tokens.mjs. Não declarar :root aqui —
- * duplicar a fonte da verdade é como os valores divergem em silêncio.
+/* Os tokens de cor, raio, tipografia, espaço e sombra vivem em
+ * design-tokens.json e são gerados para src/app/tokens.css por
+ * scripts/build-tokens.mjs. Não declarar :root aqui — duplicar a fonte da
+ * verdade é como os valores divergem em silêncio.
  * O @import precisa vir antes dos @tailwind: regra do CSS. */
 @import "./tokens.css";
 
@@ -12,8 +13,75 @@
   * {
     @apply border-border;
   }
+
+  /* Direção A: sans de interface, 14 px, entrelinha 1,45. O piso de texto é
+   * 12 px (metadado/rótulo); corpo, botão e input ficam em 14 px.
+   *
+   * O tamanho base vai no BODY, não no `html`: o root em 14 px encolheria todo
+   * espaçamento em rem do Tailwind (h-11 virava 38,5 px em vez de 44) e o alvo
+   * de toque do mobile passaria a reprovar por tabela. */
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
+  }
+
+  /* Foco de teclado: um só vocabulário, anel de acento de 2 px com 2 px de
+   * respiro. `:focus-visible` e não `:focus` — clicar não deve desenhar anel. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* Barra de rolagem discreta: numa tela densa a barra nativa de 15 px rouba
+   * largura de conteúdo em três colunas. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--input));
+    border-radius: var(--radius-pill);
+    border: 3px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Rótulo de seção: 12 px, caixa alta, discreto. Repetido em todas as seções
+   * do inspetor, da galeria e dos painéis — por isso é classe, não cópia. */
+  .rotulo-secao {
+    @apply flex items-center justify-between text-meta font-semibold uppercase tracking-[0.04em] text-muted-foreground;
+  }
+
+  /* Linha de lista densa: 44 px, rótulo à esquerda, valor à direita. */
+  .linha-densa {
+    @apply flex h-row items-center justify-between gap-2 border-b border-border text-body text-subtle last:border-b-0;
+  }
+
+  /* Seção do inspetor: 14 px de padding, separada por borda fina. */
+  .secao-inspetor {
+    @apply border-b border-border p-section;
+  }
+
+  /* Etiqueta de estado: 12 px, tintada. Só existe em três sabores (ativo,
+   * neutro, atenção) para não inventar semáforo. */
+  .etiqueta-estado {
+    @apply inline-flex h-5 items-center gap-1.5 rounded-sm border border-transparent px-2 text-meta font-semibold;
   }
 }
 

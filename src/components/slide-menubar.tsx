@@ -37,6 +37,11 @@ export default function SlideMenubar({
 
   return (
     <div
+      // `data-alvo-menor`: estes botões vivem DENTRO do slide, que roda em
+      // escala 65–89%. 44 px de CSS aqui viram ~29 px na tela, então o alvo de
+      // toque é resolvido pelos drawers do inspetor (44 px). Ver
+      // docs/design/impl-a-divergencias.md.
+      data-alvo-menor=""
       className={cn(
         "flex flex-row gap-0 bg-background rounded-t-md rounded-br-md rounded-bl-none px-1 border",
         className

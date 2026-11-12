@@ -1,4 +1,12 @@
 /** @type {import('tailwindcss').Config} */
+/**
+ * Direção A — Neutro denso.
+ *
+ * Nenhum valor de cor, raio, tamanho de texto, espaço ou sombra nasce aqui: o
+ * config só aponta para as variáveis CSS que `scripts/build-tokens.mjs` gera a
+ * partir de `design-tokens.json`. Assim existe um lugar para mudar o produto, e
+ * um hex solto num componente aparece no diff como anomalia.
+ */
 module.exports = {
   darkMode: ["class"],
   content: [
@@ -22,6 +30,8 @@ module.exports = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        canvas: "hsl(var(--canvas))",
+        subtle: "hsl(var(--subtle))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -52,9 +62,41 @@ module.exports = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        DEFAULT: "var(--radius)",
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        pill: "var(--radius-pill)",
+      },
+      fontSize: {
+        meta: ["var(--text-meta)", { lineHeight: "var(--leading-meta)" }],
+        body: ["var(--text-body)", { lineHeight: "var(--leading-body)" }],
+        control: ["var(--text-control)", { lineHeight: "var(--leading-control)" }],
+        "card-title": [
+          "var(--text-card-title)",
+          { lineHeight: "var(--leading-card-title)", letterSpacing: "-0.01em" },
+        ],
+        "page-title": [
+          "var(--text-page-title)",
+          { lineHeight: "var(--leading-page-title)", letterSpacing: "-0.025em" },
+        ],
+      },
+      spacing: {
+        row: "var(--space-row)",
+        card: "var(--space-card-pad)",
+        section: "var(--space-section)",
+        page: "var(--space-page)",
+        touch: "var(--space-touch)",
+        inspector: "var(--size-inspector)",
+        topbar: "var(--size-topbar)",
+        thumb: "var(--size-thumb)",
+        filmstrip: "var(--size-filmstrip)",
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
+        popover: "var(--shadow-popover)",
+        slide: "var(--shadow-slide)",
       },
       keyframes: {
         "accordion-down": {
@@ -71,6 +113,7 @@ module.exports = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         "dm-sans": ["var(--font-dm-sans)"],
         "dm-serif-display": ["var(--font-dm-serif-display)"],
         "geist-sans": ["var(--font-geist-sans)"],

@@ -1,0 +1,84 @@
+{
+  "editor": {
+    "390": "docs/design/shots/impl-a/editor-390.png",
+    "1280": "docs/design/shots/impl-a/editor-1280.png"
+  },
+  "galeria": {
+    "390": "docs/design/shots/impl-a/galeria-390.png",
+    "1280": "docs/design/shots/impl-a/galeria-1280.png"
+  },
+  "estouro": [
+    {
+      "tela": "editor",
+      "largura": 360,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "galeria",
+      "largura": 360,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "editor",
+      "largura": 390,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "galeria",
+      "largura": 390,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "editor",
+      "largura": 768,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "galeria",
+      "largura": 768,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "editor",
+      "largura": 1024,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "galeria",
+      "largura": 1024,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "editor",
+      "largura": 1280,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "galeria",
+      "largura": 1280,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "editor",
+      "largura": 1440,
+      "estouroDocumento": 0,
+      "culpados": []
+    },
+    {
+      "tela": "galeria",
+      "largura": 1440,
+      "estouroDocumento": 0,
+      "culpados": []
+    }
+  ]
+}
