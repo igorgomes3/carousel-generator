@@ -19,8 +19,12 @@ export const defaultValues = {
     brand: {
       avatar: DEFAULT_IMAGE_INPUT,
 
-      name: "My name",
-      handle: "@name",
+      // A marca NÃO mora aqui: vem das configurações da organização
+      // (`/api/carrossel/marca`) quando o carrossel é novo, e do documento
+      // salvo quando é antigo. Vazio é o padrão certo — "My name" era o
+      // placeholder que ia parar no slide entregue ao cliente.
+      name: "",
+      handle: "",
     },
     theme: {
       isCustom: false,

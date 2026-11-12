@@ -89,13 +89,13 @@ export default function ProjetosPage() {
   const [excluindo, setExcluindo] = useState<string | null>(null);
 
   async function carregar() {
-    const lista = await apiJson<{ projetos: ProjetoGaleria[] }>(
-      "/carrossel/projetos?org=autoclinic",
+    const lista = await apiJson<{ carrosseis: ProjetoGaleria[] }>(
+      "/carrossel/carrosseis?org=autoclinic",
     ).catch((e) => {
       setErro(e instanceof Error ? e.message : "Falha ao carregar");
-      return { projetos: [] as ProjetoGaleria[] };
+      return { carrosseis: [] as ProjetoGaleria[] };
     });
-    setProjetos(lista.projetos ?? []);
+    setProjetos(lista.carrosseis ?? []);
   }
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function ProjetosPage() {
     setAcao("novo");
     setErro(null);
     try {
-      const r = await apiJson<{ id: string }>("/carrossel/projetos?org=autoclinic", {
+      const r = await apiJson<{ id: string }>("/carrossel/carrosseis?org=autoclinic", {
         method: "POST",
         body: JSON.stringify({ titulo }),
       });
@@ -137,7 +137,7 @@ export default function ProjetosPage() {
     setErro(null);
     try {
       const documento = JSON.parse(rascunhoLocal);
-      const r = await apiJson<{ id: string }>("/carrossel/projetos?org=autoclinic", {
+      const r = await apiJson<{ id: string }>("/carrossel/carrosseis?org=autoclinic", {
         method: "POST",
         body: JSON.stringify({ titulo: "Rascunho importado do navegador", documento }),
       });
@@ -157,7 +157,7 @@ export default function ProjetosPage() {
     setAcao(`dup-${id}`);
     setErro(null);
     try {
-      await apiJson(`/carrossel/projetos/${id}/duplicar?org=autoclinic`, { method: "POST" });
+      await apiJson(`/carrossel/carrosseis/${id}/duplicar?org=autoclinic`, { method: "POST" });
       await carregar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao duplicar");
@@ -171,10 +171,10 @@ export default function ProjetosPage() {
     setErro(null);
     try {
       if (p.publico_ativo) {
-        await apiJson(`/carrossel/projetos/${p.id}/publicar?org=autoclinic`, { method: "DELETE" });
+        await apiJson(`/carrossel/carrosseis/${p.id}/publicar?org=autoclinic`, { method: "DELETE" });
       } else {
         const r = await apiJson<{ token: string }>(
-          `/carrossel/projetos/${p.id}/publicar?org=autoclinic`,
+          `/carrossel/carrosseis/${p.id}/publicar?org=autoclinic`,
           { method: "POST" },
         );
         const url = `${window.location.origin}/p/${r.token}`;
@@ -192,7 +192,7 @@ export default function ProjetosPage() {
     setAcao(`del-${p.id}`);
     setErro(null);
     try {
-      const res = await apiFetch(`/carrossel/projetos/${p.id}?org=autoclinic`, {
+      const res = await apiFetch(`/carrossel/carrosseis/${p.id}?org=autoclinic`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -210,7 +210,7 @@ export default function ProjetosPage() {
 
   async function abrirHistorico(p: ProjetoGaleria) {
     const r = await apiJson<{ versoes: Versao[] }>(
-      `/carrossel/projetos/${p.id}/versoes?org=autoclinic`,
+      `/carrossel/carrosseis/${p.id}/versoes?org=autoclinic`,
     ).catch(() => ({ versoes: [] as Versao[] }));
     setHistorico({ projeto: p, versoes: r.versoes ?? [] });
   }
@@ -218,7 +218,7 @@ export default function ProjetosPage() {
   async function restaurar(projetoId: string, versaoId: string) {
     setAcao("restaurar");
     try {
-      await apiJson(`/carrossel/projetos/${projetoId}/restaurar?org=autoclinic`, {
+      await apiJson(`/carrossel/carrosseis/${projetoId}/restaurar?org=autoclinic`, {
         method: "POST",
         body: JSON.stringify({ versao_id: versaoId }),
       });
@@ -290,6 +290,9 @@ export default function ProjetosPage() {
           <div className="ml-auto flex items-center gap-1">
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/fila">Fila de conteúdo</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/configuracoes">Configurações</Link>
             </Button>
             <Button
               variant="ghost"
