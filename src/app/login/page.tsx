@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 export default function LoginPage() {
   const router = useRouter();
   const params = useSearchParams();
-  const destino = params.get("de") || "/projetos";
+  const destino = params.get("de") || "/";
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");

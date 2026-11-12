@@ -1,17 +1,17 @@
 import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { abrirEditorLimpo, abrirGaleria } from "./ajuda";
+import { abrirEditorLimpo, abrirLista } from "./ajuda";
 
 /**
  * Portões da direção A (Neutro denso).
  *
  * O que este arquivo mede, em número e não em impressão:
  *   1. estouro horizontal em px, em 360/390/768/1024/1280/1440, no editor e na
- *      galeria — precisa ser exatamente 0;
+ *      tela inicial — precisa ser exatamente 0;
  *   2. alvo de toque de 44 px no mobile para todo controle do chrome;
  *   3. piso tipográfico: 12 px para metadado, 14 px para corpo/controle;
  *   4. foco de teclado visível, com o anel de 2 px do acento;
- *   5. contraste AA na galeria (o editor já é coberto por acessibilidade.spec).
+ *   5. contraste AA na tela inicial (o editor já é coberto por acessibilidade.spec).
  *
  * Fora do escopo de propósito, com motivo:
  *   - `[data-preview]`: miniatura de slide em escala (7,5 px), igual ao mockup.
@@ -43,9 +43,9 @@ test.describe("responsivo", () => {
       expect(await estouroHorizontal(page)).toBe(0);
     });
 
-    test(`galeria sem estouro horizontal em ${largura}px`, async ({ page }) => {
+    test(`tela inicial sem estouro horizontal em ${largura}px`, async ({ page }) => {
       await page.setViewportSize({ width: largura, height: 900 });
-      await abrirGaleria(page);
+      await abrirLista(page);
       expect(await estouroHorizontal(page)).toBe(0);
     });
   }
@@ -86,9 +86,9 @@ test.describe("alvo de toque no mobile", () => {
     expect(problemas, `Alvos abaixo de 44px:\n${JSON.stringify(problemas, null, 1)}`).toEqual([]);
   });
 
-  test("galeria em 390px: todo controle do chrome tem 44×44", async ({ page }) => {
+  test("tela inicial em 390px: todo controle do chrome tem 44×44", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await abrirGaleria(page);
+    await abrirLista(page);
     const problemas = await alvosPequenos(page);
     expect(problemas, `Alvos abaixo de 44px:\n${JSON.stringify(problemas, null, 1)}`).toEqual([]);
   });
@@ -188,9 +188,9 @@ test.describe("foco de teclado", () => {
   });
 });
 
-test.describe("acessibilidade da galeria", () => {
-  test("galeria sem violações críticas ou sérias", async ({ page }) => {
-    await abrirGaleria(page);
+test.describe("acessibilidade da tela inicial", () => {
+  test("tela inicial sem violações críticas ou sérias", async ({ page }) => {
+    await abrirLista(page);
     const resultado = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();

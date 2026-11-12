@@ -51,5 +51,11 @@ export default defineConfig({
         url: "http://127.0.0.1:8099",
         reuseExistingServer: true,
         timeout: 120_000,
+        // §2.6 / §8.1 item 9: os estados de dev da tela inicial
+        // (`?estado=vazio|carregando|erro`) só existem quando o servidor diz que
+        // podem existir. `next start` roda com NODE_ENV=production, então o
+        // portão é esta variável — e é por isso que o teste 9 tem como passar
+        // aqui sem afrouxar o portão em produção.
+        env: { ESTADOS_DEV: "1" },
       },
 });

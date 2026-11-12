@@ -13,10 +13,10 @@
  */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 import { apiJson, garantirSessao } from "@/lib/auth/sessao";
 import { Button } from "@/components/ui/button";
+import { NavPrincipal } from "@/components/carrosseis/nav-principal";
 import { Input } from "@/components/ui/input";
 import type { MarcaConta } from "@/lib/providers/document-provider";
 
@@ -111,23 +111,10 @@ export default function ConfiguracoesPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="border-b border-border bg-background">
-        <div className="mx-auto flex h-12 max-w-[1180px] items-center gap-3 px-4">
-          <Link href="/projetos" className="text-body font-semibold tracking-[-0.01em]">
-            Carrossel
-          </Link>
-          <span aria-hidden="true" className="text-meta text-muted-foreground">
-            /
-          </span>
-          <span className="text-meta font-medium text-subtle">Configurações</span>
-          <Link
-            href="/projetos"
-            className="ml-auto text-meta font-medium text-subtle hover:text-foreground"
-          >
-            Galeria
-          </Link>
-        </div>
-      </header>
+      {/* Só a navegação muda nesta tela na fase 1: a barra própria apontava
+          para /projetos e dizia "Galeria", rota e vocabulário que deixaram de
+          existir. O conteúdo da tela é o da fase 3. */}
+      <NavPrincipal usuario={null} />
 
       <div className="mx-auto max-w-[680px] px-4 py-6">
         <h1 className="text-title font-semibold tracking-[-0.01em]">Configurações</h1>

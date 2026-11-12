@@ -17,11 +17,11 @@ import {
   apiFetch,
   apiJson,
   garantirSessao,
-  sair,
   usuarioAtual,
   type UsuarioCarrossel,
 } from "@/lib/auth/sessao";
 import { Button } from "@/components/ui/button";
+import { NavPrincipal } from "@/components/carrosseis/nav-principal";
 import { Input } from "@/components/ui/input";
 
 interface Sinal {
@@ -158,7 +158,7 @@ export default function FilaPage() {
     (async () => {
       const ok = await garantirSessao();
       if (!ok) {
-        router.replace("/login?de=/fila");
+        router.replace("/login?de=/sinais");
         return;
       }
       setUsuario(usuarioAtual());
@@ -236,41 +236,15 @@ export default function FilaPage() {
 
   return (
     <main className="min-h-screen bg-muted/30">
-      <header className="border-b bg-card">
-        <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4 min-w-0">
-            <Link href="/projetos" className="font-semibold tracking-tight hover:underline">
-              Carrossel
-            </Link>
-            <nav className="flex items-center gap-3 text-sm">
-              <Link href="/projetos" className="text-muted-foreground hover:text-foreground">
-                Meus carrosséis
-              </Link>
-              <span className="font-medium">Fila de conteúdo</span>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-muted-foreground truncate max-w-[160px]">
-              {usuario?.nome ?? usuario?.email ?? ""}
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                sair();
-                router.replace("/login");
-              }}
-            >
-              Sair
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* Nav compartilhada: três destinos + e-mail + Sair (§1.2). Antes esta
+          tela tinha uma barra própria com "Meus carrosséis" apontando para
+          /projetos — vocabulário e rota que a fase 1 remove. */}
+      <NavPrincipal usuario={usuario} />
 
       <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold">Fila de conteúdo</h1>
+            <h1 className="text-lg font-semibold">Sinais e pautas</h1>
             <p className="text-sm text-muted-foreground">
               Pauta nasce de sinal real, passa por briefing e só vira carrossel com aprovação. Nada
               publica sozinho.
@@ -465,7 +439,7 @@ export default function FilaPage() {
                           Aprovar
                         </Button>
                         {item.carrossel_id && (
-                          <Link href={`/?projeto=${item.carrossel_id}`}>
+                          <Link href={`/carrossel/${item.carrossel_id}`}>
                             <Button size="sm" variant="outline">
                               Abrir no editor
                             </Button>

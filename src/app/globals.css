@@ -38,6 +38,19 @@
     line-height: var(--leading-body);
   }
 
+  /* A página nunca rola na horizontal; faixa que precisa rolar rola dentro de
+   * si (as abas de chips da tela inicial). Sem isto, o conteúdo rolável de uma
+   * faixa entra no `scrollWidth` do documento mesmo com o recorte no elemento
+   * (`overflow-x: auto` + `clientWidth 316 / scrollWidth 954` medidos em 360) e
+   * a página inteira ganha 603 px de rolagem.
+   *
+   * `clip` e não `hidden`: `hidden` cria um contêiner de rolagem e mata
+   * `position: sticky` e o `scroll-behavior` do documento. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   /* Foco de teclado: um só vocabulário, anel de acento de 2 px com 2 px de
    * respiro. `:focus-visible` e não `:focus` — clicar não deve desenhar anel. */
   :focus-visible {

@@ -1,0 +1,131 @@
+{
+  "config": {
+    "brand": {
+      "avatar": {
+        "type": "Image",
+        "source": {
+          "src": "",
+          "type": "URL"
+        },
+        "style": {
+          "opacity": 100
+        }
+      },
+      "name": "Clínica Aurora",
+      "handle": "@clinicaaurora"
+    },
+    "fonts": {
+      "font1": "DM_Serif_Display",
+      "font2": "DM_Sans",
+      "elementFonts": {
+        "Title": "DM_Serif_Display",
+        "Subtitle": "DM_Serif_Display",
+        "Description": "DM_Sans"
+      }
+    },
+    "theme": {
+      "primary": "#141414",
+      "isCustom": false,
+      "pallette": "black",
+      "secondary": "#161616",
+      "background": "#f7f5f2",
+      "backgroundStyle": "solido"
+    },
+    "pageNumber": {
+      "showNumbers": true
+    }
+  },
+  "slides": [
+    {
+      "elements": [
+        {
+          "text": "Fiscalização na estética",
+          "type": "Title",
+          "style": {
+            "align": "Left",
+            "fontSize": "Large"
+          }
+        },
+        {
+          "text": "O que a Vigilância Sanitária olha antes de autuar.",
+          "type": "Description",
+          "style": {
+            "align": "Left",
+            "fontSize": "Medium"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "style": {
+          "opacity": 30
+        },
+        "source": {
+          "src": "",
+          "type": "URL"
+        }
+      }
+    },
+    {
+      "elements": [
+        {
+          "text": "Registro no conselho",
+          "type": "Title",
+          "style": {
+            "align": "Left",
+            "fontSize": "Large"
+          }
+        },
+        {
+          "text": "Confira o registro de quem aplica antes de fechar.",
+          "type": "Description",
+          "style": {
+            "align": "Left",
+            "fontSize": "Medium"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "style": {
+          "opacity": 30
+        },
+        "source": {
+          "src": "",
+          "type": "URL"
+        }
+      }
+    },
+    {
+      "elements": [
+        {
+          "text": "Salve este post",
+          "type": "Title",
+          "style": {
+            "align": "Left",
+            "fontSize": "Large"
+          }
+        },
+        {
+          "text": "Manda para quem trabalha com estética.",
+          "type": "Description",
+          "style": {
+            "align": "Left",
+            "fontSize": "Medium"
+          }
+        }
+      ],
+      "backgroundImage": {
+        "type": "Image",
+        "style": {
+          "opacity": 30
+        },
+        "source": {
+          "src": "",
+          "type": "URL"
+        }
+      }
+    }
+  ],
+  "filename": "prova-fase-0"
+}
