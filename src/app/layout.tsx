@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import {
+  Inter,
   PT_Serif,
   Roboto,
   Roboto_Condensed,
@@ -9,7 +10,6 @@ import {
   Archivo_Black,
   Montserrat,
 } from "next/font/google";
-import localFont from "next/font/local";
 import { GeistSans, GeistMono } from "geist/font";
 import { Toaster } from "@/components/ui/toaster";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
@@ -50,16 +50,19 @@ const roboto = Roboto({
 });
 
 /**
- * Inter variável local, o mesmo woff2 do mockup aprovado (docs/design/mockups/
- * fonts/Inter-variable.woff2). Local e não next/font/google por duas razões: o
- * build não depende de rede para pegar a fonte, e a tela sai com os mesmos
- * pesos 400/500/600 do contrato visual — a versão do Google trazia só 500 e 700.
+ * Inter variável, pesos 400–900.
+ *
+ * Voltou para `next/font/google` de propósito: a versão local
+ * (`next/font/local`) emitia o `@font-face` com `url()` relativo, e o
+ * html-to-image da exportação faz `new URL(url)` sem base — o export de PNG
+ * quebrava com "Failed to construct 'URL': Invalid URL". A versão do Google é
+ * auto-hospedada pelo Next com URL absoluta, que é o que o export precisa.
+ * Sem `weight`, o Next entrega a fonte variável completa (400/500/600).
  */
-const inter = localFont({
-  src: "./fonts/Inter-variable.woff2",
+const inter = Inter({
+  subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
-  weight: "100 900",
 });
 
 const arquivoBlack = Archivo_Black({

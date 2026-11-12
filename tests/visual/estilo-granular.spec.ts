@@ -143,11 +143,12 @@ test.describe("estilo granular de texto", () => {
   test("imagem de fundo por slide é configurável", async ({ page }) => {
     await entrarLimpo(page);
 
-    // O card de fundo vive no painel Theme.
-    await page.getByRole("tab", { name: /Theme/i }).click();
-    await expect(
-      page.getByText("Imagem de fundo do slide atual"),
-    ).toBeVisible();
+    // Na direção A o inspetor é uma coluna única de seções (Marca, Tema,
+    // Tipografia, Numeração): não existe mais a aba "Theme". O card de fundo
+    // continua na seção Tema, então o teste rola até ela em vez de clicar.
+    const secaoTema = page.getByRole("heading", { name: "Tema", exact: true });
+    await secaoTema.scrollIntoViewIfNeeded();
+    await expect(page.getByText("Imagem de fundo do slide atual")).toBeVisible();
     await expect(page.getByText("Origem da imagem")).toBeVisible();
     await expect(page.locator('input[type="url"]')).toBeVisible();
   });

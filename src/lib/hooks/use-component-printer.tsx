@@ -103,6 +103,12 @@ function limparParaExportacao(clone: HTMLElement) {
   removeAllById(clone, "add-element-");
   removeAllById(clone, "element-menubar-");
   removeAllById(clone, "slide-menubar-");
+  // Imagem sem `src` não desenha nada no PNG, mas quebra o export: o
+  // html-to-image resolve cada imagem com `new URL(src)` e `new URL("")` lança
+  // "Failed to construct 'URL': Invalid URL", derrubando o ZIP inteiro.
+  clone.querySelectorAll("img").forEach((img) => {
+    if (!img.getAttribute("src")) img.remove();
+  });
 }
 
 /** Converte um slide em PNG 1080x1350. Devolve null se a imagem nao sair. */
@@ -151,9 +157,18 @@ function proxyImgSources(html: HTMLElement) {
   ) as HTMLImageElement[];
   const url = process.env.NEXT_PUBLIC_APP_URL;
 
-  const externalImages = images.filter(
-    (image) => !image.src.startsWith("/") && !image.src.startsWith("data:")
-  );
+  // Sem a base pública não há como montar a URL do proxy. Sair aqui é melhor do
+  // que estourar: `new URL("undefined/api/proxy")` derrubava o export INTEIRO
+  // ("Failed to construct 'URL': Invalid URL") em qualquer ambiente onde a
+  // variável não estivesse definida — inclusive no servidor de teste.
+  if (!url) return;
+
+  const externalImages = images.filter((image) => {
+    // `src` vazio vira `image.src === ""`, que passaria no filtro abaixo e
+    // mandaria `url=` vazio para o proxy. Imagem sem src não desenha nada.
+    const src = image.getAttribute("src") ?? "";
+    return src.length > 0 && !src.startsWith("/") && !src.startsWith("data:");
+  });
 
   // TODO: Make a single request with the list of images
   externalImages.forEach((image) => {
@@ -217,9 +232,14 @@ function insertFonts(element: HTMLElement) {
       const fontFaceValue = getComputedStyle(
         element.ownerDocument.body
       ).getPropertyValue("--" + font); // Font var name convention is starts with `--font`
-      if (fontFaceValue) {
-        element.style.fontFamily = fontFaceValue;
-      }
+      if (!fontFaceValue) return;
+      // Valor que é uma referência (`var(--font-inter)`) não é família de fonte:
+      // escrita crua no style, o html-to-image tenta resolver como URL e quebra
+      // o export com "Failed to construct 'URL': Invalid URL". Nesse caso usa a
+      // família já resolvida pelo navegador no próprio elemento.
+      element.style.fontFamily = fontFaceValue.includes("var(")
+        ? getComputedStyle(element).fontFamily
+        : fontFaceValue;
     });
   });
 }
