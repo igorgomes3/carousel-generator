@@ -8,7 +8,7 @@
  * no rodapé do card. A densidade é o ponto: seis carrosséis na primeira tela em
  * 1280, cada um legível sem hover.
  *
- * A miniatura NÃO é o slide renderizado: `/carrossel/projetos` devolve título,
+ * A miniatura NÃO é o slide renderizado: `/carrossel/carrosseis` devolve título,
  * versão, contagem de slides e autor, mas não o documento. Então ela mostra o
  * título real sobre um tom derivado do id — a alternativa seria uma chamada por
  * card só para pintar 78 px, e isso é caro no load da galeria. Quando a API

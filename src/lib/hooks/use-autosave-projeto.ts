@@ -40,7 +40,7 @@ export function useAutosaveProjeto(
     emVoo.current = true;
     setEstado("salvando");
     try {
-      await apiJson(`/carrossel/projetos/${projetoId}?org=autoclinic`, {
+      await apiJson(`/carrossel/carrosseis/${projetoId}?org=autoclinic`, {
         method: "PATCH",
         body: JSON.stringify({ documento: form.getValues(), titulo: titulo.current }),
       });

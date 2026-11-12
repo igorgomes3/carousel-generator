@@ -67,8 +67,16 @@ export const PROJETOS_MOCK = [
   },
 ];
 
+/**
+ * Marca da organização que a API mockada devolve.
+ *
+ * Não é enfeite: o editor novo semeia nome e @ daqui, e o slide tem que sair com
+ * ela — é a prova de que a marca deixou de vir do `defaultValues`.
+ */
+export const MARCA_MOCK = { nome: "Clínica Aurora", handle: "@clinicaaurora", avatar_url: null };
+
 /** Sessão + API mockada. Chamar ANTES do `goto`. */
-export async function prepararSessao(page: Page) {
+export async function prepararSessao(page: Page, marca: typeof MARCA_MOCK | null = MARCA_MOCK) {
   await page.route("**/api/auth/refresh", (rota) =>
     rota.fulfill({
       json: { access_token: "token-de-teste", refresh_token: "refresh-de-teste" },
@@ -90,8 +98,15 @@ export async function prepararSessao(page: Page) {
         },
       });
     }
-    if (url.includes("/carrossel/projetos") && rota.request().method() === "GET") {
-      return rota.fulfill({ json: { projetos: PROJETOS_MOCK } });
+    if (url.includes("/carrossel/carrosseis") && rota.request().method() === "GET") {
+      return rota.fulfill({ json: { carrosseis: PROJETOS_MOCK } });
+    }
+    // Marca da organização: o editor novo semeia nome e @ daqui, não do
+    // defaultValues. Sem este mock a assinatura sai vazia nos testes.
+    if (url.includes("/carrossel/marca")) {
+      return rota.fulfill({
+        json: { marca: marca ?? { nome: "", handle: "", avatar_url: null } },
+      });
     }
     if (url.includes("/conteudo/fila")) return rota.fulfill({ json: { fila: [] } });
     return rota.fulfill({ json: {} });
@@ -106,8 +121,8 @@ export async function prepararSessao(page: Page) {
 }
 
 /** Editor com documento limpo, pronto para medir. */
-export async function abrirEditorLimpo(page: Page) {
-  await prepararSessao(page);
+export async function abrirEditorLimpo(page: Page, marca: typeof MARCA_MOCK | null = MARCA_MOCK) {
+  await prepararSessao(page, marca);
   await page.goto("/");
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();

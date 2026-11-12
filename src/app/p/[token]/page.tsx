@@ -19,9 +19,9 @@ async function buscarProjeto(token: string) {
   }).catch(() => null);
   if (!res || !res.ok) return null;
   const dados = (await res.json().catch(() => null)) as
-    | { projeto?: { titulo: string; documento: unknown; atualizado_em?: string } }
+    | { carrossel?: { titulo: string; documento: unknown; atualizado_em?: string } }
     | null;
-  return dados?.projeto ?? null;
+  return dados?.carrossel ?? null;
 }
 
 export default async function PaginaPublica({ params }: { params: { token: string } }) {

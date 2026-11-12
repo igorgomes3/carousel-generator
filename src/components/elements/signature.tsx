@@ -11,6 +11,13 @@ export function Signature({
   config: z.infer<typeof ConfigSchema>;
   className?: string;
 }) {
+  // Marca vazia = sem assinatura. Não é "renderiza o placeholder": é não
+  // desenhar nada. Sem este retorno, o slide entregue ao cliente sai com
+  // "My name" / "@name", que é o que o produto prometia nunca mais mostrar.
+  const nome = (config.brand.name ?? "").trim();
+  const handle = (config.brand.handle ?? "").trim();
+  if (!nome && !handle) return null;
+
   return (
     <div
       className={`flex justify-start flex-row gap-3 items-center ${cn(

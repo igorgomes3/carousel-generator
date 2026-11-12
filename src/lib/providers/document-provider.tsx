@@ -33,6 +33,15 @@ export interface ProjetoCarrossel {
   documento: unknown;
 }
 
+/** Marca da organização — nome e @ que saem no slide, não do editor. */
+export interface MarcaConta {
+  nome: string;
+  handle: string;
+  avatar_url: string | null;
+}
+
+const ORG = "org=autoclinic";
+
 /**
  * Fonte do documento do editor. Três modos, e a diferença entre eles importa:
  *
@@ -76,6 +85,40 @@ export function DocumentProvider({
 
   const autosave = useAutosaveProjeto(documentForm, projetoId, titulo);
 
+  // Marca da organização no editor novo. Carrossel que já existe não passa por
+  // aqui: o servidor devolve o documento com a marca do dono aplicada (e marca
+  // vazia já vem vazia, para a assinatura ser omitida).
+  const [marca, setMarca] = useState<MarcaConta | null>(null);
+
+  useEffect(() => {
+    if (projetoId || documentoInicial) return;
+    let cancelado = false;
+    apiJson<{ marca: MarcaConta }>(`/carrossel/marca?${ORG}`)
+      .then((r) => {
+        if (!cancelado && r?.marca) setMarca(r.marca);
+      })
+      .catch(() => {
+        // Sem marca a assinatura fica vazia — o editor não pode deixar de abrir
+        // porque a leitura da marca falhou.
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [projetoId, documentoInicial]);
+
+  useEffect(() => {
+    if (!marca) return;
+    const atual = documentForm.getValues("config.brand") as
+      | { name?: string; handle?: string }
+      | undefined;
+    const nomeAtual = (atual?.name ?? "").trim();
+    // Só preenche o que está vazio: marca escrita à mão (inclusive num rascunho
+    // importado do navegador) continua valendo.
+    if (!nomeAtual) documentForm.setValue("config.brand.name", marca.nome);
+    if (!(atual?.handle ?? "").trim())
+      documentForm.setValue("config.brand.handle", marca.handle);
+  }, [marca, documentForm]);
+
   // Carrega o projeto antes de liberar o editor: abrir com o documento padrão e
   // trocar depois mostraria o conteúdo errado por um instante e, pior,
   // dispararia autosave por cima do que estava sendo carregado.
@@ -84,14 +127,14 @@ export function DocumentProvider({
     let cancelado = false;
     (async () => {
       try {
-        const r = await apiJson<{ projeto: ProjetoCarrossel }>(
-          `/carrossel/projetos/${projetoId}?org=autoclinic`
+        const r = await apiJson<{ carrossel: ProjetoCarrossel }>(
+          `/carrossel/carrosseis/${projetoId}?org=autoclinic`
         );
         if (cancelado) return;
-        const parsed = DocumentSchema.safeParse(r.projeto.documento);
+        const parsed = DocumentSchema.safeParse(r.carrossel.documento);
         documentForm.reset(parsed.success ? parsed.data : defaultValues);
-        setTitulo(r.projeto.titulo);
-        autosave.definirTitulo(r.projeto.titulo);
+        setTitulo(r.carrossel.titulo);
+        autosave.definirTitulo(r.carrossel.titulo);
       } catch (e) {
         if (!cancelado) {
           setFalha(

@@ -58,7 +58,7 @@ interface ItemFila {
   pontuacao: string | number | null;
   componentes: Sinal["componentes"] | null;
   slides: number;
-  projeto_id: string | null;
+  carrossel_id: string | null;
   criado_em: string;
 }
 
@@ -464,8 +464,8 @@ export default function FilaPage() {
                         >
                           Aprovar
                         </Button>
-                        {item.projeto_id && (
-                          <Link href={`/?projeto=${item.projeto_id}`}>
+                        {item.carrossel_id && (
+                          <Link href={`/?projeto=${item.carrossel_id}`}>
                             <Button size="sm" variant="outline">
                               Abrir no editor
                             </Button>
