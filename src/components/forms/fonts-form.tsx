@@ -34,7 +34,7 @@ export function FontsForm({}: {}) {
               <FormLabel>Font 1</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Fonte principal">
                     <SelectValue placeholder="Select primary font" />
                   </SelectTrigger>
                 </FormControl>
@@ -52,7 +52,7 @@ export function FontsForm({}: {}) {
               <FormLabel>Font 2</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Fonte secundária">
                     <SelectValue placeholder="Select a secondary font" />
                   </SelectTrigger>
                 </FormControl>

@@ -40,7 +40,10 @@ export function BackgroundImagePicker({ form }: BackgroundImagePickerProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">Origem da imagem</label>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <SelectTrigger>
+                {/* aria-label explícito: quando `field.value` é undefined o
+                    SelectValue não renderiza nada e o gatilho fica sem nome
+                    acessível (axe `button-name` crítico). */}
+                <SelectTrigger aria-label="Origem da imagem">
                   <SelectValue placeholder="Selecione a origem" />
                 </SelectTrigger>
                 <SelectContent>
