@@ -107,9 +107,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    // As variáveis do `next/font` precisam ficar no <html>: `tokens.css`
+    // declara `--font-sans: var(--font-inter)` em `:root`, e uma var() dentro
+    // de custom property é resolvida no elemento onde a declaração vive. Com
+    // as variáveis no <body>, `--font-sans` computa vazio no `:root` e herda
+    // vazio — a interface toda cai em Times New Roman.
+    <html
+      lang="en"
+      className={`${dm_sans.variable} ${dm_serif_display.variable} ${pt_serif.variable} ${roboto.variable} ${roboto_condensed.variable} ${inter.variable} ${arquivoBlack.variable} ${syne.variable} ${montserrat.variable} ${GeistSans.variable}`}
+    >
       <body
-        className={`${dm_sans.variable} ${dm_serif_display.variable} ${pt_serif.variable} ${roboto.variable} ${roboto_condensed.variable} ${inter.variable} ${arquivoBlack.variable} ${syne.variable} ${montserrat.variable}  ${GeistSans.variable} flex flex-col min-h-screen items-stretch justify-between antialiased}`}
+        className="flex flex-col min-h-screen items-stretch justify-between antialiased"
       >
         <div className="flex-1 h-full flex flex-col justify-stretch ">
           {children}

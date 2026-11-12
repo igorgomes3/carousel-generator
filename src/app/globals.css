@@ -19,7 +19,13 @@
    *
    * O tamanho base vai no BODY, não no `html`: o root em 14 px encolheria todo
    * espaçamento em rem do Tailwind (h-11 virava 38,5 px em vez de 44) e o alvo
-   * de toque do mobile passaria a reprovar por tabela. */
+   * de toque do mobile passaria a reprovar por tabela.
+   *
+   * A FAMÍLIA fica no `<html>` porque as variáveis do `next/font` também
+   * estão lá (layout.tsx). `var(--font-sans)` é `var(--font-inter)` e uma
+   * var() dentro de custom property resolve no elemento onde a declaração
+   * vive: com as variáveis no `<body>`, o `:root` computa `--font-sans` vazio
+   * e a interface inteira herda Times New Roman. */
   html {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
