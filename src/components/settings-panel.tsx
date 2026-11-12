@@ -25,6 +25,7 @@ import { PageNumberForm } from "./forms/page-number-form";
 import { Brush, Plus } from "lucide-react";
 import { Drawer } from "vaul";
 import { DrawerContent, DrawerTrigger } from "@/components/drawer";
+
 import { ReactNode } from "react";
 import { buttonVariants } from "./ui/button";
 import { useSelectionContext } from "@/lib/providers/selection-context";
@@ -71,7 +72,7 @@ export function SidebarPanel({ className }: { className?: string }) {
       {/* Mobile: dois gatilhos, dois drawers. 44 px de alvo. */}
       <div className="block h-0 md:hidden">
         <Drawer.Root modal={true}>
-          <DrawerTrigger aria-label="Abrir configurações do carrossel">
+          <DrawerTrigger asChild aria-label="Abrir configurações do carrossel">
             <CircularFloatingButton className="bottom-28 left-3">
               <Plus className="size-4" aria-hidden="true" />
             </CircularFloatingButton>
@@ -83,20 +84,23 @@ export function SidebarPanel({ className }: { className?: string }) {
           </DrawerContent>
         </Drawer.Root>
       </div>
-      <div className="block h-0 md:hidden">
-        <Drawer.Root modal={true}>
-          <DrawerTrigger aria-label="Abrir estilo do elemento selecionado">
-            {currentSelection ? (
+      {/* O drawer de estilo só existe quando há elemento selecionado: um gatilho
+          sem ícone e sem rótulo visível era o único controle sem nome acessível
+          da tela (axe `button-name` crítico). */}
+      {currentSelection ? (
+        <div className="block h-0 md:hidden">
+          <Drawer.Root modal={true}>
+            <DrawerTrigger asChild aria-label="Abrir estilo do elemento selecionado">
               <CircularFloatingButton className="bottom-28 right-3">
                 <Brush className="size-4" aria-hidden="true" />
               </CircularFloatingButton>
-            ) : null}
-          </DrawerTrigger>
-          <DrawerContent className="h-[40%]">
-            <StyleMenu form={form} className="m-4" />
-          </DrawerContent>
-        </Drawer.Root>
-      </div>
+            </DrawerTrigger>
+            <DrawerContent className="h-[40%]">
+              <StyleMenu form={form} className="m-4" />
+            </DrawerContent>
+          </Drawer.Root>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -135,12 +139,15 @@ function InspetorConteudo() {
 const CircularFloatingButton = ({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) => {
+  ...props
+}: React.ComponentPropsWithoutRef<"button">) => {
   return (
-    <div
+    // `button` de verdade, e com os props repassados: o DrawerTrigger usa
+    // `asChild` e entrega aria-label/onClick ao elemento filho. Sem o spread,
+    // o gatilho fica sem nome acessível e sem ação — o botão existe e não abre.
+    <button
+      type="button"
+      {...props}
       className={cn(
         buttonVariants({
           variant: "default",
@@ -151,6 +158,6 @@ const CircularFloatingButton = ({
       )}
     >
       {children}
-    </div>
+    </button>
   );
 };

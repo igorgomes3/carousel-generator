@@ -157,6 +157,7 @@ export function ThemeForm({}: {}) {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  aria-label="Usar cores personalizadas"
                 />
               </FormControl>
               <div className="space-y-1 leading-none text-base">

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
+import { abrirEditorLimpo } from "./ajuda";
 
 /**
  * Regressão visual do estilo individual de texto.
@@ -20,14 +21,9 @@ const BASELINE_DIR = path.join(__dirname, "baseline");
 const DIFF_DIR = path.join(__dirname, "diff");
 const THRESHOLD = 0.02; // 2% dos pixels podem diferir
 
-/** Deixa o editor num estado conhecido: limpa o localStorage e recarrega. */
+/** Deixa o editor num estado conhecido: sessão, localStorage limpo, fontes. */
 async function entrarLimpo(page: Page) {
-  await page.goto("/");
-  await page.evaluate(() => window.localStorage.clear());
-  await page.reload();
-  await page.waitForSelector('[id^="page-base-"]', { timeout: 30_000 });
-  // Fontes precisam estar carregadas, senão o baseline mede a fonte fallback.
-  await page.evaluate(() => document.fonts.ready);
+  await abrirEditorLimpo(page);
 }
 
 /** Compara o PNG atual com o baseline, escrevendo o diff quando falha. */

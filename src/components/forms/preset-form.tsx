@@ -111,7 +111,7 @@ export function PresetPicker() {
               <span className="block text-xs font-semibold leading-tight">
                 {p.nome}
               </span>
-              <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+              <span className="mt-0.5 block text-meta leading-snug text-muted-foreground">
                 {p.descricao}
               </span>
             </span>

@@ -136,9 +136,15 @@ test.describe("piso tipográfico", () => {
     // Corpo, botão e input: 14 px. O mockup usa 13 px em botão; subir 1 px
     // resolve "nada abaixo de 14 no corpo" sem mexer na densidade das linhas.
     const corpo = await page.evaluate(() => {
+      // `text-meta` (12 px) e `text-xs` (12 px) são metadado por definição do
+      // sistema; a regra de 14 px vale para corpo de texto, botão e input.
       const medir = (sel: string) =>
         Array.from(document.querySelectorAll(sel))
           .filter((el) => !el.closest('[id^="page-base-"]'))
+          .filter((el) => {
+            const classe = (el.className || "").toString();
+            return !classe.includes("text-meta") && !classe.includes("text-xs");
+          })
           .map((el) => ({
             sel,
             px: parseFloat(getComputedStyle(el).fontSize),

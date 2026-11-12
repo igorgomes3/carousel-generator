@@ -28,6 +28,7 @@ export function PageNumberForm({}: {}) {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  aria-label="Mostrar número dos slides"
                 />
               </FormControl>
               <div className="space-y-1 leading-none text-base">

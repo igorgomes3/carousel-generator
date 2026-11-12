@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Editor — Claro e arejado — Carrossel AutoClinic</title>
+<style>
+@font-face{font-family:'Public Sans';src:url('fonts/PublicSans-variable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Public Sans',system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.5;
+  color:#1A1C1F;background:#FAFAF8;-webkit-font-smoothing:antialiased;
+}
+::selection{background:#2383E2;color:#FFFFFF}
+:focus-visible{outline:2px solid #2383E2;outline-offset:2px;border-radius:4px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#DCDBD4;border-radius:99px;border:3px solid #FAFAF8}
+::-webkit-scrollbar-track{background:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg{width:17px;height:17px;display:block;flex:none}
+.num{font-variant-numeric:tabular-nums}
+.ico svg{width:15px;height:15px}
+
+.top{height:52px;display:flex;align-items:center;gap:12px;
+  padding:0 26px;background:#FAFAF8;border-bottom:1px solid #E8E7E1;position:relative;z-index:3}
+.marca{display:flex;align-items:center;gap:8px;font-weight:600;letter-spacing:-.01em;font-size:15px}
+.marca .selo{width:22px;height:22px;border-radius:6px;background:#2383E2;display:grid;place-items:center;color:#FFFFFF}
+.marca .selo svg{width:13px;height:13px}
+.crumb{color:#82868D;font-size:13px;display:flex;align-items:center;gap:7px;min-width:0}
+.crumb b{color:#55595F;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.espaco{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 11px;
+  border-radius:8px;font-size:14px;font-weight:500;border:1px solid transparent;white-space:nowrap}
+.btn-ghost{color:#55595F}
+.btn-ghost:hover{background:#F2F2EE;color:#1A1C1F}
+.btn-linha{border-color:#DCDBD4;background:#FFFFFF;color:#1A1C1F}
+.btn-linha:hover{background:#F2F2EE}
+.btn-primario{background:#2383E2;color:#FFFFFF;font-weight:600}
+.btn-primario:hover{filter:brightness(.94)}
+.pager{display:flex;align-items:center;gap:1px;border:1px solid #E8E7E1;border-radius:10px;padding:2px;background:#FFFFFF;height:32px}
+.pager button{width:26px;height:26px;display:grid;place-items:center;border-radius:7px;color:#55595F}
+.pager button:hover{background:#F2F2EE}
+.pager .cont{padding:0 8px;font-size:13px;color:#55595F;border-left:1px solid #E8E7E1;margin-left:1px;line-height:26px;font-weight:500}
+
+.app{height:calc(100% - 52px);overflow:hidden}
+.corpo{display:grid;grid-template-columns:296px minmax(0,1fr) 312px;height:100%;min-height:0;background:#F2F2EE}
+.painel{background:#FFFFFF;border-right:1px solid #E8E7E1;overflow:auto}
+.painel.dir{border-right:0;border-left:1px solid #E8E7E1}
+.secao{padding:16px}
+.secao + .secao{border-top:1px solid #E8E7E1}
+.secao h2{font-size:11px;font-weight:600;color:#82868D;letter-spacing:.04em;text-transform:uppercase;margin-bottom:11px;
+  display:flex;align-items:center;justify-content:space-between}
+.campo{margin-bottom:11px}
+.campo label{display:block;font-size:13px;color:#55595F;margin-bottom:5px;font-weight:500}
+.campo input{width:100%;height:32px;padding:0 9px;border-radius:8px;border:1px solid #DCDBD4;
+  background:#FAFAF8;color:#1A1C1F;font:inherit;font-size:14.5px}
+.campo input:focus{outline:2px solid #2383E2;outline-offset:-1px}
+.marca-card{display:flex;align-items:center;gap:9px;padding:9px;border-radius:10px;background:#F2F2EE;border:1px solid #E8E7E1}
+.avatar{width:30px;height:30px;border-radius:999px;background:#2383E2;color:#FFFFFF;
+  display:grid;place-items:center;font-size:11px;font-weight:700;flex:none;letter-spacing:.02em}
+.marca-card .nm{font-weight:600;font-size:14.5px;line-height:1.3}
+.marca-card .hd{color:#82868D;font-size:13px;line-height:1.3}
+.ajuda{font-size:12px;color:#82868D;margin-top:7px;line-height:1.4}
+.trilho{position:relative;height:6px;border-radius:99px;background:#E8E7E1;margin:9px 0 3px}
+.trilho span{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:#2383E2}
+.trilho i{position:absolute;top:50%;width:14px;height:14px;border-radius:99px;background:#FAFAF8;
+  border:2px solid #2383E2;transform:translate(-50%,-50%)}
+.swatches{display:flex;gap:7px}
+.sw{width:23px;height:23px;border-radius:7px;border:1px solid rgba(0,0,0,.16);background-clip:padding-box}
+.sw.on{box-shadow:0 0 0 2px #FFFFFF,0 0 0 3.5px #2383E2}
+.seg{display:flex;gap:2px;padding:2px;border-radius:9px;background:#F2F2EE;border:1px solid #E8E7E1}
+.seg button{flex:1;height:26px;border-radius:7px;font-size:13px;color:#55595F}
+.seg button.on{background:#EAF2FC;color:#2383E2;font-weight:600}
+.linha-lista{display:flex;align-items:center;justify-content:space-between;height:52px;
+  padding:0 2px;border-bottom:1px solid #E8E7E1;font-size:14px;color:#55595F}
+.linha-lista:last-of-type{border-bottom:0}
+.linha-lista b{font-weight:600;color:#1A1C1F}
+
+.palco{display:flex;flex-direction:column;min-width:0;min-height:0;background:#F2F2EE}
+.palco-topo{height:40px;display:flex;align-items:center;gap:8px;padding:0 20px;border-bottom:1px solid #E8E7E1;background:#FAFAF8}
+.palco-topo .tag{font-size:13px;color:#82868D}
+.salvo{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#55595F;font-weight:500}
+.ponto{width:6px;height:6px;border-radius:99px;background:#2383E2}
+.slide-area{flex:1;display:grid;place-items:center;padding:22px;min-height:0}
+.slide{width:348px;aspect-ratio:4/5;border-radius:10px;overflow:hidden;position:relative;
+  background:#123B32;color:#fff;box-shadow:0 10px 30px rgba(12,16,24,.18);display:flex;flex-direction:column;
+  padding:30px}
+.slide .txt{margin-top:auto}
+.slide h3{font-size:27px;line-height:1.16;font-weight:600;letter-spacing:-.02em;text-wrap:balance}
+.slide p{font-size:13px;line-height:1.45;color:rgba(255,255,255,.84);margin-top:14px;max-width:24ch;text-wrap:pretty}
+.slide .rodape{margin-top:auto;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.88)}
+.slide .rodape .m{display:flex;align-items:center;gap:7px}
+.slide .rodape .av{width:19px;height:19px;border-radius:99px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:8px;font-weight:700}
+.slide .sel{position:absolute;inset:0;border:2px solid #2383E2;border-radius:10px;pointer-events:none}
+
+.fita{height:98px;border-top:1px solid #E8E7E1;background:#FAFAF8;
+  display:flex;align-items:center;gap:9px;padding:0 18px;overflow:hidden}
+.fita .mini{width:41px;height:51px;border-radius:5px;flex:none;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.08)}
+.fita .mini .n{position:absolute;right:3px;bottom:2px;font-size:6.5px;color:rgba(255,255,255,.75);font-weight:600}
+.fita .mini .mt{position:absolute;left:4px;top:4px;right:4px;font-size:5.5px;line-height:1.25;font-weight:600;
+  color:rgba(255,255,255,.94);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fita .mini.on{outline:2px solid #2383E2;outline-offset:1px}
+.fita .mais{width:41px;height:51px;border-radius:5px;border:1px dashed #DCDBD4;display:grid;place-items:center;color:#82868D;flex:none}
+.fita .mais svg{width:13px;height:13px}
+.fita .rotulo{margin-left:6px;font-size:13px;color:#82868D;white-space:nowrap}
+
+.pauta .cnt{font-weight:500;color:#82868D;text-transform:none;letter-spacing:0}
+.item-pauta{border:1px solid #E8E7E1;border-radius:10px;padding:10px;margin-bottom:8px;background:#FAFAF8;
+  display:flex;flex-direction:column;min-height:112px}
+.item-pauta .fonte{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#82868D}
+.item-pauta .fonte b{color:#55595F;font-weight:600}
+.item-pauta .fonte .nota{color:#1A1C1F;font-weight:600;font-size:13px}
+.item-pauta .tt{font-size:14.5px;font-weight:600;line-height:1.35;margin-top:7px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:39.150000000000006px}
+.item-pauta .bt{margin-top:auto;padding-top:9px;display:flex;gap:6px;align-items:center}
+.item-pauta .bt .btn{height:26px;padding:0 8px;font-size:11px}
+.rodape-link{display:flex;justify-content:center;margin-top:9px}
+.rodape-link .btn{font-size:13px}
+
+/* ---------- galeria ---------- */
+.gal{background:#FAFAF8;min-height:100%;display:flex;flex-direction:column}
+.gal-cab{padding:24px 30px 0}
+.gal-tit{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.gal-tit h1{font-size:30px;font-weight:600;letter-spacing:-.025em;line-height:1.1}
+.gal-tit .sub{color:#55595F;font-size:15px;margin-top:7px}
+.gal-tit .acoes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.busca{display:flex;align-items:center;gap:7px;height:32px;padding:0 10px;border:1px solid #DCDBD4;
+  border-radius:8px;background:#FFFFFF;color:#82868D;min-width:210px}
+.busca span{font-size:14px}
+.filtros{display:flex;gap:6px;margin:16px 0;flex-wrap:wrap}
+.chip{height:27px;padding:0 10px;border-radius:999px;border:1px solid #DCDBD4;
+  font-size:13px;color:#55595F;display:inline-flex;align-items:center;gap:6px;background:#FAFAF8}
+.chip.on{background:#1A1C1F;color:#FAFAF8;border-color:#1A1C1F;font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+  padding:0 30px 22px}
+.pcard{background:#FFFFFF;border:1px solid #E8E7E1;border-radius:12px;box-shadow:0 1px 2px rgba(26,28,31,.05);
+  display:flex;flex-direction:column;overflow:hidden}
+.pcard:hover{border-color:#DCDBD4}
+.pc-topo{display:flex;gap:16px;padding:16px}
+.thumb{width:92px;aspect-ratio:4/5;border-radius:6px;overflow:hidden;position:relative;flex:none;
+  display:flex;flex-direction:column;justify-content:space-between;padding:8px;color:#fff}
+.thumb .tt{font-size:9px;font-weight:600;line-height:1.25;letter-spacing:-.01em}
+.thumb .hd{font-size:6.5px;color:rgba(255,255,255,.7);display:flex;justify-content:space-between;align-items:center}
+.thumb .av{width:9px;height:9px;border-radius:99px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:4.5px;font-weight:700}
+.pc-info{min-width:0;flex:1;display:flex;flex-direction:column}
+.pc-info h3{font-size:16px;font-weight:600;line-height:1.3;letter-spacing:-.01em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:41.6px}
+.pc-meta{display:flex;align-items:center;gap:7px;color:#82868D;font-size:13px;margin-top:7px;flex-wrap:wrap}
+.pc-meta .sep{width:3px;height:3px;border-radius:99px;background:#DCDBD4}
+.etiqueta{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:5px;
+  font-size:12px;font-weight:600;border:1px solid transparent}
+.etiqueta.pub{background:#EAF2FC;color:#2383E2;border-color:#2383E222}
+.etiqueta.ras{background:#F2F2EE;color:#55595F;border-color:#DCDBD4}
+.pc-acao{display:flex;align-items:center;gap:2px;margin-top:auto;padding:12px 16px;
+  border-top:1px solid #E8E7E1}
+.pc-acao .btn{height:26px;padding:0 8px;font-size:13px;color:#55595F}
+.pc-acao .btn:hover{background:#F2F2EE;color:#1A1C1F}
+.pc-acao .btn.abrir{color:#2383E2;font-weight:600}
+.rodape-gal{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;
+  padding:12px 30px;color:#82868D;font-size:13px;border-top:1px solid #E8E7E1}
+.rodape-gal a{color:#2383E2;text-decoration:none;font-weight:600}
+
+@media (max-width:520px){
+  .top{height:52px;padding:0 12px;gap:8px}
+  .crumb,.busca,.btn-pauta,.rotulo{display:none}
+  .marca{font-size:13px}
+  .pager{height:30px}
+  .pager button{width:24px;height:24px}
+  .corpo{grid-template-columns:1fr}
+  .painel{display:none}
+  .palco-topo{padding:0 12px;height:38px}
+  .palco-topo .tag.direita{display:none}
+  .slide-area{padding:10px}
+  .slide{width:min(84vw,286px);padding:22px}
+  .slide h3{font-size:21px}
+  .slide p{font-size:11.5px;margin-top:10px}
+  .fita{height:74px;padding:0 10px;gap:6px}
+  .fita .mini,.fita .mais{width:34px;height:43px}
+  .gal-cab{padding:16px 14px 0}
+  .gal-tit{align-items:flex-start}
+  .gal-tit h1{font-size:22px}
+  .gal-tit .sub{font-size:13px;margin-top:5px}
+  .gal-tit .acoes{width:100%;margin-top:12px}
+  .gal-tit .acoes .btn-primario{width:100%}
+  .filtros{flex-wrap:nowrap;overflow:hidden;margin:13px 0}
+  .grid{grid-template-columns:1fr;gap:7px;padding:0 14px 14px}
+  .pc-info .pc-meta{margin-top:4px}
+  .etiqueta{height:18px;font-size:10px}
+  .pc-topo{gap:10px;padding:9px 10px}
+  .thumb{width:44px;padding:5px}
+  .thumb .tt{font-size:6.5px}
+  .thumb .hd{display:none}
+  .pc-info h3{font-size:13px;min-height:0;-webkit-line-clamp:2}
+  .pc-acao{padding:5px 10px}
+  .pc-acao .btn{height:24px;font-size:11px}
+  .rodape-gal{padding:11px 14px;font-size:11px}
+}
+</style></head>
+<body>
+
+<div class="top">
+  <div class="marca"><span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M9.4 15.2V8.8l5.2 6.4V8.8"/></svg></span>Carrossel</div>
+  <div class="crumb"><span>/</span><b>Fiscalização na estética: 7 pontos</b></div>
+  <div class="espaco"></div>
+  <div class="pager">
+    <button aria-label="Slide anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5L9 12l5.5 5.5"/></svg></button>
+    <span class="cont num">1 / 7</span>
+    <button aria-label="Próximo slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5L15 12l-5.5 5.5"/></svg></button>
+  </div>
+  <button class="btn btn-linha btn-pauta ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 4.2h8.4l3.2 3.2v12.4H6.2z"/><path d="M9 11.2h6M9 14.8h4"/></svg><span>Pauta</span></button>
+  <button class="btn btn-primario ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10.5"/><path d="M8 11.5l4 4 4-4"/><path d="M5.5 19h13"/></svg><span>Exportar PNGs</span></button>
+</div>
+<div class="app"><div class="corpo">
+  
+<aside class="painel">
+  <div class="secao">
+    <h2>Marca</h2>
+    <div class="marca-card">
+      <div class="avatar">AC</div>
+      <div><div class="nm">AutoClinic</div><div class="hd">@autoclinic</div></div>
+    </div>
+    <div class="ajuda">Vem da organização. Mudar aqui vale só para este carrossel.</div>
+  </div>
+  <div class="secao">
+    <h2>Slide 1 <span class="cnt" style="text-transform:none;letter-spacing:0">capa</span></h2>
+    <div class="campo"><label for="t1">Título</label><input id="t1" value="Fiscalização na estética"></div>
+    <div class="campo"><label for="t2">Subtítulo</label><input id="t2" value="7 pontos que a Vigilância olha antes de autuar"></div>
+    <div class="campo"><label>Fundo</label>
+      <div class="swatches">
+        <span class="sw on" style="background:#123B32"></span>
+        <span class="sw" style="background:#242743"></span>
+        <span class="sw" style="background:#3A2A1B"></span>
+        <span class="sw" style="background:#1B2532"></span>
+        <span class="sw" style="background:#F1EFE9"></span>
+      </div>
+    </div>
+  </div>
+  <div class="secao">
+    <h2>Tipografia do slide</h2>
+    <div class="seg"><button class="on">Montserrat</button><button>PT Serif</button><button>Inter</button></div>
+    <div class="linha-lista" style="margin-top:10px"><b>Tamanho</b><span class="num">27 px</span></div>
+    <div class="linha-lista"><b>Alinhamento</b><span>à esquerda</span></div>
+    <div class="linha-lista"><b>Entrelinha</b><span class="num">1,16</span></div>
+  </div>
+  <div class="secao">
+    <h2>Fundo do slide</h2>
+    <div class="seg" style="margin-bottom:9px"><button class="on">Cor sólida</button><button>Degradê</button><button>Grade</button></div>
+    <div class="linha-lista"><b>Contraste do texto</b><span>alto</span></div>
+    <div class="linha-lista"><b>Logo no rodapé</b><span>ligado</span></div>
+    <div class="linha-lista"><b>Numeração</b><span class="num">1 / 7</span></div>
+  </div>
+</aside>
+  <div class="palco">
+    <div class="palco-topo">
+      <span class="salvo"><span class="ponto"></span>Salvo automaticamente</span>
+      <span class="tag">·</span>
+      <span class="tag num">7 slides · 1080×1350</span>
+      <div class="espaco"></div>
+      <span class="tag">·</span><span class="tag num">Ajustar 62%</span>
+      <div class="espaco"></div>
+      <span class="tag direita">Editado há 2 h por Ana Prado</span>
+    </div>
+    <div class="slide-area">
+<div class="slide">
+  <div class="txt">
+    <h3>Fiscalização na estética</h3>
+    <p>7 pontos que a Vigilância olha antes de autuar</p>
+  </div>
+  <div class="rodape">
+    <div class="m"><span class="av">AC</span><span>@autoclinic</span></div>
+    <span class="num">1 / 7</span>
+  </div>
+  <div class="sel"></div>
+</div></div>
+    
+<div class="fita"><div class="mini on" style="background:#123B32"><span class="mt">Fiscalização na estética</span><span class="n num">1</span></div><div class="mini " style="background:#143F36"><span class="mt">O que o fiscal pede primeiro</span><span class="n num">2</span></div><div class="mini " style="background:#143F36"><span class="mt">Medicamento vencido</span><span class="n num">3</span></div><div class="mini " style="background:#143F36"><span class="mt">Prontuário assinado</span><span class="n num">4</span></div><div class="mini " style="background:#143F36"><span class="mt">Resíduo com rastreio</span><span class="n num">5</span></div><div class="mini " style="background:#143F36"><span class="mt">Pergunte antes de autuar</span><span class="n num">6</span></div><div class="mini " style="background:#123B32"><span class="mt">Salve este carrossel</span><span class="n num">7</span></div><div class="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></div><span class="rotulo">Novo slide</span></div>
+  </div>
+  
+<aside class="painel dir pauta">
+  <div class="secao">
+    <h2>Pauta de hoje <span class="cnt num">4</span></h2>
+    
+      <div class="item-pauta">
+        <div class="fonte"><b>Vigilância Sanitária</b><span class="nota num">nota 10,0</span></div>
+        <div class="tt">Clínica de estética é interditada após fiscalização encontrar medicamentos vencidos</div>
+        <div class="bt"><button class="btn btn-linha">Gerar slides</button><button class="btn btn-ghost">Ver</button></div>
+      </div>
+      <div class="item-pauta">
+        <div class="fonte"><b>Anvisa</b><span class="nota num">nota 8,6</span></div>
+        <div class="tt">Nova regra para harmonização facial entra em consulta pública</div>
+        <div class="bt"><button class="btn btn-linha">Gerar slides</button><button class="btn btn-ghost">Ver</button></div>
+      </div>
+      <div class="item-pauta">
+        <div class="fonte"><b>Sebrae</b><span class="nota num">nota 7,9</span></div>
+        <div class="tt">Precificação de serviços: o erro que come a margem do protocolo</div>
+        <div class="bt"><button class="btn btn-linha">Gerar slides</button><button class="btn btn-ghost">Ver</button></div>
+      </div>
+      <div class="item-pauta">
+        <div class="fonte"><b>CFO</b><span class="nota num">nota 7,4</span></div>
+        <div class="tt">Resolução sobre prontuário eletrônico entra em vigor em janeiro</div>
+        <div class="bt"><button class="btn btn-linha">Gerar slides</button><button class="btn btn-ghost">Ver</button></div>
+      </div>
+    <button class="btn btn-ghost" style="margin-top:8px;padding-left:0">Ver fila de conteúdo</button>
+  </div>
+  <div class="secao">
+    <h2>Versões <span class="cnt num">3</span></h2>
+    <div class="linha-lista"><b class="num">v4</b><span>há 2 h · Ana Prado</span></div>
+    <div class="linha-lista"><b class="num">v3</b><span>há 1 dia · Ana Prado</span></div>
+    <div class="linha-lista"><b class="num">v2</b><span>há 3 dias · Clécio Menezes</span></div>
+    <button class="btn btn-ghost" style="margin-top:8px;padding-left:0">Restaurar uma versão</button>
+  </div>
+</aside>
+</div></div>
+</body></html>

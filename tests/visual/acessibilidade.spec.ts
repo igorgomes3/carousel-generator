@@ -1,5 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { abrirEditorLimpo } from "./ajuda";
 
 /**
  * Acessibilidade do editor.
@@ -16,10 +17,10 @@ import AxeBuilder from "@axe-core/playwright";
  */
 
 async function entrarLimpo(page: Page) {
-  await page.goto("/");
-  await page.evaluate(() => window.localStorage.clear());
-  await page.reload();
-  await page.waitForSelector('[id^="page-base-"]', { timeout: 30_000 });
+  // Sessão + documento limpo vêm do ajudante compartilhado: o middleware exige
+  // o cookie `ac_sessao`, e sem ele esta função caía em /login e falhava por
+  // timeout (era o estado de 7 de 7 testes antes da direção A).
+  await abrirEditorLimpo(page);
 }
 
 /** Roda axe e devolve só as violações que bloqueiam. */

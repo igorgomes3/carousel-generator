@@ -61,7 +61,6 @@ export function Filmstrip() {
             key={index}
             type="button"
             onClick={() => setCurrentPage(index)}
-            aria-label={`Ir para o slide ${index + 1}${titulo ? `: ${titulo}` : ""}`}
             aria-current={ativo ? "true" : undefined}
             className={cn(
               "relative grid size-11 shrink-0 place-items-end overflow-hidden rounded-sm border text-left transition-colors md:size-[41px]",
@@ -84,6 +83,14 @@ export function Filmstrip() {
               aria-hidden="true"
             >
               {index + 1}
+            </span>
+            {/* Nome acessível em texto, não em aria-label: a regra
+                `label-content-name-mismatch` do axe exige que o texto visível
+                apareça no nome acessível, e o texto da miniatura é uma prévia
+                do slide (aria-hidden), não rótulo de botão. */}
+            <span className="sr-only">
+              Slide {index + 1}
+              {titulo ? `: ${titulo}` : ""}
             </span>
           </button>
         );
