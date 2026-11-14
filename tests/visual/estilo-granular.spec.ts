@@ -130,7 +130,18 @@ test.describe("estilo granular de texto", () => {
       .locator('..')
       .getByRole('combobox');
     await pesoCombo.click();
-    await page.getByRole("option", { name: "Black (900)", exact: true }).click();
+    // O Radix reparenta a lista num portal e a reposiciona enquanto anima. Em
+    // runner lento o Playwright nunca considera a opção "estável" e o clique
+    // estourava os 120s de timeout (aconteceu em 1 de 2 runs verdes de build).
+    // "Black (900)" é o último item de fontWeightOptions, então End + Enter
+    // seleciona pelo teclado, sem depender da geometria do ponteiro. A
+    // asserção de font-weight abaixo continua provando que a escolha chegou ao
+    // slide.
+    const opcaoBlack = page.getByRole("option", { name: "Black (900)", exact: true });
+    await expect(opcaoBlack).toBeVisible();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await expect(opcaoBlack).toBeHidden();
     await page.waitForTimeout(800);
 
     const pesoAplicado = await page
