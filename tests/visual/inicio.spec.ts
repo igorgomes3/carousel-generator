@@ -435,6 +435,42 @@ test.describe("§2.6 — paginação", () => {
 });
 
 test.describe("§2.4 — ordenação", () => {
+  test("duas escritas na URL no mesmo tick não apagam a primeira", async ({ page }) => {
+    // Regressão de produto: `escrever()` montava a query a partir do `params`
+    // anterior, e `router.replace` é transição assíncrona. Trocar a aba e logo
+    // a ordem (no mesmo tick) apagava a aba — a lista voltava para "Para
+    // aprovar". Aqui as duas mudanças acontecem dentro de um único evaluate,
+    // então o resultado não depende de timing.
+    await abrirLista(page);
+    await page.waitForSelector("[data-carrossel]");
+
+    await page.evaluate(() => {
+      const grupo = document.querySelector('[role="group"][aria-label="Filtrar por aba"]');
+      const chip = Array.from(grupo?.querySelectorAll("button") ?? []).find((b) =>
+        b.textContent?.trim().startsWith("Todas"),
+      );
+      if (!chip) throw new Error('chip "Todas" não encontrado');
+      chip.click();
+      const select = document.querySelector(
+        'select[aria-label="Ordenar carrosséis"]',
+      ) as HTMLSelectElement | null;
+      if (!select) throw new Error("select de ordenação não encontrado");
+      select.value = "parado";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    await expect.poll(() => new URL(page.url()).search).toContain("ordem=parado");
+    const search = new URL(page.url()).search;
+    expect(search, `query ficou ${search}`).toContain("aba=todas");
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-carrossel]")
+          .evaluateAll((nos) => nos.map((n) => n.getAttribute("data-carrossel")).join(",")),
+      )
+      .toBe("a3,a2,b2,b1,a1");
+  });
+
   test("“Mais antigo parado” ordena por estado_em ascendente", async ({ page }) => {
     await abrirLista(page);
     await page.locator(CHIP("Todas")).click();

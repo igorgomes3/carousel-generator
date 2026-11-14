@@ -140,15 +140,34 @@ export function ListaCarrosseis({ estadosDevLiberados }: { estadosDevLiberados: 
   const de = params.get("de");
   const ate = params.get("ate");
 
+  /**
+   * Última query escrita e ainda não refletida na URL.
+   *
+   * `router.replace` é transição assíncrona: dois cliques em sequência (aba e
+   * logo ordem, como qualquer pessoa faz) chegam antes de a URL mudar. Cada
+   * escrita partia do `params` antigo, então a segunda apagava a primeira — a
+   * aba voltava ao padrão e a lista encolhia. O valor pendente é a base até a
+   * URL alcançar. O teste §2.4 pegou isso no CI (recebia a3,a2,a1 em vez de
+   * a3,a2,b2,b1,a1) e passava local por sorte de timing.
+   */
+  const queryPendente = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (queryPendente.current !== null && queryPendente.current === params.toString()) {
+      queryPendente.current = null;
+    }
+  }, [params]);
+
   /** Escreve na URL trocando só o que mudou; preserva o resto (q, ordem, aba). */
   const escrever = useCallback(
     (mudancas: Record<string, string | null>) => {
-      const proximo = new URLSearchParams(params.toString());
+      const proximo = new URLSearchParams(queryPendente.current ?? params.toString());
       for (const [chave, valor] of Object.entries(mudancas)) {
         if (valor === null || valor === "") proximo.delete(chave);
         else proximo.set(chave, valor);
       }
       const query = proximo.toString();
+      queryPendente.current = query;
       router.replace(query ? `/?${query}` : "/", { scroll: false });
     },
     [params, router],
