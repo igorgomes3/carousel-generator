@@ -75,7 +75,22 @@ jobs:
         run: node scripts/build-tokens.mjs --check
 
       - name: Build
-        run: pnpm build
+        run: |
+          set -euo pipefail
+          # `next/font` baixa as fontes do Google durante o build. Em runner com
+          # rede instável isso morre como `TypeError: Cannot read properties of
+          # null (reading '1')` dentro de google/loader — erro de rede, não de
+          # código (run 43615148733). Três tentativas antes de dar o build por
+          # quebrado; o erro real continua impresso em cada tentativa.
+          for tentativa in 1 2 3; do
+            if pnpm build; then
+              exit 0
+            fi
+            echo "::warning::build falhou na tentativa ${tentativa} de 3 — nova tentativa em 10s"
+            sleep 10
+          done
+          echo "::error::build falhou nas 3 tentativas"
+          exit 1
 
   testes:
     name: Visuais e acessibilidade
@@ -113,7 +128,18 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build
-        run: pnpm build
+        run: |
+          set -euo pipefail
+          # Mesmo motivo do job de build: o next/font depende da rede do runner.
+          for tentativa in 1 2 3; do
+            if pnpm build; then
+              exit 0
+            fi
+            echo "::warning::build falhou na tentativa ${tentativa} de 3 — nova tentativa em 10s"
+            sleep 10
+          done
+          echo "::error::build falhou nas 3 tentativas"
+          exit 1
 
       - name: Rodar testes
         run: pnpm exec playwright test
