@@ -5,10 +5,24 @@ on:
     branches: [main, monflash, "feat/**"]
   pull_request:
     branches: [main, monflash]
+  # Sem isto, um push numa branch fora da lista não roda CI e a correção fica
+  # sem prova. Rodar à mão é o que permite validar antes de mesclar.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# O pnpm nunca é fixado no workflow: a única fonte de verdade é o campo
+# `packageManager` do package.json, e o corepack ativa exatamente aquela
+# versão. Antes isto era `version: 8` no pnpm/action-setup, enquanto o
+# pnpm-lock.yaml é 9.0 — o pnpm 8 ignorava o lockfile e o `--frozen-lockfile`
+# morria em ERR_PNPM_LOCKFILE_CONFIG_MISMATCH (`onlyBuiltDependencies`). Foi
+# por isso que os 13 runs desde 21/out/2026 ficaram vermelhos em
+# "Instalar dependências".
+env:
+  # Nada de prompt interativo do corepack no runner.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
 
 jobs:
   build:
@@ -17,26 +31,66 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+
+      - name: Ativar o pnpm do packageManager
+        run: |
+          set -euo pipefail
+          esperado="$(node -p 'require("./package.json").packageManager')"
+          if [ -z "$esperado" ]; then
+            echo "::error::package.json sem o campo packageManager — o pnpm não tem versão definida"
+            exit 1
+          fi
+          corepack enable
+          corepack prepare "$esperado" --activate
+          obtido="pnpm@$(pnpm --version)"
+          echo "packageManager=$esperado · pnpm ativo=$obtido"
+          if [ "$esperado" != "$obtido" ]; then
+            echo "::error::pnpm ativo ($obtido) difere do packageManager ($esperado)"
+            exit 1
+          fi
+
+      # Cache só depois do pnpm existir (setup-node com cache: pnpm exige o
+      # binário no PATH na hora em que roda).
+      - name: Restaurar store do pnpm
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       # --frozen-lockfile: o repo traz pnpm-lock.yaml. npm resolveria
       # react-hook-form num patch novo e quebraria o type-check.
       - name: Instalar dependências
-        run: pnpm install --frozen-lockfile
+        run: |
+          set -euo pipefail
+          echo "pnpm $(pnpm --version) · lockfileVersion $(sed -n "s/^lockfileVersion: '\(.*\)'/\1/p" pnpm-lock.yaml)"
+          pnpm install --frozen-lockfile
 
       # Falha se design-tokens.json foi alterado sem regenerar tokens.css.
       - name: Conferir tokens de design
         run: node scripts/build-tokens.mjs --check
 
       - name: Build
-        run: pnpm build
+        run: |
+          set -euo pipefail
+          # `next/font` baixa as fontes do Google durante o build. Em runner com
+          # rede instável isso morre como `TypeError: Cannot read properties of
+          # null (reading '1')` dentro de google/loader — erro de rede, não de
+          # código (run 43615148733). Três tentativas antes de dar o build por
+          # quebrado; o erro real continua impresso em cada tentativa.
+          for tentativa in 1 2 3; do
+            if pnpm build; then
+              exit 0
+            fi
+            echo "::warning::build falhou na tentativa ${tentativa} de 3 — nova tentativa em 10s"
+            sleep 10
+          done
+          echo "::error::build falhou nas 3 tentativas"
+          exit 1
 
   testes:
     name: Visuais e acessibilidade
@@ -45,23 +99,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+
+      - name: Ativar o pnpm do packageManager
+        run: |
+          set -euo pipefail
+          esperado="$(node -p 'require("./package.json").packageManager')"
+          corepack enable
+          corepack prepare "$esperado" --activate
+          test "pnpm@$(pnpm --version)" = "$esperado"
+
+      - name: Restaurar store do pnpm
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile
 
+      # Este job nunca chegou a rodar: dependia do build, e o build morria em
+      # "Instalar dependências".
       - name: Instalar Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Build
-        run: pnpm build
+        run: |
+          set -euo pipefail
+          # Mesmo motivo do job de build: o next/font depende da rede do runner.
+          for tentativa in 1 2 3; do
+            if pnpm build; then
+              exit 0
+            fi
+            echo "::warning::build falhou na tentativa ${tentativa} de 3 — nova tentativa em 10s"
+            sleep 10
+          done
+          echo "::error::build falhou nas 3 tentativas"
+          exit 1
 
       - name: Rodar testes
         run: pnpm exec playwright test
