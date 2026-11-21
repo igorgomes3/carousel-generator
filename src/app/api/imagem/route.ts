@@ -1,0 +1,149 @@
+/**
+ * Geração de imagem do estúdio — capa e cenas dos cards.
+ *
+ * Espelha o `/api/art` do CarrosseIA de propósito: `POST` devolve `jobId` e o
+ * cliente faz poll em `GET ?job=`. Geração de imagem leva dezenas de segundos;
+ * segurar a resposta HTTP até o fim estoura timeout do proxy e trava a tela.
+ *
+ * O provedor é o 9Router (`/v1/images/generations`), o mesmo hub que já serve o
+ * texto — não há chave nova, e o modelo é trocável por env sem mexer no código.
+ * A saída é sempre `data:image/png;base64,...`: o export de PNG do navegador
+ * (html-to-image) falha com URL externa por CORS, e data-URI não tem essa
+ * desvantagem.
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
+type Estado = "pending" | "done" | "erro";
+
+interface Job {
+  estado: Estado;
+  imagem?: string;
+  erro?: string;
+  criadoEm: number;
+}
+
+/** Store do processo: um job vive minutos, não precisa de tabela. */
+const store: Map<string, Job> = ((
+  globalThis as unknown as { __jobsImagem?: Map<string, Job> }
+).__jobsImagem ??= new Map<string, Job>());
+
+const VALIDADE_MS = 10 * 60_000;
+
+function limpar() {
+  const agora = Date.now();
+  store.forEach((job, id) => {
+    if (agora - job.criadoEm > VALIDADE_MS) store.delete(id);
+  });
+}
+
+async function gerar(jobId: string, prompt: string, tamanho: string) {
+  const chave = process.env.OPENAI_API_KEY;
+  const base = (process.env.OPENAI_BASE_URL ?? "http://127.0.0.1:20128/v1").replace(/\/$/, "");
+  const modelo = process.env.IMAGEM_MODEL ?? "cx/gpt-image-2.5";
+
+  const job = store.get(jobId);
+  if (!job) return;
+  if (!chave) {
+    job.estado = "erro";
+    job.erro = "Geração de imagem não configurada neste serviço.";
+    return;
+  }
+
+  const controle = new AbortController();
+  const relogio = setTimeout(() => controle.abort(), 240_000);
+
+  try {
+    const res = await fetch(`${base}/images/generations`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${chave}` },
+      body: JSON.stringify({ model: modelo, prompt, n: 1, size: tamanho, response_format: "b64_json" }),
+      signal: controle.signal,
+    });
+
+    const texto = await res.text();
+    if (!res.ok) {
+      job.estado = "erro";
+      job.erro = `O provedor de imagem respondeu ${res.status}. ${texto.slice(0, 180)}`;
+      return;
+    }
+
+    let dados: { data?: { b64_json?: string; url?: string }[] } = {};
+    try {
+      dados = JSON.parse(texto);
+    } catch {
+      job.estado = "erro";
+      job.erro = "Resposta da imagem em formato inesperado.";
+      return;
+    }
+
+    const primeiro = dados.data?.[0];
+    if (primeiro?.b64_json) {
+      job.imagem = `data:image/png;base64,${primeiro.b64_json}`;
+      job.estado = "done";
+      return;
+    }
+    if (primeiro?.url) {
+      const bin = await fetch(primeiro.url);
+      const buffer = Buffer.from(await bin.arrayBuffer());
+      job.imagem = `data:image/${bin.headers.get("content-type")?.split("/")[1] ?? "png"};base64,${buffer.toString("base64")}`;
+      job.estado = "done";
+      return;
+    }
+
+    job.estado = "erro";
+    job.erro = "O provedor não devolveu imagem.";
+  } catch (e) {
+    job.estado = "erro";
+    job.erro =
+      e instanceof Error && e.name === "AbortError"
+        ? "A imagem demorou demais. Tente de novo."
+        : "Falha ao gerar a imagem.";
+  } finally {
+    clearTimeout(relogio);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  if (request.cookies.get("ac_sessao")?.value !== "1") {
+    return NextResponse.json({ erro: "Sessão expirada. Entre de novo." }, { status: 401 });
+  }
+
+  const corpo = (await request.json().catch(() => null)) as
+    | { prompt?: string; tamanho?: string }
+    | null;
+
+  const prompt = (corpo?.prompt ?? "").trim();
+  if (prompt.length < 8) {
+    return NextResponse.json({ erro: "Descreva a imagem." }, { status: 400 });
+  }
+
+  limpar();
+  const jobId = randomUUID();
+  store.set(jobId, { estado: "pending", criadoEm: Date.now() });
+
+  void gerar(jobId, prompt, corpo?.tamanho ?? "1024x1536");
+
+  return NextResponse.json({ jobId });
+}
+
+export async function GET(request: NextRequest) {
+  const jobId = request.nextUrl.searchParams.get("job") ?? "";
+  const job = store.get(jobId);
+
+  if (!job) {
+    return NextResponse.json({ erro: "Geração expirada. Tente de novo." }, { status: 404 });
+  }
+  if (job.estado === "pending") return NextResponse.json({ status: "pending" });
+  if (job.estado === "erro") {
+    store.delete(jobId);
+    return NextResponse.json({ status: "erro", erro: job.erro ?? "Falha ao gerar a imagem." });
+  }
+
+  store.delete(jobId);
+  return NextResponse.json({ status: "done", imagem: job.imagem });
+}

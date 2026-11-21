@@ -20,8 +20,9 @@ import { sair, type UsuarioCarrossel } from "@/lib/auth/sessao";
 import { cn } from "@/lib/utils";
 
 const DESTINOS = [
+  // "Sinais" saiu junto com a pauta por notícia: a entrada do produto virou o
+  // tema que a pessoa digita no estúdio (`/`).
   { href: "/", rotulo: "Carrosséis" },
-  { href: "/sinais", rotulo: "Sinais" },
   { href: "/configuracoes", rotulo: "Configurações" },
 ] as const;
 
