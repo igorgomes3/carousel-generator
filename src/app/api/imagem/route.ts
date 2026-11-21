@@ -7,6 +7,12 @@
  *
  * O provedor é o 9Router (`/v1/images/generations`), o mesmo hub que já serve o
  * texto — não há chave nova, e o modelo é trocável por env sem mexer no código.
+ *
+ * Modelo medido em 21/11/2026: `cx/gpt-image-2.5` (conta OpenAI Plus/Codex
+ * renovada). Resposta em `data[0].b64_json`. Tamanhos que o provedor aceitou, com
+ * b64 real devolvido: `1024x1024`, `1024x1536` e **`1088x1360`** — este último é
+ * o 4:5 nativo do card, então é o padrão aqui. NÃO use `gpt-image-1` (sem
+ * credencial) nem `codex/gpt-image-1` (400: o modelo não roda em conta ChatGPT).
  * A saída é sempre `data:image/png;base64,...`: o export de PNG do navegador
  * (html-to-image) falha com URL externa por CORS, e data-URI não tem essa
  * desvantagem.
@@ -126,7 +132,7 @@ export async function POST(request: NextRequest) {
   const jobId = randomUUID();
   store.set(jobId, { estado: "pending", criadoEm: Date.now() });
 
-  void gerar(jobId, prompt, corpo?.tamanho ?? "1024x1536");
+  void gerar(jobId, prompt, corpo?.tamanho ?? "1088x1360");
 
   return NextResponse.json({ jobId });
 }

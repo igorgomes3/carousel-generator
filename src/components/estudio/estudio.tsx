@@ -39,6 +39,18 @@ interface CarrosselDaLista {
 
 const MAX_TEMA = 400;
 
+/**
+ * Manchete da vitrine. O sample do template tem até 140 caracteres — em um card
+ * de 220 px isso sai clipado no meio da palavra e parece defeito. Corta em
+ * fronteira de palavra: a vitrine mostra o estilo, não o texto inteiro.
+ */
+function amostraCurta(texto: string): string {
+  const limpo = texto.replace(/\(\(U:([^)]+)\)\)/g, "$1").replace(/\*\*/g, "");
+  if (limpo.length <= 56) return limpo;
+  const corte = limpo.slice(0, 56);
+  return corte.slice(0, corte.lastIndexOf(" ") > 20 ? corte.lastIndexOf(" ") : 56) + "…";
+}
+
 export function Estudio() {
   const [passo, setPasso] = useState<Passo>("ideia");
   const [categoria, setCategoria] = useState("Todos");
@@ -284,7 +296,7 @@ function Topo({ passo, onRecomecar }: { passo: Passo; onRecomecar: () => void })
             <button
               type="button"
               onClick={onRecomecar}
-              className="rounded-lg px-3 py-1.5 font-semibold"
+              className="rounded-lg px-3 py-2.5 font-semibold"
               style={{ color: "#1C1917", border: "1px solid #E7E5E4", backgroundColor: "#fff" }}
             >
               Novo
@@ -321,6 +333,27 @@ function PassoIdeia({
 }) {
   const visiveis = templatesDaCategoria(categoria);
 
+  /**
+   * A vitrine é uma grade de 2/3/4 colunas; o card do template tem layout
+   * interno fixo (1080 px) e é escalado. Sem medir a coluna, 220 px fixos
+   * estouravam a coluna em 390 px e a manchete do preview saía cortada.
+   */
+  const gradeRef = useRef<HTMLDivElement>(null);
+  const [larguraThumb, setLarguraThumb] = useState(220);
+  useEffect(() => {
+    const grade = gradeRef.current;
+    if (!grade) return;
+    const medir = () => {
+      const colunas = window.innerWidth < 640 ? 2 : window.innerWidth < 1024 ? 3 : 4;
+      const largura = (grade.clientWidth - 12 * (colunas - 1)) / colunas;
+      if (largura > 0) setLarguraThumb(Math.floor(largura));
+    };
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(grade);
+    return () => observador.disconnect();
+  }, [categoria]);
+
   return (
     <div className="flex flex-col gap-8">
       <section className="rounded-2xl bg-white p-5 sm:p-7" style={{ boxShadow: "0 10px 30px rgba(0,0,0,.06)" }}>
@@ -350,8 +383,11 @@ function PassoIdeia({
             type="button"
             onClick={onCriar}
             disabled={tema.trim().length < 3}
-            className="rounded-xl px-5 py-3 text-[15px] font-semibold text-white disabled:opacity-40"
-            style={{ backgroundColor: "#F4511E" }}
+            className="rounded-xl px-5 py-3 text-[15px] font-semibold text-white"
+            style={{
+              backgroundColor: tema.trim().length < 3 ? "#E7E5E4" : "#F4511E",
+              color: tema.trim().length < 3 ? "#57534E" : "#FFFFFF",
+            }}
           >
             ✨ Criar com IA
           </button>
@@ -368,7 +404,7 @@ function PassoIdeia({
           </span>
         </div>
 
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-2 pr-4">
           {CATEGORIAS.map((cat) => {
             const ativo = cat === categoria;
             return (
@@ -389,7 +425,7 @@ function PassoIdeia({
           })}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div ref={gradeRef} className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {visiveis.map((t) => (
             <button
               key={t.id}
@@ -405,14 +441,14 @@ function PassoIdeia({
                 <Cartao
                   slide={{
                     tipo: "capa",
-                    titulo: t.sample.title || t.nome,
-                    corpo: t.sample.body,
+                    titulo: amostraCurta(t.sample.title || t.nome),
+                    corpo: "",
                     imagem: null,
                   }}
                   template={t}
                   indice={0}
                   total={6}
-                  largura={220}
+                  largura={larguraThumb}
                 />
               </div>
               <span className="flex items-center justify-between px-1 pb-1">
