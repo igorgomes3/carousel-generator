@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "space grotesk",
+        "createdAt": "2026-11-21T18:19:23.950Z",
+        "reason": "Fonte de display de template clonada do CarrosseIA (REA 21/11, const TEMPLATES): desenha o card, nao a interface. Interface usa Inter/DM Sans."
+      }
+    ]
+  }
+}
