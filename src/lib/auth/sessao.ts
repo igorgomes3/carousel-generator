@@ -145,6 +145,41 @@ export async function apiJson<T>(caminho: string, init: RequestInit = {}): Promi
   return corpo as T;
 }
 
+/**
+ * Leitura autenticada que **não derruba a sessão** quando a API responde 401.
+ *
+ * Por que existe: `apiFetch` chama `sair()` em 401 de propósito — numa tela cujo
+ * conteúdo É a API, sessão inválida tem que mandar para o login. Mas telas que
+ * juntam fontes diferentes (o "Meus projetos" lê nosso store E a API do
+ * AutoClinic) não podem deslogar a pessoa só porque a fonte secundária
+ * respondeu 401: o efeito colateral medido foi o cookie `ac_sessao` sumir e o
+ * POST do próprio store virar 405 (redirect para `/login`). Aqui o 401 volta
+ * como resposta, e quem chamou decide o que mostrar.
+ */
+export async function apiJsonLeitura<T>(caminho: string, init: RequestInit = {}): Promise<T> {
+  const montar = (token: string | null) =>
+    ({
+      ...init,
+      headers: {
+        ...(init.body ? { "content-type": "application/json" } : {}),
+        ...(init.headers ?? {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+    }) as RequestInit;
+
+  if (!accessToken) await renovar();
+
+  let res = await fetch(`/api/ac${caminho}`, montar(accessToken));
+  if (res.status === 401) {
+    const ok = await renovar();
+    if (ok) res = await fetch(`/api/ac${caminho}`, montar(accessToken));
+  }
+
+  const corpo = (await res.json().catch(() => ({}))) as { erro?: string };
+  if (!res.ok) throw new Error(corpo.erro ?? `HTTP ${res.status}`);
+  return corpo as T;
+}
+
 /** Garante sessão válida antes de renderizar tela privada. */
 export async function garantirSessao(): Promise<boolean> {
   if (usuario) return true;

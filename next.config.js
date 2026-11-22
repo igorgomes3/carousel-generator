@@ -22,11 +22,23 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: "/projetos",
-        destination: "/",
-        statusCode: 301,
+        // Editor antigo desligado (decisão do Igor em 22/11: começar do zero no
+        // sistema novo, os carrosséis antigos foram apagados). A rota não pode
+        // dar 404 nem 500 para quem tem link salvo: cai no estúdio com um aviso.
+        // `permanent: false` (307) porque isso ainda pode mudar de endereço.
+        source: "/carrossel/:id/editar",
+        destination: "/?aviso=antigo",
+        permanent: false,
       },
       {
+        source: "/carrossel/:id",
+        destination: "/?aviso=antigo",
+        permanent: false,
+      },
+      {
+        // `/projetos` deixou de ser redirect: a issue #13 devolveu o endereço
+        // como a tela "Meus projetos" (abrir, renomear, apagar o que foi salvo).
+        // Só a fila continua morando em `/sinais`.
         source: "/fila",
         destination: "/sinais",
         statusCode: 301,

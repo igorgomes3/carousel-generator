@@ -1,49 +1,19 @@
-"use client";
-
-import { Suspense } from "react";
-import { useParams } from "next/navigation";
-
-import Editor from "@/components/editor";
-import { DocumentProvider } from "@/lib/providers/document-provider";
+import { redirect } from "next/navigation";
 
 /**
- * `/carrossel/<id>/editar` — o editor.
+ * `/carrossel/<id>/editar` — o editor antigo foi desligado.
  *
- * Antes ele morava em `/` com `?projeto=<id>`, e `/` sem parâmetro era um
- * "editor novo" que gravava em `localStorage`. A §1.3 do plano move o editor
- * para cá e a §1.4 aposenta o modo sem id: todo carrossel tem id, o rascunho de
- * navegador deixa de existir como fonte. `/` virou a lista de carrosséis.
+ * Decisão do Igor em 22/11/2026: não manter os carrosséis antigos, começar do
+ * zero no sistema novo. O `next.config.js` já responde 307 para o estúdio antes
+ * de chegar aqui; este `redirect()` é a segunda tranca — se a config mudar ou
+ * alguém rodar sem ela, a rota continua não mostrando editor nenhum e não
+ * devolve 404/500 para quem tem link salvo.
  *
- * O `id` vem da rota, não de query string: `?projeto=` continua sendo aceito só
- * como link antigo, e o `next.config.js` responde `301` para cá.
+ * O código do editor (`@/components/editor`, `DocumentProvider`) continua no
+ * repositório de propósito: desligar a rota não é apagar o componente. Podar a
+ * árvore morta é uma tarefa própria, com o histórico de versões que a API do
+ * AutoClinic fornecia.
  */
-function EditorDoCarrossel() {
-  const params = useParams<{ id: string }>();
-  const id = typeof params?.id === "string" ? params.id : null;
-
-  return (
-    <DocumentProvider projetoId={id}>
-      <Editor />
-    </DocumentProvider>
-  );
-}
-
-export default function PaginaDoEditor() {
-  return (
-    // `fixed inset-0` e não `h-screen`: dentro de um body flex de altura
-    // automática, `flex-1` + `h-screen` resolvia para a altura do CONTEÚDO
-    // (2159 px em 1280×900), e o filmstrip caía fora da dobra. Preso à viewport,
-    // a cadeia de flex ganha altura definida e só o palco rola.
-    <main className="fixed inset-0 flex flex-col overflow-hidden bg-background">
-      <Suspense
-        fallback={
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-body text-muted-foreground">Carregando editor…</p>
-          </div>
-        }
-      >
-        <EditorDoCarrossel />
-      </Suspense>
-    </main>
-  );
+export default function PaginaDoEditorAntigo() {
+  redirect("/?aviso=antigo");
 }
