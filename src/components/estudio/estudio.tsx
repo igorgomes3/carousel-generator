@@ -17,6 +17,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
+import { FotosDosCards, SeletorDeCards } from "@/components/estudio/passo-cards";
+import {
+  CARDS_PADRAO,
+  ajustarQuantidade,
+  limitarQuantidade,
+  redimensionarImagens,
+} from "@/lib/estudio/cards";
 import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 import { baixarTodosOsCards, baixarUmCard } from "@/lib/estudio/exportar";
 import { quandoSalvo } from "@/lib/estudio/projetos";
@@ -67,6 +74,17 @@ export function Estudio() {
   const [carrossel, setCarrossel] = useState<CarrosselGerado | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [fase, setFase] = useState(0);
+  /**
+   * Passo 2 (issue #11): quantos cards e qual foto em cada um.
+   *
+   * `imagens` é sempre do tamanho de `quantidade` — quando a pessoa diminui o
+   * carrossel, o fim é cortado; quando aumenta, entra `null`. Isso é o que
+   * impede o card 5 herdar a foto de um card que não existe mais.
+   */
+  const [quantidade, setQuantidade] = useState(CARDS_PADRAO);
+  const [imagens, setImagens] = useState<(string | null)[]>(() =>
+    Array.from({ length: CARDS_PADRAO }, () => null),
+  );
   const [editando, setEditando] = useState<number | null>(null);
   const [gerandoImagem, setGerandoImagem] = useState<number | null>(null);
   const [baixando, setBaixando] = useState(false);
@@ -170,6 +188,9 @@ export function Estudio() {
         slides: projeto.slides,
         criadoEm: projeto.criadoEm,
       });
+      // Passo 2 espelha o projeto aberto: a quantidade e as fotos que ele tem.
+      setQuantidade(limitarQuantidade(projeto.slides.length));
+      setImagens(redimensionarImagens(projeto.slides.map((s) => s.imagem), projeto.slides.length));
       setPasso("pronto");
       setAbrindoProjeto(false);
     })();
@@ -236,6 +257,24 @@ export function Estudio() {
   }, []);
 
 
+  /* ---------------------------------------------------------------- */
+  /* Passo 2: quantidade de cards e foto por card (issue #11)          */
+  /* ---------------------------------------------------------------- */
+
+  const mudarQuantidade = useCallback((valor: number) => {
+    const total = limitarQuantidade(valor);
+    setQuantidade(total);
+    setImagens((atuais) => redimensionarImagens(atuais, total));
+  }, []);
+
+  const definirImagem = useCallback((indice: number, imagem: string | null) => {
+    setImagens((atuais) => {
+      const proximas = [...atuais];
+      proximas[indice] = imagem;
+      return proximas;
+    });
+  }, []);
+
   const gerarCarrossel = useCallback(
     async (templateEscolhido: TemplateCarrossel) => {
       setErro(null);
@@ -247,7 +286,7 @@ export function Estudio() {
         const res = await fetch("/api/gerar", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ tema, templateId: templateEscolhido.id }),
+          body: JSON.stringify({ tema, templateId: templateEscolhido.id, slides: quantidade }),
         });
         const dados = (await res.json().catch(() => ({}))) as {
           carrossel?: CarrosselGerado;
@@ -257,19 +296,34 @@ export function Estudio() {
           throw new Error(dados.erro ?? "A IA não conseguiu escrever o carrossel agora.");
         }
 
-        let gerado = dados.carrossel;
+        /**
+         * Quantidade escolhida manda. O pipeline escreve o número de slides que
+         * o modelo quiser — se pedimos 4 e vêm 8, cortamos o miolo; se vêm 3,
+         * completamos com cards vazios para editar depois. `ajustarQuantidade`
+         * é a MESMA função que a rota usa: contrato de um lugar só.
+         */
+        const slidesAjustados = ajustarQuantidade(dados.carrossel.slides, quantidade);
+
+        /**
+         * Foto do passo 2 entra no card agora, por índice. Capa por IA só é
+         * gerada quando a pessoa NÃO subiu foto para o card 1: foto dela ganha
+         * de imagem inventada.
+         */
+        let slides: SlideCarrossel[] = slidesAjustados.map((s, i) =>
+          imagens[i] ? { ...s, imagem: imagens[i] } : s,
+        );
+
+        let gerado: CarrosselGerado = { ...dados.carrossel, slides };
         setFase(2);
 
         // A capa por IA só existe em template que pede capa por IA — igual ao alvo.
-        if (templateEscolhido.capaIA) {
+        if (templateEscolhido.capaIA && !imagens[0]) {
           try {
             const imagem = await gerarImagem(
               `${templateEscolhido.styleText} Cena de capa para um carrossel de Instagram sobre: ${tema}. Composição vertical, sem texto, sem letras, sem palavras, sem marca d'água, sem logo.`,
             );
-            gerado = {
-              ...gerado,
-              slides: gerado.slides.map((s, i) => (i === 0 ? { ...s, imagem } : s)),
-            };
+            slides = slides.map((s, i) => (i === 0 ? { ...s, imagem } : s));
+            gerado = { ...gerado, slides };
           } catch (e) {
             // Capa falhou: o carrossel continua válido e baixável. Avisa e segue.
             console.error("[estudio] capa por IA falhou:", e);
@@ -280,6 +334,10 @@ export function Estudio() {
         }
 
         setCarrossel(gerado);
+        // O que ficou no card é o que a faixa do passo 2 passa a mostrar: se a
+        // IA desenhou a capa, ela aparece ali com o botão de trocar.
+        setImagens(redimensionarImagens(gerado.slides.map((s) => s.imagem), gerado.slides.length));
+        setQuantidade(gerado.slides.length);
         setPasso("pronto");
         setFase(3);
         // Carrossel novo = projeto novo: nada foi salvo ainda, então a trava de
@@ -291,7 +349,7 @@ export function Estudio() {
         setPasso("tema");
       }
     },
-    [tema, zerarSalvamento, marcarSujo],
+    [tema, quantidade, imagens, zerarSalvamento, marcarSujo],
   );
 
   const gerarImagemDoSlide = useCallback(
@@ -339,6 +397,10 @@ export function Estudio() {
     setErro(null);
     setEditando(null);
     setAvisoAbertura(null);
+    // "Novo" é carrossel novo: quantidade volta ao padrão e as fotos somem —
+    // reaproveitar foto de outro carrossel sem a pessoa pedir seria sequestro.
+    setQuantidade(CARDS_PADRAO);
+    setImagens(Array.from({ length: CARDS_PADRAO }, () => null));
     zerarSalvamento();
     // Solta o `?projeto=` da URL: "Novo" é projeto novo, não reabrir o antigo.
     if (projetoDaUrl) router.replace("/");
@@ -426,6 +488,10 @@ export function Estudio() {
             tema={tema}
             setTema={setTema}
             erro={erro}
+            quantidade={quantidade}
+            onMudarQuantidade={mudarQuantidade}
+            imagens={imagens}
+            onImagem={definirImagem}
             onVoltar={() => setPasso("ideia")}
             onGerar={() => void gerarCarrossel(template)}
           />
@@ -804,6 +870,10 @@ function PassoTema({
   tema,
   setTema,
   erro,
+  quantidade,
+  onMudarQuantidade,
+  imagens,
+  onImagem,
   onVoltar,
   onGerar,
 }: {
@@ -811,15 +881,22 @@ function PassoTema({
   tema: string;
   setTema: (t: string) => void;
   erro: string | null;
+  quantidade: number;
+  onMudarQuantidade: (n: number) => void;
+  imagens: (string | null)[];
+  onImagem: (indice: number, imagem: string | null) => void;
   onVoltar: () => void;
   onGerar: () => void;
 }) {
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
+  const pronto = tema.trim().length >= 3 && !preparandoFoto;
+
   return (
-    <div className="mx-auto flex max-w-[720px] flex-col gap-5">
+    <div className="mx-auto flex max-w-[760px] flex-col gap-5">
       <button
         type="button"
         onClick={onVoltar}
-        className="w-fit text-[13px] font-semibold"
+        className="min-h-[44px] w-fit text-[13px] font-semibold"
         style={{ color: "#57534E" }}
       >
         ← Trocar template
@@ -864,8 +941,21 @@ function PassoTema({
           style={{ borderColor: "#E7E5E4", color: "#1C1917" }}
         />
 
+        {/* Passo 2 do alvo: nº de cards e foto por card, antes de gerar. */}
+        <div className="mt-5 border-t pt-5" style={{ borderColor: "#E7E5E4" }}>
+          <SeletorDeCards quantidade={quantidade} onMudar={onMudarQuantidade} />
+        </div>
+
+        <div className="mt-5 border-t pt-5" style={{ borderColor: "#E7E5E4" }}>
+          <FotosDosCards
+            imagens={imagens}
+            onImagem={onImagem}
+            onOcupado={setPreparandoFoto}
+          />
+        </div>
+
         {erro ? (
-          <p className="mt-3 rounded-lg px-3 py-2 text-[13px]" style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}>
+          <p className="mt-4 rounded-lg px-3 py-2 text-[13px]" style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}>
             {erro}
           </p>
         ) : null}
@@ -873,12 +963,19 @@ function PassoTema({
         <button
           type="button"
           onClick={onGerar}
-          disabled={tema.trim().length < 3}
-          className="mt-4 w-full rounded-xl px-5 py-3.5 text-[15px] font-semibold text-white disabled:opacity-40"
+          disabled={!pronto}
+          className="mt-4 min-h-[44px] w-full rounded-xl px-5 py-3.5 text-[15px] font-semibold text-white disabled:opacity-40"
           style={{ backgroundColor: "#F4511E" }}
         >
-          ✨ Gerar carrossel
+          {preparandoFoto ? "Preparando a foto…" : `✨ Gerar ${quantidade} cards`}
         </button>
+        <p className="mt-2 text-center text-[12px]" style={{ color: "#78716C" }}>
+          {pronto
+            ? "As fotos que você escolheu entram nos cards como fundo. O texto você ajusta no fim."
+            : tema.trim().length < 3
+              ? "Escreva o tema para liberar a geração."
+              : "Espere a foto terminar de ser preparada."}
+        </p>
       </div>
     </div>
   );

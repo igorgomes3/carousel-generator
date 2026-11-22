@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:visual": "playwright test",
+    "test:lib": "tsx src/lib/estudio/cards.test.ts && tsx src/lib/estudio/pautas-salvas.test.ts",
     "test:visual:update": "UPDATE_BASELINE=1 playwright test",
     "test:visual:report": "playwright show-report",
     "tokens": "node scripts/build-tokens.mjs",
