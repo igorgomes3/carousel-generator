@@ -116,6 +116,19 @@ export default function RootLayout({
       lang="en"
       className={`${dm_sans.variable} ${dm_serif_display.variable} ${pt_serif.variable} ${roboto.variable} ${roboto_condensed.variable} ${inter.variable} ${arquivoBlack.variable} ${syne.variable} ${montserrat.variable} ${GeistSans.variable}`}
     >
+      <head>
+        {/* Fontes de display dos templates (Anton, Oswald, Bebas Neue, Playfair
+            Display, Space Grotesk). Vêm por <link> e não por `next/font`: o
+            loader do Next 14.0.4 quebra no build com essas famílias
+            ("Cannot read properties of null (reading '1')"), e o alvo também
+            carrega por stylesheet. Nome de família direto em `pilhaFonte()`. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;700&family=Bebas+Neue&family=Playfair+Display:wght@700;800&family=Space+Grotesk:wght@500;700&display=swap"
+        />
+      </head>
       <body
         className="flex flex-col min-h-screen items-stretch justify-between antialiased"
       >

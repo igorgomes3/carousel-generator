@@ -72,12 +72,12 @@ export function EsqueletoLista({ cartoes = 6 }: { cartoes?: number }) {
 
 /**
  * Vazio de organização: borda tracejada, 40 px de padding, dois caminhos
- * ("Ver sinais" e "Novo"). É o único vazio que oferece criar.
+ * ("Criar carrossel" e "Novo"). É o único vazio que oferece criar.
  */
 export function VazioOrganizacao({
   onNovo,
   criando,
-  linkSinais = "/sinais",
+  linkSinais = "/",
 }: {
   onNovo: () => void;
   criando: boolean;
@@ -90,11 +90,11 @@ export function VazioOrganizacao({
     >
       <Inbox className="size-6 text-muted-foreground" aria-hidden="true" />
       <p className="max-w-md text-body text-subtle">
-        Nenhum carrossel ainda. Colete sinais para gerar o primeiro, ou crie em branco.
+        Nenhum carrossel ainda. Crie o primeiro no estúdio.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Button asChild variant="outline">
-          <a href={linkSinais}>Ver sinais</a>
+          <a href={linkSinais}>Criar carrossel</a>
         </Button>
         <Button onClick={onNovo} disabled={criando}>
           {criando ? "Criando…" : "Novo"}

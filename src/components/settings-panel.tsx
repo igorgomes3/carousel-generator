@@ -19,7 +19,6 @@
  */
 import { cn } from "@/lib/utils";
 import { BrandForm } from "@/components/forms/brand-form";
-import { ThemeForm } from "@/components/forms/theme-form";
 import { FontsForm } from "@/components/forms/fonts-form";
 import { PageNumberForm } from "./forms/page-number-form";
 import { Brush, Plus } from "lucide-react";
@@ -121,9 +120,9 @@ function InspetorConteudo() {
         <BrandForm />
       </SecaoInspetor>
 
-      <SecaoInspetor titulo="Tema">
-        <ThemeForm />
-      </SecaoInspetor>
+      {/* O seletor de "Tema" (paleta daisyUI) saiu do produto: a cor vem do
+          template escolhido no estúdio, como no CarrosseIA. Escolher paleta solta
+          era exatamente o ruído que o CEO mandou remover. */}
 
       <SecaoInspetor titulo="Tipografia">
         <FontsForm />
