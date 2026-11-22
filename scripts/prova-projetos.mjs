@@ -4,23 +4,19 @@
  * Sobe contra um servidor já rodando (padrão `http://127.0.0.1:8098`) e percorre
  * o caminho do usuário de verdade: lista vazia → salvar → lista com itens →
  * renomear → apagar com confirmação → abrir no estúdio → editar → salvar com
- * hora na tela. Cada passo tem asserção; se algo não acontecer, o script falha
- * em vez de gerar screenshot bonito de tela quebrada.
+ * hora na tela → rota antiga redirecionando. Cada passo tem asserção; se algo
+ * não acontecer, o script falha em vez de gerar screenshot bonito de tela
+ * quebrada.
  *
  * As capturas saem em 1440 e 390 (`screenshots/projetos/`), que é o par que o
  * CEO pede: desktop e celular.
  *
- * Dois mundos na mesma tela (issue #13 + correção de rumo da coordenação):
- *   - `MODO=dados` (padrão): a API do editor devolve os carrosséis antigos
- *     (via `scripts/stub-api-editor.py`, que lê o banco real porque a API exige
- *     JWT). Prova que os antigos aparecem ao lado dos projetos do estúdio.
- *   - `MODO=vazio`: a API do editor devolve lista vazia. Prova o estado
- *     "nada salvo ainda" de ponta a ponta.
- *   - `MODO=erro`: API do editor sem sessão (401). Prova o aviso explícito —
- *     a tela nunca fica vazia sem explicar.
+ * Fonte única desde 22/11: `/projetos` lista só o store novo (decisão do Igor:
+ * apagar os carrosséis do editor antigo e começar do zero). O gate cobre também
+ * a rota antiga — `/carrossel/<id>` e `/carrossel/<id>/editar` precisam cair no
+ * estúdio com o aviso, nunca 404 nem 500.
  *
- * Requisito de ambiente: `ESTUDIO_DADOS` apontando para um diretório VAZIO e,
- * em `MODO=dados|vazio`, `AUTOCLINIC_API_URL` apontando para o stub local.
+ * Requisito de ambiente: `ESTUDIO_DADOS` apontando para um diretório VAZIO.
  *
  *   ESTUDIO_DADOS=$(mktemp -d) BASE=http://127.0.0.1:8098 node scripts/prova-projetos.mjs
  */
@@ -29,8 +25,8 @@ import { mkdirSync } from "node:fs";
 import { deflateSync } from "node:zlib";
 
 const BASE = process.env.BASE ?? "http://127.0.0.1:8098";
-const MODO = process.env.MODO ?? "dados";
-const EDITOR_ESPERADO = Number(process.env.EDITOR_ESPERADO ?? "2");
+/** Id de carrossel do editor antigo — qualquer uuid serve, a rota só redireciona. */
+const ID_ANTIGO = process.env.ID_ANTIGO ?? "73204026-92f8-4d10-bb17-d573639b6e4e";
 const SAIDA = process.env.SAIDA ?? "screenshots/projetos";
 mkdirSync(SAIDA, { recursive: true });
 
@@ -154,34 +150,11 @@ async function cenario(width, height, browser) {
     if (m.type() === "error") erros.push(m.text());
   });
 
-  /* 1. Os dois mundos -------------------------------------------- */
+  /* 1. Lista vazia (store novo, única fonte) ---------------------- */
   await page.goto(`${BASE}/projetos`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(600);
-
-  if (MODO === "vazio") {
-    await page.getByText("Você ainda não salvou nenhum projeto").waitFor({ timeout: 15_000 });
-    await page.screenshot({ path: `${SAIDA}/01-lista-vazia-${sufixo}.png`, fullPage: false });
-    console.log(`✓ ${sufixo} lista vazia (estúdio e editor sem nada)`);
-  }
-
-  if (MODO === "erro") {
-    await page.getByText("Não conseguimos ler seus carrosséis antigos").waitFor({ timeout: 15_000 });
-    await page.getByRole("link", { name: "Entrar de novo" }).waitFor();
-    await page.screenshot({ path: `${SAIDA}/08-editor-erro-${sufixo}.png`, fullPage: false });
-    console.log(`✓ ${sufixo} editor sem sessão: aviso explícito, sem lista vazia mentindo`);
-  }
-
-  if (MODO === "dados") {
-    await page.getByRole("heading", { name: /Carrosséis do editor/i }).waitFor({ timeout: 15_000 });
-    const linhasEditor = page.locator('section[aria-labelledby="sec-editor"] article');
-    const total = await linhasEditor.count();
-    if (total !== EDITOR_ESPERADO) {
-      throw new Error(`esperava ${EDITOR_ESPERADO} carrosséis do editor, achei ${total}`);
-    }
-    await page.getByRole("link", { name: "Abrir no editor" }).first().waitFor();
-    await page.screenshot({ path: `${SAIDA}/08-editor-${sufixo}.png`, fullPage: false });
-    console.log(`✓ ${sufixo} ${total} carrosséis do editor listados ao lado dos do estúdio`);
-  }
+  await page.getByText("Você ainda não salvou nenhum projeto").waitFor({ timeout: 15_000 });
+  await page.screenshot({ path: `${SAIDA}/01-lista-vazia-${sufixo}.png`, fullPage: false });
+  console.log(`✓ ${sufixo} lista vazia em linguagem de gente`);
 
   /* 2. Lista com itens -------------------------------------------- */
   const criados = await criarProjetos(ctx, 3);
@@ -261,6 +234,22 @@ async function cenario(width, height, browser) {
     throw new Error("o card editado não foi salvo no servidor");
   }
   console.log(`✓ ${sufixo} salvar explícito ("${textoSalvo}") e persistido`);
+
+  /* 6. Rota antiga do editor: redireciona com aviso, sem 404/500 ---- */
+  for (const rota of [`/carrossel/${ID_ANTIGO}`, `/carrossel/${ID_ANTIGO}/editar`]) {
+    const resposta = await ctx.request.get(`${BASE}${rota}`, { maxRedirects: 0 });
+    if (resposta.status() !== 307 && resposta.status() !== 308) {
+      throw new Error(`${rota} deveria redirecionar (307/308), respondeu ${resposta.status()}`);
+    }
+    const destino = resposta.headers()["location"] ?? "";
+    if (!destino.includes("aviso=antigo")) {
+      throw new Error(`${rota} redirecionou para ${destino} sem o aviso`);
+    }
+  }
+  await page.goto(`${BASE}/carrossel/${ID_ANTIGO}`, { waitUntil: "networkidle" });
+  await page.getByText(/O editor antigo foi desligado/).waitFor({ timeout: 15_000 });
+  await page.screenshot({ path: `${SAIDA}/08-rota-antiga-${sufixo}.png`, fullPage: false });
+  console.log(`✓ ${sufixo} /carrossel/<id> cai no estúdio com aviso (307), sem 404`);
 
   const erroReal = erros.filter((e) => !/favicon|ResizeObserver|401/.test(e));
   if (erroReal.length) console.warn(`⚠ ${sufixo} erros de console:`, erroReal.slice(0, 5));

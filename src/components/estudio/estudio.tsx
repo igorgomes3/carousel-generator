@@ -20,8 +20,6 @@ import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
 import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 import { baixarTodosOsCards, baixarUmCard } from "@/lib/estudio/exportar";
 import { quandoSalvo } from "@/lib/estudio/projetos";
-import { apiJsonLeitura } from "@/lib/auth/sessao";
-import { linhaDeDensidade, rotuloEstado, type Carrossel } from "@/lib/carrosseis/lista";
 import { useProjetoSalvo, type EstadoSalvamento } from "@/lib/hooks/use-projeto-salvo";
 import {
   adicionarPauta,
@@ -73,7 +71,6 @@ export function Estudio() {
   const [gerandoImagem, setGerandoImagem] = useState<number | null>(null);
   const [baixando, setBaixando] = useState(false);
   const [lista, setLista] = useState<ProjetoDaLista[] | null>(null);
-  const [antigos, setAntigos] = useState<Carrossel[] | null>(null);
 
   const palcoRef = useRef<HTMLDivElement>(null);
   const template = templatePorId(templateId);
@@ -132,6 +129,14 @@ export function Estudio() {
 
   const [abrindoProjeto, setAbrindoProjeto] = useState(Boolean(projetoDaUrl));
   const [avisoAbertura, setAvisoAbertura] = useState<string | null>(null);
+
+  /**
+   * `?aviso=antigo` — chegou aqui por um link do editor antigo. O `/carrossel/<id>`
+   * responde 307 para cá, então a pessoa precisa saber em uma linha por que não
+   * achou o que procurava: os carrosséis antigos foram apagados de propósito
+   * (decisão de 22/11), não se perderam.
+   */
+  const [avisoAntigo, setAvisoAntigo] = useState(busca?.get("aviso") === "antigo");
 
   /**
    * "Abrir" em Meus projetos navega para `/?abrir=<id>`. Aqui o projeto é
@@ -230,29 +235,6 @@ export function Estudio() {
     };
   }, []);
 
-  /**
-   * "Carrosséis do editor" — os que já existiam na API do AutoClinic.
-   *
-   * Continua aparecendo no estúdio de propósito: trocar esta origem pela nossa
-   * lista faria os carrosséis antigos sumirem da tela, o que parece perda de
-   * dado. É só leitura; quem renomeia/apaga é o editor.
-   */
-  useEffect(() => {
-    let vivo = true;
-    (async () => {
-      try {
-        const dados = await apiJsonLeitura<{ carrosseis?: Carrossel[] }>(
-          "/carrossel/carrosseis?org=autoclinic",
-        );
-        if (vivo) setAntigos((dados.carrosseis ?? []).slice(0, 6));
-      } catch {
-        /* sem sessão do painel: a seção não aparece e o /projetos explica */
-      }
-    })();
-    return () => {
-      vivo = false;
-    };
-  }, []);
 
   const gerarCarrossel = useCallback(
     async (templateEscolhido: TemplateCarrossel) => {
@@ -367,6 +349,30 @@ export function Estudio() {
       <Topo passo={passo} onRecomecar={recomecar} />
 
       <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
+        {avisoAntigo ? (
+          <div
+            role="status"
+            className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13px]"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E7E5E4", color: "#57534E" }}
+          >
+            <span>
+              O editor antigo foi desligado e os carrosséis antigos foram apagados para começar do
+              zero no sistema novo. <strong>Para criar o seu, use o campo abaixo.</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setAvisoAntigo(false);
+                router.replace("/");
+              }}
+              className="rounded-lg px-3 py-2 text-[13px] font-semibold"
+              style={{ border: "1px solid #E7E5E4", backgroundColor: "#fff", color: "#1C1917" }}
+            >
+              Entendi
+            </button>
+          </div>
+        ) : null}
+
         {avisoAbertura ? (
           <p
             role="alert"
@@ -403,7 +409,6 @@ export function Estudio() {
             pautaJaSalva={pautaJaSalva}
             onSalvarPauta={salvarPautaAtual}
             onEsquecerPauta={esquecerPauta}
-            antigos={antigos}
             onEscolherTemplate={(id) => {
               setTemplateId(id);
               setPasso("tema");
@@ -542,7 +547,6 @@ function PassoIdeia({
   pautaJaSalva,
   onSalvarPauta,
   onEsquecerPauta,
-  antigos,
   onEscolherTemplate,
   onCriar,
 }: {
@@ -556,7 +560,6 @@ function PassoIdeia({
   pautaJaSalva: boolean;
   onSalvarPauta: () => void;
   onEsquecerPauta: (pauta: string) => void;
-  antigos: Carrossel[] | null;
   onEscolherTemplate: (id: string) => void;
   onCriar: () => void;
 }) {
@@ -788,40 +791,6 @@ function PassoIdeia({
         </section>
       ) : null}
 
-      {/* Mundo 2: os carrosséis que já estavam salvos na API do AutoClinic.
-          Ficam visíveis aqui para ninguém achar que sumiram — a ação é no editor. */}
-      {antigos && antigos.length > 0 ? (
-        <section>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#57534E" }}>
-              Carrosséis do editor <span style={{ color: "#A8A29E" }}>· {antigos.length}</span>
-            </h2>
-            <a href="/projetos" className="text-[12px] font-semibold underline-offset-4 hover:underline" style={{ color: "#C2410C" }}>
-              Ver todos
-            </a>
-          </div>
-          <p className="mt-1 text-[12px]" style={{ color: "#57534E" }}>
-            Feitos no editor antigo. Abrir leva para o editor; renomear e apagar ficam lá.
-          </p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {antigos.map((c) => (
-              <a
-                key={c.id}
-                href={`/carrossel/${c.id}/editar`}
-                className="flex items-center justify-between rounded-xl px-4 py-3"
-                style={{ border: "1px solid #E7E5E4", backgroundColor: "#FCFBF9" }}
-              >
-                <span className="truncate text-[14px] font-medium" style={{ color: "#1C1917" }}>
-                  {c.titulo || "Sem título"}
-                </span>
-                <span className="ml-3 shrink-0 text-[12px]" style={{ color: "#A8A29E" }}>
-                  {rotuloEstado(c.estado)} · {linhaDeDensidade(c).split(" · ")[0]}
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 }

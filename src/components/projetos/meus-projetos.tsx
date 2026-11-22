@@ -3,39 +3,27 @@
 /**
  * "Meus projetos" — a tela de quem volta depois.
  *
- * O leigo que gerou o carrossel ontem abre esta lista e precisa reconhecer o
- * que é dele. A plataforma salva de DOIS jeitos, e esta tela lista os dois,
- * porque esconder um deles parece perda de dado:
+ * O leigo que gerou o carrossel ontem abre esta lista e precisa de três coisas,
+ * nesta ordem: reconhecer o que é dele (nome + miniatura da capa), saber quando
+ * mexeu (data), e agir sem medo (abrir, renomear, apagar).
  *
- *   1. **Projetos do estúdio** — nosso store (`/api/projetos`): cards, texto,
- *      imagem, template. Abrir, renomear e apagar acontecem aqui.
- *   2. **Carrosséis do editor** — os que já existiam na API do AutoClinic
- *      (`/carrossel/carrosseis`), lidos com a sessão de quem está logado. Esta
- *      tela só LEITURA: renomear e apagar continuam no editor antigo, porque a
- *      escrita é do outro produto.
+ * **Uma fonte só.** Até 21/11 esta tela também listava os carrosséis do editor
+ * antigo (API do AutoClinic). Em 22/11 o Igor decidiu começar do zero no sistema
+ * novo: os 2 carrosséis antigos foram apagados (dump em
+ * `/root/backups/carrosseis-antigos-20261121/`) e nada mais aqui lê a API
+ * antiga. O editor antigo também saiu do ar — `/carrossel/<id>` redireciona
+ * para o estúdio com um aviso.
  *
- * Regra da coordenação: se um dos dois lados não puder ser lido, a tela diz
- * isso em texto de gente e oferece a saída — nunca uma lista vazia que parece
- * que o trabalho sumiu.
+ * O que continua valendo: erro e vazio são texto de gente, nunca lista muda.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 import { Cartao } from "@/components/estudio/cartao";
 import { templatePorId } from "@/lib/templates";
-import { apiJsonLeitura } from "@/lib/auth/sessao";
-import {
-  coresDaCapa,
-  linhaDeDensidade,
-  rotuloEstado,
-  tituloDaCapa,
-  type Carrossel,
-} from "@/lib/carrosseis/lista";
 import { contagemDeCards, quandoSalvo, type ResumoProjeto } from "@/lib/estudio/projetos";
 
 type Estado = "carregando" | "pronto" | "erro";
-
-const ORG = "org=autoclinic";
 
 const COR = {
   tinta: "#1C1917",
@@ -62,10 +50,6 @@ export function MeusProjetos() {
   const [apagando, setApagando] = useState<ResumoProjeto | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
-  /* -------- carrosséis do editor (API do AutoClinic, leitura) -------- */
-  const [estadoAntigos, setEstadoAntigos] = useState<Estado>("carregando");
-  const [antigos, setAntigos] = useState<Carrossel[]>([]);
-
   const [aviso, setAviso] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
@@ -81,28 +65,9 @@ export function MeusProjetos() {
     }
   }, []);
 
-  /**
-   * Lista antiga, com `apiJsonLeitura`: manda o token da sessão e, em 401, tenta
-   * renovar uma vez — mas **não** desloga. `apiJson` chama `sair()` no 401 e o
-   * efeito colateral medido foi o cookie `ac_sessao` sumir só por abrir esta
-   * tela, derrubando também o save do estúdio. Sem sessão a resposta é 401 e a
-   * seção cai no aviso explícito — nunca numa lista vazia sem explicação.
-   */
-  const carregarAntigos = useCallback(async () => {
-    setEstadoAntigos("carregando");
-    try {
-      const dados = await apiJsonLeitura<{ carrosseis?: Carrossel[] }>(`/carrossel/carrosseis?${ORG}`);
-      setAntigos(dados.carrosseis ?? []);
-      setEstadoAntigos("pronto");
-    } catch {
-      setEstadoAntigos("erro");
-    }
-  }, []);
-
   useEffect(() => {
     void carregar();
-    void carregarAntigos();
-  }, [carregar, carregarAntigos]);
+  }, [carregar]);
 
   // Aviso que some sozinho: some em 4 s, mas fica para leitor de tela.
   const timerAviso = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -173,11 +138,7 @@ export function MeusProjetos() {
     [anunciar],
   );
 
-  const nadaAinda =
-    estado === "pronto" &&
-    projetos.length === 0 &&
-    estadoAntigos === "pronto" &&
-    antigos.length === 0;
+  const nadaAinda = estado === "pronto" && projetos.length === 0;
 
   return (
     <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
@@ -190,8 +151,7 @@ export function MeusProjetos() {
               Meus projetos
             </h1>
             <p className="mt-1 max-w-[560px] text-[14px]" style={{ color: COR.textoSecundario }}>
-              Tudo o que você salvou fica aqui: os carrosséis do estúdio e os que já existiam no
-              editor.
+              Tudo o que você salvou fica aqui. Abra para continuar de onde parou.
             </p>
           </div>
           {/* Com projeto na lista, "Abrir" é o primário da tela e criar outro fica
@@ -220,22 +180,14 @@ export function MeusProjetos() {
         {nadaAinda ? (
           <Vazio />
         ) : (
-          <>
-            <SecaoDoEstudio
-              estado={estado}
-              projetos={projetos}
-              onRecarregar={() => void carregar()}
-              onAbrir={abrir}
-              onRenomear={setRenomeando}
-              onApagar={setApagando}
-            />
-
-            <SecaoDoEditor
-              estado={estadoAntigos}
-              carrosseis={antigos}
-              onRecarregar={() => void carregarAntigos()}
-            />
-          </>
+          <SecaoDoEstudio
+            estado={estado}
+            projetos={projetos}
+            onRecarregar={() => void carregar()}
+            onAbrir={abrir}
+            onRenomear={setRenomeando}
+            onApagar={setApagando}
+          />
         )}
       </div>
 
@@ -482,117 +434,8 @@ function LinhaDoProjeto({
 }
 
 /* ------------------------------------------------------------------ */
-/* Mundo 2 — carrosséis do editor antigo (só leitura)                  */
-/* ------------------------------------------------------------------ */
-
-function SecaoDoEditor({
-  estado,
-  carrosseis,
-  onRecarregar,
-}: {
-  estado: Estado;
-  carrosseis: Carrossel[];
-  onRecarregar: () => void;
-}) {
-  return (
-    <section aria-labelledby="sec-editor">
-      <TituloDeSecao
-        id="sec-editor"
-        etiqueta="editor"
-        contagem={estado === "pronto" ? carrosseis.length : undefined}
-        unidade="carrosséis"
-        nota="Feitos no editor antigo e salvos na API do AutoClinic. Aqui eles só abrem — renomear e apagar continuam no editor."
-      >
-        Carrosséis do editor
-      </TituloDeSecao>
-
-      {estado === "carregando" && <Carregando rotulo="Carregando seus carrosséis do editor…" />}
-
-      {estado === "erro" && (
-        <AvisoDeErro
-          titulo="Não conseguimos ler seus carrosséis antigos"
-          texto="Eles continuam salvos na API do AutoClinic — nada foi perdido. Sua sessão do painel pode ter expirado; entre de novo para vê-los aqui."
-          onRecarregar={onRecarregar}
-          acaoExtra={{ href: "/login?de=/projetos", rotulo: "Entrar de novo" }}
-        />
-      )}
-
-      {estado === "pronto" && carrosseis.length === 0 && (
-        <div
-          className="mt-2 rounded-xl bg-white px-4 py-3 text-[14px]"
-          style={{ border: `1px solid ${COR.borda}`, color: COR.textoSecundario }}
-        >
-          Nenhum carrossel antigo do editor nesta conta.
-        </div>
-      )}
-
-      {estado === "pronto" && carrosseis.length > 0 && (
-        <ul className="mt-2 flex flex-col gap-2">
-          {carrosseis.map((carrossel) => (
-            <li key={carrossel.id}>
-              <LinhaDoEditor carrossel={carrossel} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function LinhaDoEditor({ carrossel }: { carrossel: Carrossel }) {
-  const capa = coresDaCapa(carrossel);
-  const titulo = tituloDaCapa(carrossel);
-
-  return (
-    <article
-      className="flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:gap-4"
-      style={{ border: `1px solid ${COR.borda}`, backgroundColor: "#FCFBF9" }}
-    >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div
-          aria-hidden="true"
-          className="flex aspect-[4/5] w-[58px] shrink-0 flex-col justify-end overflow-hidden rounded-xl p-1.5"
-          style={{ backgroundColor: capa.fundo, color: capa.texto, border: `1px solid ${COR.borda}` }}
-        >
-          <span className="overflow-hidden text-[8px] font-semibold leading-[1.2] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
-            {titulo}
-          </span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3
-            className="text-[15px] font-semibold [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] sm:truncate sm:[display:block]"
-            style={{ color: COR.tinta }}
-          >
-            {carrossel.titulo}
-          </h3>
-          <p className="mt-0.5 truncate text-[13px] tabular-nums" style={{ color: COR.textoSecundario }}>
-            {linhaDeDensidade(carrossel)} · {rotuloEstado(carrossel.estado)}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-2 sm:justify-end">
-        <a
-          href={`/carrossel/${carrossel.id}/editar`}
-          className="min-h-[44px] flex-1 rounded-xl px-4 py-2.5 text-center text-[14px] font-semibold sm:flex-none"
-          style={{ border: `1px solid ${COR.borda}`, backgroundColor: "#fff", color: COR.tinta }}
-        >
-          Abrir no editor
-        </a>
-        <a
-          href={`/carrossel/${carrossel.id}`}
-          className="min-h-[44px] rounded-xl px-3 py-2.5 text-center text-[14px] font-semibold"
-          style={{ border: `1px solid ${COR.borda}`, backgroundColor: "#fff", color: COR.textoSecundario }}
-        >
-          Ver ficha
-        </a>
-      </div>
-    </article>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Estados                                                             */
+/* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------ */
 
 function Carregando({ rotulo }: { rotulo: string }) {

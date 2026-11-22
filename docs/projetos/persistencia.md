@@ -91,31 +91,41 @@ Cookie `estudio_dono` (uuid, `httpOnly`, 1 ano, `sameSite=lax`,
 `secure:false` porque o app roda em http na tailnet). Nasce no primeiro
 salvamento; projeto de outro dono responde **404**, nunca 403.
 
-## Dois mundos na mesma lista (correção de rumo da coordenação)
+## Uma fonte só: os antigos foram apagados (decisão de 22/11)
 
-A tela **Meus projetos** lista os dois conjuntos, com origem explícita:
+Em 21/11 esta tela listava os dois mundos — projetos do estúdio e carrosséis do
+editor antigo (leitura da API do AutoClinic). Em 22/11 o Igor decidiu por
+escrito: **não manter os carrosséis antigos, apagar e começar do zero no sistema
+novo**. O que foi feito:
 
-| seção | fonte | o que dá para fazer |
-|---|---|---|
-| **Projetos do estúdio** | `GET /api/projetos` (nosso store) | abrir, renomear, apagar |
-| **Carrosséis do editor** | `GET /api/carrossel/carrosseis?org=autoclinic` (API do AutoClinic, leitura) | abrir no editor, ver ficha |
+1. **Dump antes de apagar** — `/root/backups/carrosseis-antigos-20261121/dump.json`
+   (2 carrosséis com `documento` jsonb, 9 versões, 0 artefatos), com manifesto e
+   sha256. Verificação: o arquivo abre, bate linha a linha com o banco e não tem
+   versão órfã.
+2. **DELETE em transação**, filhos antes dos pais (`carrossel_artefatos`,
+   `carrossel_versoes`, `carrosseis`), com `DO $$ … $$` conferindo zero dentro da
+   própria transação. Script: `scripts/backup-e-limpeza-carrosseis-antigos.sh`
+   (recusa apagar sem dump válido; idempotente — rodar de novo não faz nada).
+3. **Nenhum DROP TABLE, nenhuma migration**: só dados, reversível pelo dump.
+4. **Rota antiga fora do ar**: `/carrossel/<id>` e `/carrossel/<id>/editar`
+   respondem 307 para `/?aviso=antigo`; o estúdio mostra o aviso em uma linha
+   ("o editor antigo foi desligado e os carrosséis antigos foram apagados; comece
+   um carrossel aqui"). Nada de 404 nem 500 para quem tem link salvo.
+5. **A tela não lê mais a API antiga** — a seção "Carrosséis do editor" saiu,
+   junto com `scripts/stub-api-editor.py` (que só existia para provar aquela
+   listagem).
 
-Trocar a lista antiga pela nossa, sem mais nada, faria os carrosséis existentes
-sumirem da tela — o que parece perda de dado. Por isso os dois aparecem, com
-pílula de origem (`estúdio` / `editor`), contagem rotulada e uma linha dizendo
-onde cada um se edita. O estúdio também mostra a seção do editor quando ela
-existe (até 6, com "Ver todos").
+Consequência assumida: quem tinha carrossel no editor antigo perde a peça. O
+dump existe, mas restaurar exige pôr os dados de volta no banco — não há tela
+para isso.
 
-Quando a leitura da API antiga falha (sessão expirada, API fora), a seção **não
-fica vazia**: mostra "Não conseguimos ler seus carrosséis antigos / Eles
-continuam salvos na API do AutoClinic — nada foi perdido" com `Tentar de novo` e
-`Entrar de novo`.
+## Bug que ficou corrigido de qualquer jeito
 
-**Bug pego no gate:** a leitura da API antiga passava por `apiJson`, que em 401
-chama `sair()` e apaga o cookie `ac_sessao`. Resultado medido: abrir a tela
-derrubava a sessão e o POST do próprio store virava **405** (redirect para
-`/login`). Correção: `apiJsonLeitura` em `src/lib/auth/sessao.ts` — mesma
-renovação em 401, sem deslogar. Leitura secundária não pode destruir sessão.
+`apiJson` (em `src/lib/auth/sessao.ts`) chama `sair()` em 401 — apaga o cookie
+`ac_sessao`. Numa tela que lê a API do AutoClinic como fonte secundária isso
+derrubava a sessão inteira: medido, o `POST /api/projetos` passava a responder
+405 (redirect para `/login`). O `apiJsonLeitura` (renova em 401, **não** desloga)
+fica no arquivo como a variante segura, mesmo sem consumidor agora.
 
 ## Onde fica cada coisa na tela
 
@@ -128,23 +138,6 @@ renovação em 401, sem deslogar. Leitura secundária não pode destruir sessão
   HH:MM", Abrir / Renomear / Apagar com confirmação).
 - **Abrir**: `/?abrir=<id>` (não `?projeto=`, que é link antigo do editor e o
   middleware responde 301 para `/carrossel/<id>`).
-
-## Prova com dado real
-
-O banco da API tem 2 carrosséis do editor (ambos de teste, com "(remover)" no
-título):
-
-```
-psql "$AUTOCLINIC_DATABASE_URL" -c \
-  "select id, left(titulo,42), estado, atualizado_em from carrosseis order by atualizado_em desc;"
-→ 73204026-92f8-4d10-bb17-d573639b6e4e | Teste W28 — prova do 409 (remover)  | pronta | 2026-11-21 17:02
-  7e7ded22-878b-4b4f-b18f-a7b891bb20b7 | Fase 0 — prova da marca (remover)   | pronta | 2026-11-12 22:32
-```
-
-Como `GET /api/carrossel/carrosseis` exige JWT do GoTrue (401 sem sessão),
-`scripts/stub-api-editor.py` serve as **mesmas linhas do banco** para a prova
-visual (`MODO=dados`), e o gate também roda `MODO=erro` (API real, 401) para
-provar o aviso explícito. O que o stub substitui é a autenticação, não o dado.
 
 ## Pendências conhecidas
 
@@ -162,6 +155,6 @@ provar o aviso explícito. O que o stub substitui é a autenticação, não o da
    diretório é responsabilidade do deploy, não do app.
 5. **`/projetos` continua atrás do middleware de sessão** (`ac_sessao`), igual a
    `/`. Quando a identidade for a real (item 1), essa porta pode mudar.
-6. **O store novo não é lido pelo editor antigo nem o contrário.** São dois
-   mundos; unificar exige decidir o formato canônico (o `DocumentSchema` do
-   editor ou o `CarrosselGerado` do estúdio). A tela mostra os dois, não funde.
+6. **O editor antigo continua no repositório** (`src/components/editor.tsx`,
+   providers) sem rota. Podar a árvore morta é tarefa própria; a decisão de 22/11
+   desligou a rota, não apagou o componente.
