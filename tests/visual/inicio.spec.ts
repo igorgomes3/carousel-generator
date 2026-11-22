@@ -89,11 +89,16 @@ test.describe("§8.1 — tela inicial", () => {
     await semSessao.close();
   });
 
-  test("2. `/projetos` responde 301 para `/`", async ({ page }) => {
+  test("2. `/projetos` é a tela Meus projetos (era 301 para `/`)", async ({ page }) => {
+    // Critério reescrito pela issue #13: o endereço voltou a ser uma tela de
+    // verdade — lista do que a pessoa salvou, com abrir/renomear/apagar. O 301
+    // para `/` existia porque a galeria tinha virado a home; a galeria morreu
+    // com o estúdio, e a lista agora é do estúdio, não da galeria.
     const resposta = await page.request.get("/projetos", { maxRedirects: 0 });
-    expect(resposta.status()).toBe(301);
-    const destino = resposta.headers()["location"] ?? "";
-    expect(destino.endsWith("/") || destino === "/").toBeTruthy();
+    expect(resposta.status()).toBe(200);
+
+    await page.goto("/projetos", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Meus projetos", level: 1 })).toBeVisible();
   });
 
   test(`3. \`/?projeto=<id>\` responde 301 para /carrossel/<id>`, async ({ page }) => {
