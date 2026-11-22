@@ -13,12 +13,42 @@
  * linhas os três se atravessavam no PNG. Aqui a capa é uma coluna empilhada no
  * pé do card (manchete → apoio → barra), com o corpo do texto limitado por
  * `maxHeight`; o que não cabe é cortado, não sobreposto.
+ *
+ * ## Foto do card (issue #11)
+ *
+ * A foto que a pessoa sobe no passo 2 vira FUNDO do card — nos três tipos, não
+ * só na capa. Antes a foto do card de conteúdo entrava como uma faixa de 380 px
+ * no meio do texto, o que no PNG parecia adesivo colado. Agora é `object-fit:
+ * cover` cobrindo o card inteiro com um véu escuro por cima; sem véu, título
+ * branco sobre foto clara desaparece.
+ *
+ * Fallback em duas camadas, porque "nunca card quebrado" é o critério:
+ *   1. sem foto → gradiente da paleta do template (o card nasce bonito, só sem
+ *      imagem);
+ *   2. foto que não carrega (`onError`) → o mesmo gradiente. O estado guarda a
+ *      URL que falhou, não um booleano: quando a pessoa troca a foto, a nova
+ *      URL é diferente e o card volta a tentar sozinho, sem efeito de reset.
  */
+import { useState } from "react";
+
 import type { SlideCarrossel } from "@/lib/estudio/tipos";
-import { pilhaFonte, type TemplateCarrossel } from "@/lib/templates";
+import { pilhaFonte, type PaletteTemplate, type TemplateCarrossel } from "@/lib/templates";
 
 export const LARGURA_CARD = 1080;
 export const ALTURA_CARD = 1350;
+
+/** Véu da capa: forte embaixo (onde o texto senta), limpo em cima (onde a foto aparece). */
+const VEU_CAPA =
+  "linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.55) 38%, rgba(0,0,0,0) 70%)";
+
+/** Véu do card de conteúdo: o texto ocupa o card inteiro, então o véu também. */
+const VEU_TEXTO =
+  "linear-gradient(to top, rgba(0,0,0,.9) 0%, rgba(0,0,0,.66) 46%, rgba(0,0,0,.34) 100%)";
+
+/** Fundo sem foto: dois halos da paleta. Retângulo preto vazio é o que não queremos. */
+function gradienteDaPaleta(palette: PaletteTemplate) {
+  return `radial-gradient(120% 90% at 78% 12%, ${palette.accent}55 0%, transparent 62%), radial-gradient(90% 70% at 10% 95%, ${palette.muted}22 0%, transparent 60%)`;
+}
 
 interface Props {
   slide: SlideCarrossel;
@@ -63,8 +93,38 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
   const { palette } = template;
   const display = pilhaFonte(template.fontDisplay);
   const body = pilhaFonte(template.fontBody);
-  const temImagem = Boolean(slide.imagem);
   const escuro = template.palette.bg.toUpperCase() !== "#FFFFFF";
+
+  /**
+   * Qual URL falhou (nunca `true`/`false`): trocar a foto muda a URL e o card
+   * volta a tentar automaticamente. `file://`, base64 corrompido e arquivo
+   * apagado do disco do projeto caem todos aqui.
+   */
+  const [srcQuebrado, setSrcQuebrado] = useState<string | null>(null);
+  const temImagem = Boolean(slide.imagem) && slide.imagem !== srcQuebrado;
+
+  const fundo = (veu: string) =>
+    temImagem ? (
+      <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={slide.imagem ?? ""}
+          alt=""
+          aria-hidden
+          onError={() => setSrcQuebrado(slide.imagem ?? null)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+        <div style={{ position: "absolute", inset: 0, background: veu }} />
+      </>
+    ) : (
+      <div style={{ position: "absolute", inset: 0, background: gradienteDaPaleta(palette) }} />
+    );
 
   const base = {
     width: LARGURA_CARD,
@@ -102,34 +162,7 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
 
     return (
       <div style={base} id={`card-${indice}`}>
-        {temImagem ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={slide.imagem ?? ""}
-            alt=""
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          // Sem foto: a capa nasce da paleta do template em vez de ficar um
-          // retângulo preto vazio (o alvo sempre tem cena; a nossa pode falhar).
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: `radial-gradient(120% 90% at 78% 12%, ${palette.accent}55 0%, transparent 62%), radial-gradient(90% 70% at 10% 95%, ${palette.muted}22 0%, transparent 60%)`,
-            }}
-          />
-        )}
-        {temImagem ? (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.55) 38%, rgba(0,0,0,0) 70%)",
-            }}
-          />
-        ) : null}
+        {fundo(VEU_CAPA)}
 
         <div
           style={{
@@ -222,8 +255,14 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
 
   // ---------- CTA ----------
   if (slide.tipo === "cta") {
+    // Foto de fundo manda na cor do texto: sobre o véu, branco é o que lê.
+    const claro = temImagem || escuro;
     return (
-      <div style={{ ...base, backgroundColor: escuro ? palette.accent : palette.bg }} id={`card-${indice}`}>
+      <div
+        style={{ ...base, backgroundColor: temImagem ? palette.accent : escuro ? palette.accent : palette.bg }}
+        id={`card-${indice}`}
+      >
+        {fundo(VEU_TEXTO)}
         <div
           style={{
             position: "absolute",
@@ -234,7 +273,7 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
             fontSize: 28,
             letterSpacing: 4,
             textTransform: "uppercase",
-            color: escuro ? "rgba(255,255,255,.8)" : palette.muted,
+            color: claro ? "rgba(255,255,255,.8)" : palette.muted,
           }}
         >
           Último card
@@ -250,10 +289,12 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
             fontSize: 92,
             lineHeight: 1.02,
             textTransform: "uppercase",
-            color: escuro ? "#FFFFFF" : palette.text,
+            color: claro ? "#FFFFFF" : palette.text,
+            maxHeight: 420,
+            overflow: "hidden",
           }}
         >
-          {comDestaque(slide.titulo || "Salve este post", escuro ? "#FFFFFF" : palette.accent)}
+          {comDestaque(slide.titulo || "Salve este post", claro ? "#FFFFFF" : palette.accent)}
         </div>
         {slide.corpo ? (
           <div
@@ -262,28 +303,50 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
               left: 64,
               right: 64,
               top: 640,
+              maxHeight: 400,
+              overflow: "hidden",
               fontFamily: body,
               fontSize: 40,
               lineHeight: 1.35,
-              color: escuro ? "#FFFFFF" : palette.text,
+              color: claro ? "#FFFFFF" : palette.text,
+              opacity: temImagem ? 0.94 : 1,
             }}
           >
             {limparMarcacao(slide.corpo)}
           </div>
         ) : null}
         <div style={{ position: "absolute", left: 64, right: 64, bottom: 52 }}>
-          {rodape("Feito com IA", escuro ? "#FFFFFF" : palette.muted, escuro ? 0.85 : 1)}
+          {rodape("Feito com IA", claro ? "#FFFFFF" : palette.muted, claro ? 0.85 : 1)}
         </div>
       </div>
     );
   }
 
   // ---------- CONTEÚDO ----------
-  const espacoDaImagem = slide.imagem ? 400 : 0;
   return (
     <div style={base} id={`card-${indice}`}>
-      <div style={{ position: "absolute", left: 64, right: 64, top: 96, bottom: 132, display: "flex", flexDirection: "column", gap: 32 }}>
-        <div style={{ width: 96, height: 10, backgroundColor: palette.accent, flexShrink: 0 }} />
+      {fundo(VEU_TEXTO)}
+
+      <div
+        style={{
+          position: "absolute",
+          left: 64,
+          right: 64,
+          top: 96,
+          bottom: 132,
+          display: "flex",
+          flexDirection: "column",
+          gap: 32,
+        }}
+      >
+        <div
+          style={{
+            width: 96,
+            height: 10,
+            backgroundColor: temImagem ? "rgba(255,255,255,.85)" : palette.accent,
+            flexShrink: 0,
+          }}
+        />
 
         <div
           style={{
@@ -292,8 +355,8 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
             fontSize: 72,
             lineHeight: 1.06,
             letterSpacing: -0.5,
-            color: palette.text,
-            maxHeight: espacoDaImagem ? 200 : 320,
+            color: temImagem ? "#FFFFFF" : palette.text,
+            maxHeight: temImagem ? 380 : 320,
             overflow: "hidden",
             flexShrink: 0,
           }}
@@ -301,28 +364,16 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
           {comDestaque(slide.titulo || "Título do card", palette.accent)}
         </div>
 
-        {slide.imagem ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={slide.imagem}
-            alt=""
-            style={{
-              width: "100%",
-              height: 380,
-              objectFit: "cover",
-              flexShrink: 0,
-            }}
-          />
-        ) : null}
-
         <div
           style={{
             fontFamily: body,
             fontSize: 38,
             lineHeight: 1.42,
-            color: palette.text,
-            opacity: 0.95,
+            color: temImagem ? "#FFFFFF" : palette.text,
+            opacity: temImagem ? 0.94 : 0.95,
             overflow: "hidden",
+            flexShrink: 1,
+            minHeight: 0,
           }}
         >
           {limparMarcacao(slide.corpo)}
@@ -330,7 +381,7 @@ export function CartaoCard({ slide, template, indice, total }: Props) {
       </div>
 
       <div style={{ position: "absolute", left: 64, right: 64, bottom: 48 }}>
-        {rodape("Arrasta pro lado", palette.muted, 0.9)}
+        {rodape("Arrasta pro lado", temImagem ? "#FFFFFF" : palette.muted, temImagem ? 0.88 : 0.9)}
       </div>
     </div>
   );

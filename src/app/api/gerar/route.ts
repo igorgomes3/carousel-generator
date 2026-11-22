@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
 import { generateCarouselSlides } from "@/lib/langchain";
 import { templatePorId } from "@/lib/templates";
+import { ajustarQuantidade, limitarQuantidade } from "@/lib/estudio/cards";
 import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 
 export const runtime = "nodejs";
@@ -50,7 +51,9 @@ export async function POST(request: NextRequest) {
   }
 
   const template = templatePorId(corpo?.templateId);
-  const quantidade = Math.min(Math.max(corpo?.slides ?? 7, 5), 10);
+  // 3 a 10 (issue #11). Antes era 5..10 e o padrão 7 vivia aqui solto; agora a
+  // regra é a mesma do seletor da tela — um lugar só (`lib/estudio/cards`).
+  const quantidade = limitarQuantidade(corpo?.slides);
 
   const chave = process.env.OPENAI_API_KEY;
   if (!chave) {
@@ -85,12 +88,16 @@ export async function POST(request: NextRequest) {
     slidesOriginais = direto as { elements?: Elemento[] }[];
   }
 
-  const slides: SlideCarrossel[] = slidesOriginais.map((slide, i) => {
+  const brutos: SlideCarrossel[] = slidesOriginais.map((slide, i) => {
     const { titulo, corpo } = lerSlide(slide);
     const tipo: SlideCarrossel["tipo"] =
       i === 0 ? "capa" : i === slidesOriginais!.length - 1 ? "cta" : "conteudo";
     return { tipo, titulo, corpo, imagem: null };
   });
+
+  // A rota devolve EXATAMENTE o número pedido: o pipeline escreve quantos
+  // slides o modelo quiser, e o seletor do passo 2 promete um número.
+  const slides = ajustarQuantidade(brutos, quantidade);
 
   const carrossel: CarrosselGerado = {
     id: crypto.randomUUID(),
