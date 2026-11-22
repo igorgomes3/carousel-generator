@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
     templateId?: string;
     tema?: string;
     slides?: unknown;
+    arroba?: unknown;
+    estilo?: unknown;
   };
 
   const dono = garantirDono();
@@ -52,6 +54,8 @@ export async function POST(request: NextRequest) {
       templateId: dados.templateId ?? "minimalist",
       tema: dados.tema,
       slides: dados.slides,
+      arroba: dados.arroba,
+      estilo: dados.estilo,
     });
 
     if (!resultado.ok) {

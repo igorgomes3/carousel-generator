@@ -10,6 +10,7 @@
  * funções de texto podem ser provadas em teste puro (§ issue #13).
  */
 import type { SlideCarrossel } from "@/lib/estudio/tipos";
+import type { EstiloEscolhido } from "@/lib/estudio/estilo";
 
 /** Um projeto como ele fica gravado. */
 export interface ProjetoSalvo {
@@ -26,6 +27,13 @@ export interface ProjetoSalvo {
   salvoEm: string;
   /** Sobe a cada salvamento; serve para detectar gravação fora de ordem. */
   versao: number;
+  /**
+   * Handle do perfil sem `@` (issue #12). `undefined` em projeto gravado antes
+   * da issue: o card abre sem @, que é o comportamento de antes.
+   */
+  arroba?: string;
+  /** Curadoria de fundo/destaque/fonte por id (issue #12). Ids, nunca hex. */
+  estilo?: EstiloEscolhido;
 }
 
 /**

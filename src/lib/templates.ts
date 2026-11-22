@@ -755,6 +755,20 @@ export function pilhaFonte(familia: string): string {
   return PILHAS[familia] ?? "var(--font-inter), system-ui, sans-serif";
 }
 
+/**
+ * A família tem pilha própria neste build?
+ *
+ * `pilhaFonte` devolve a pilha do Inter para QUALQUER nome desconhecido — é o
+ * fallback que evita texto em Times. O efeito colateral é que "fonte carregou?"
+ * não pode ser respondido comparando com o fallback (Inter VALE o fallback).
+ * Por isso a pergunta certa é de pertinência, e ela vive aqui, junto do mapa.
+ * Usado pela curadoria do estúdio (`estilo.test.ts`): um par de fontes com nome
+ * que não existe viraria PNG em Arial sem aviso nenhum.
+ */
+export function temPilhaPropria(familia: string): boolean {
+  return Object.prototype.hasOwnProperty.call(PILHAS, familia);
+}
+
 export function templatePorId(id: string | null | undefined): TemplateCarrossel {
   return TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[1];
 }
