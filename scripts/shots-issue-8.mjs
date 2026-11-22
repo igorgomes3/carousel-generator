@@ -156,6 +156,27 @@ async function capturar(browser, largura) {
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${SAIDA}/01-estudio-${largura}.png`, fullPage: true });
 
+  /**
+   * "Minhas pautas" com conteúdo. Só existe no build do depois: no antes o botão
+   * não está no DOM, e a captura é pulada (é isso que a comparação prova).
+   */
+  const campo = page.locator("textarea").first();
+  await campo.fill("5 erros que fazem seu carrossel não ser salvo");
+  const guardar = page.getByRole("button", { name: /Guardar esta ideia/i });
+  if (await guardar.count()) {
+    await guardar.click();
+    await campo.fill("o que ninguém conta sobre anamnese");
+    await page.getByRole("button", { name: /Guardar esta ideia/i }).click();
+    await page.waitForTimeout(400);
+    await page.locator("section").first().screenshot({
+      path: `${SAIDA}/03-minhas-pautas-${largura}.png`,
+    });
+    console.log(`${largura}px · "Minhas pautas" com 2 atalhos salvos`);
+  } else {
+    console.log(`${largura}px · sem botão "Guardar esta ideia" (build do antes)`);
+  }
+  await page.evaluate(() => window.localStorage.removeItem("carrossel:pautas-do-usuario"));
+
   await page.goto(`${BASE}/carrossel/${ID}/editar`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('[id^="page-base-"]', { timeout: 30_000 });
   await page.evaluate(() => document.fonts.ready);

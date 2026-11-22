@@ -473,14 +473,17 @@ function PassoIdeia({
               {pautas.map((p) => (
                 <li
                   key={p}
-                  className="flex items-stretch overflow-hidden rounded-lg bg-white"
+                  className="flex w-full items-stretch overflow-hidden rounded-lg bg-white sm:w-auto sm:max-w-[340px]"
                   style={{ border: "1px solid #E7E5E4" }}
                 >
+                  {/* Duas linhas e não `truncate`: no celular a pauta cortada em
+                      "o que ninguém conta sobre ana…" fica igual a outra ideia
+                      parecida, e a pessoa não sabe qual está escolhendo. */}
                   <button
                     type="button"
                     onClick={() => setTema(p)}
                     title={p}
-                    className="min-h-[44px] max-w-[240px] truncate px-3 text-left text-[13px] font-medium"
+                    className="line-clamp-2 min-h-[44px] min-w-0 flex-1 px-3 py-2 text-left text-[13px] font-medium leading-snug"
                     style={{ color: "#1C1917" }}
                   >
                     {p}
@@ -489,7 +492,7 @@ function PassoIdeia({
                     type="button"
                     onClick={() => onEsquecerPauta(p)}
                     aria-label={`Remover a pauta: ${p}`}
-                    className="grid w-11 shrink-0 place-items-center text-[15px] leading-none"
+                    className="grid w-11 shrink-0 place-items-center text-[18px] leading-none"
                     style={{ color: "#78716C", borderLeft: "1px solid #E7E5E4" }}
                   >
                     ×
