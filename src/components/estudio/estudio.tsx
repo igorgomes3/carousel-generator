@@ -15,9 +15,12 @@
  * Fonte dos templates: `src/lib/templates.ts`, extraído do bundle do alvo.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
 import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 import { baixarTodosOsCards, baixarUmCard } from "@/lib/estudio/exportar";
+import { quandoSalvo } from "@/lib/estudio/projetos";
+import { useProjetoSalvo, type EstadoSalvamento } from "@/lib/hooks/use-projeto-salvo";
 import {
   adicionarPauta,
   carregarPautas,
@@ -35,12 +38,11 @@ import {
 
 type Passo = "ideia" | "tema" | "gerando" | "pronto";
 
-interface CarrosselDaLista {
+interface ProjetoDaLista {
   id: string;
-  titulo: string;
-  estado: string;
+  nome: string;
   slides: number;
-  atualizado_em: string;
+  atualizadoEm: string;
 }
 
 const MAX_TEMA = 400;
@@ -68,7 +70,7 @@ export function Estudio() {
   const [editando, setEditando] = useState<number | null>(null);
   const [gerandoImagem, setGerandoImagem] = useState<number | null>(null);
   const [baixando, setBaixando] = useState(false);
-  const [lista, setLista] = useState<CarrosselDaLista[] | null>(null);
+  const [lista, setLista] = useState<ProjetoDaLista[] | null>(null);
 
   const palcoRef = useRef<HTMLDivElement>(null);
   const template = templatePorId(templateId);
@@ -109,17 +111,113 @@ export function Estudio() {
 
   // "Meus carrosséis": se a API não responder, a seção simplesmente não aparece.
   // O estúdio não depende dela para funcionar — download é client-side.
+
+  /* ---------------------------------------------------------------- */
+  /* Projeto salvo (issue #13)                                        */
+  /* ---------------------------------------------------------------- */
+
+  const busca = useSearchParams();
+  const router = useRouter();
+  /**
+   * `?abrir=<id>` e não `?projeto=<id>`: esse último já é o link antigo do
+   * editor e o middleware responde 301 para `/carrossel/<id>` (critério 3 da
+   * fase 1). Reusar o nome mataria o link antigo de quem tem favorito.
+   */
+  const projetoDaUrl = busca?.get("abrir") ?? null;
+  const salvamento = useProjetoSalvo();
+  const { abrir: abrirProjeto, marcarSujo, zerar: zerarSalvamento } = salvamento;
+
+  const [abrindoProjeto, setAbrindoProjeto] = useState(Boolean(projetoDaUrl));
+  const [avisoAbertura, setAvisoAbertura] = useState<string | null>(null);
+
+  /**
+   * "Abrir" em Meus projetos navega para `/?abrir=<id>`. Aqui o projeto é
+   * buscado e o wizard pula direto para o resultado: quem volta não quer
+   * repassar por template e tema, quer o carrossel dele na tela.
+   */
+  useEffect(() => {
+    if (!projetoDaUrl) {
+      setAbrindoProjeto(false);
+      return;
+    }
+    let vivo = true;
+    setAbrindoProjeto(true);
+    (async () => {
+      const projeto = await abrirProjeto(projetoDaUrl);
+      if (!vivo) return;
+      if (!projeto) {
+        setAvisoAbertura(
+          "Não encontramos este projeto. Ele pode ter sido apagado — você pode criar outro normalmente.",
+        );
+        setAbrindoProjeto(false);
+        return;
+      }
+      setTemplateId(projeto.templateId);
+      setTema(projeto.tema);
+      setCarrossel({
+        id: projeto.id,
+        titulo: projeto.nome,
+        templateId: projeto.templateId,
+        tema: projeto.tema,
+        slides: projeto.slides,
+        criadoEm: projeto.criadoEm,
+      });
+      setPasso("pronto");
+      setAbrindoProjeto(false);
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [projetoDaUrl, abrirProjeto]);
+
+  /**
+   * Trava de aba: alteração não salva pede confirmação antes de fechar. É a
+   * proteção que o leigo não sabe pedir, mas é exatamente o que ele perde sem.
+   * `beforeunload` é o único jeito de interceptar fechar/recarregar.
+   */
+  useEffect(() => {
+    if (!carrossel || salvamento.estado !== "sujo") return;
+    const aoSair = (evento: BeforeUnloadEvent) => {
+      evento.preventDefault();
+      evento.returnValue = "";
+    };
+    window.addEventListener("beforeunload", aoSair);
+    return () => window.removeEventListener("beforeunload", aoSair);
+  }, [carrossel, salvamento.estado]);
+
+  const temAlteracaoNaoSalva = Boolean(carrossel) && salvamento.estado === "sujo";
+
+  const confirmarSaida = useCallback(() => {
+    if (!temAlteracaoNaoSalva) return true;
+    return window.confirm(
+      "Você tem alterações que ainda não foram salvas. Se sair agora, elas se perdem. Quer sair mesmo assim?",
+    );
+  }, [temAlteracaoNaoSalva]);
+
+  const salvarProjeto = useCallback(async () => {
+    if (!carrossel) return;
+    const projeto = await salvamento.salvar({ carrossel, tema: tema || carrossel.tema || "" });
+    // O servidor devolve as imagens já como caminho (`/api/projetos/…`); guardar
+    // isso no estado evita reenviar base64 a cada novo salvamento.
+    if (projeto) {
+      setCarrossel((atual) =>
+        atual ? { ...atual, id: projeto.id, slides: projeto.slides } : atual,
+      );
+    }
+  }, [carrossel, salvamento, tema]);
+
+  // "Meus projetos": os que ESTE navegador salvou (issue #13). Antes a seção
+  // lia a API do AutoClinic — carrossel do editor antigo, atrás de login que o
+  // leigo não tem. Se a lista falhar, a seção simplesmente não aparece: o
+  // estúdio continua funcionando, porque gerar e baixar é tudo client-side.
   useEffect(() => {
     let vivo = true;
     (async () => {
       try {
-        const res = await fetch("/api/ac/carrossel/carrosseis?org=autoclinic", {
-          headers: { accept: "application/json" },
-        });
+        const res = await fetch("/api/projetos", { headers: { accept: "application/json" } });
         if (!res.ok) return;
-        const dados = (await res.json()) as { carrosseis?: CarrosselDaLista[] } | CarrosselDaLista[];
-        const itens = Array.isArray(dados) ? dados : (dados.carrosseis ?? []);
-        if (vivo) setLista(itens.slice(0, 6));
+        const dados = (await res.json()) as { projetos?: ProjetoDaLista[] };
+        if (vivo) setLista((dados.projetos ?? []).slice(0, 6));
       } catch {
         /* silêncio: a lista é conveniência, não caminho crítico */
       }
@@ -175,12 +273,16 @@ export function Estudio() {
         setCarrossel(gerado);
         setPasso("pronto");
         setFase(3);
+        // Carrossel novo = projeto novo: nada foi salvo ainda, então a trava de
+        // aba já vale desde o primeiro card.
+        zerarSalvamento();
+        marcarSujo();
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Falha ao gerar o carrossel.");
         setPasso("tema");
       }
     },
-    [tema],
+    [tema, zerarSalvamento, marcarSujo],
   );
 
   const gerarImagemDoSlide = useCallback(
@@ -198,13 +300,14 @@ export function Estudio() {
             ? { ...atual, slides: atual.slides.map((s, i) => (i === indice ? { ...s, imagem } : s)) }
             : atual,
         );
+        marcarSujo();
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Falha ao gerar a imagem.");
       } finally {
         setGerandoImagem(null);
       }
     },
-    [carrossel, template.styleText, tema],
+    [carrossel, template.styleText, tema, marcarSujo],
   );
 
   const baixarTodos = useCallback(async () => {
@@ -220,18 +323,47 @@ export function Estudio() {
   }, [carrossel]);
 
   const recomecar = useCallback(() => {
+    if (!confirmarSaida()) return;
     setCarrossel(null);
     setTema("");
     setPasso("ideia");
     setErro(null);
     setEditando(null);
-  }, []);
+    setAvisoAbertura(null);
+    zerarSalvamento();
+    // Solta o `?projeto=` da URL: "Novo" é projeto novo, não reabrir o antigo.
+    if (projetoDaUrl) router.replace("/");
+  }, [confirmarSaida, zerarSalvamento, projetoDaUrl, router]);
 
   return (
     <main className="min-h-screen w-full" style={{ backgroundColor: "#F5F4F1" }}>
       <Topo passo={passo} onRecomecar={recomecar} />
 
       <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
+        {avisoAbertura ? (
+          <p
+            role="alert"
+            className="mb-4 rounded-xl px-3 py-2 text-[13px]"
+            style={{ backgroundColor: "#FEF2F2", color: "#B91C1C", border: "1px solid #FCA5A5" }}
+          >
+            {avisoAbertura}
+          </p>
+        ) : null}
+
+        {abrindoProjeto ? (
+          <div className="mx-auto flex max-w-[560px] flex-col items-center gap-3 py-20 text-center">
+            <div
+              className="grid h-12 w-12 animate-pulse place-items-center rounded-full text-xl"
+              style={{ backgroundColor: "#FFF1E9", color: "#C2410C" }}
+              aria-hidden="true"
+            >
+              🗂️
+            </div>
+            <p className="text-[15px] font-semibold" style={{ color: "#1C1917" }}>
+              Abrindo seu projeto…
+            </p>
+          </div>
+        ) : null}
         {passo === "ideia" && (
           <PassoIdeia
             categoria={categoria}
@@ -277,10 +409,14 @@ export function Estudio() {
             setEditando={setEditando}
             gerandoImagem={gerandoImagem}
             baixando={baixando}
+            salvamento={salvamento.estado}
+            salvoEm={salvamento.salvoEm}
+            erroSalvamento={salvamento.erro}
+            onSalvar={() => void salvarProjeto()}
             onBaixarTodos={() => void baixarTodos()}
             onBaixarUm={(node, i) => void baixarUmCard(node, carrossel.titulo, i)}
             onGerarImagem={(i) => void gerarImagemDoSlide(i)}
-            onEditar={(i, campo, valor) =>
+            onEditar={(i, campo, valor) => {
               setCarrossel((atual) =>
                 atual
                   ? {
@@ -288,8 +424,9 @@ export function Estudio() {
                       slides: atual.slides.map((s, idx) => (idx === i ? { ...s, [campo]: valor } : s)),
                     }
                   : atual,
-              )
-            }
+              );
+              marcarSujo();
+            }}
             onNovo={recomecar}
           />
         )}
@@ -333,7 +470,17 @@ function Topo({ passo, onRecomecar }: { passo: Passo; onRecomecar: () => void })
           </span>
         </div>
         <div className="flex items-center gap-3 text-[13px]">
-          <span style={{ color: "#78716C" }}>
+          {/* Em 390 px "Meus projetos" + status + "Novo" não cabem numa linha:
+              o rótulo encurta e o status (informação, não ação) some no celular. */}
+          <a
+            href="/projetos"
+            className="whitespace-nowrap rounded-lg px-2 py-2 font-semibold underline-offset-4 hover:underline"
+            style={{ color: "#57534E" }}
+          >
+            <span className="sm:hidden">Projetos</span>
+            <span className="hidden sm:inline">Meus projetos</span>
+          </a>
+          <span className="hidden whitespace-nowrap sm:inline" style={{ color: "#78716C" }}>
             {passo === "pronto" ? "Pronto" : passo === "gerando" ? "Gerando" : "Criar carrossel"}
           </span>
           {passo !== "ideia" ? (
@@ -375,7 +522,7 @@ function PassoIdeia({
   templateId: string;
   tema: string;
   setTema: (t: string) => void;
-  lista: CarrosselDaLista[] | null;
+  lista: ProjetoDaLista[] | null;
   pautas: string[];
   pautaJaSalva: boolean;
   onSalvarPauta: () => void;
@@ -583,19 +730,24 @@ function PassoIdeia({
 
       {lista && lista.length > 0 ? (
         <section>
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#57534E" }}>
-            Meus carrosséis
-          </h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#57534E" }}>
+              Meus projetos
+            </h2>
+            <a href="/projetos" className="text-[12px] font-semibold underline-offset-4 hover:underline" style={{ color: "#C2410C" }}>
+              Ver todos e renomear
+            </a>
+          </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {lista.map((c) => (
               <a
                 key={c.id}
-                href={`/carrossel/${c.id}`}
+                href={`/?abrir=${encodeURIComponent(c.id)}`}
                 className="flex items-center justify-between rounded-xl bg-white px-4 py-3"
                 style={{ border: "1px solid #E7E5E4" }}
               >
                 <span className="truncate text-[14px] font-medium" style={{ color: "#1C1917" }}>
-                  {c.titulo || "Sem título"}
+                  {c.nome || "Sem título"}
                 </span>
                 <span className="ml-3 shrink-0 text-[12px]" style={{ color: "#A8A29E" }}>
                   {c.slides} cards
@@ -756,6 +908,10 @@ function PassoPronto({
   setEditando,
   gerandoImagem,
   baixando,
+  salvamento,
+  salvoEm,
+  erroSalvamento,
+  onSalvar,
   onBaixarTodos,
   onBaixarUm,
   onGerarImagem,
@@ -769,6 +925,10 @@ function PassoPronto({
   setEditando: (i: number | null) => void;
   gerandoImagem: number | null;
   baixando: boolean;
+  salvamento: EstadoSalvamento;
+  salvoEm: string | null;
+  erroSalvamento: string | null;
+  onSalvar: () => void;
   onBaixarTodos: () => void;
   onBaixarUm: (node: HTMLElement, i: number) => void;
   onGerarImagem: (i: number) => void;
@@ -778,9 +938,29 @@ function PassoPronto({
   const faixaRef = useRef<HTMLDivElement>(null);
   const slideEmEdicao = editando !== null ? carrossel.slides[editando] : null;
 
+  /**
+   * O que a linha de status diz. Três frases, escolhidas por estado — não é
+   * decoração: é a resposta para "eu já salvei isso?".
+   */
+  const textoSalvamento =
+    salvamento === "salvando"
+      ? "Salvando…"
+      : salvamento === "erro"
+        ? (erroSalvamento ?? "Não conseguimos salvar. Tente de novo.")
+        : salvamento === "sujo"
+          ? salvoEm
+            ? "Alterações não salvas — salve para não perder"
+            : "Ainda não salvo"
+          : salvoEm
+            ? quandoSalvo(salvoEm)
+            : "";
+
+  const corSalvamento =
+    salvamento === "erro" ? "#B91C1C" : salvamento === "sujo" ? "#B45309" : "#57534E";
+
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-bold" style={{ color: "#1C1917" }}>
             Seu carrossel está pronto
@@ -789,14 +969,27 @@ function PassoPronto({
             {carrossel.slides.length} cards em 1080×1350 · {template.nome}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={onNovo}
-            className="rounded-xl px-4 py-2.5 text-[14px] font-semibold"
+            className="rounded-xl px-3 py-2.5 text-[14px] font-semibold"
             style={{ border: "1px solid #E7E5E4", backgroundColor: "#fff", color: "#1C1917" }}
           >
             Criar outro
+          </button>
+          <button
+            type="button"
+            onClick={onSalvar}
+            disabled={salvamento === "salvando"}
+            className="rounded-xl px-4 py-2.5 text-[14px] font-semibold text-white disabled:opacity-60"
+            style={{ backgroundColor: "#1C1917" }}
+          >
+            {salvamento === "salvando"
+              ? "Salvando…"
+              : salvoEm
+                ? "Salvar alterações"
+                : "Salvar projeto"}
           </button>
           <button
             type="button"
@@ -809,6 +1002,16 @@ function PassoPronto({
           </button>
         </div>
       </div>
+
+      <p
+        role="status"
+        aria-live="polite"
+        data-estado-salvamento={salvamento}
+        className="text-[13px] font-semibold"
+        style={{ color: corSalvamento }}
+      >
+        {textoSalvamento}
+      </p>
 
       {erro ? (
         <p className="rounded-lg px-3 py-2 text-[13px]" style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}>

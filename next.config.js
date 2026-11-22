@@ -22,11 +22,9 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: "/projetos",
-        destination: "/",
-        statusCode: 301,
-      },
-      {
+        // `/projetos` deixou de ser redirect: a issue #13 devolveu o endereço
+        // como a tela "Meus projetos" (abrir, renomear, apagar o que foi salvo).
+        // Só a fila continua morando em `/sinais`.
         source: "/fila",
         destination: "/sinais",
         statusCode: 301,

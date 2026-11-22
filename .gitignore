@@ -40,6 +40,9 @@ next-env.d.ts
 /playwright-report/
 tests/visual/diff/
 
+# projetos salvos pelo estúdio (issue #13): dado de usuário, não código
+/data/
+
 # playwright
 /test-results/
 /playwright-report/
