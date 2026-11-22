@@ -12,7 +12,6 @@ import { useStatusContext } from "@/lib/providers/editor-status-context";
 import { DocumentSkeleton } from "@/components/editor-skeleton";
 import { EditorStatusBar } from "@/components/editor-status-bar";
 import { Filmstrip } from "@/components/filmstrip";
-import { SugestoesPanel } from "@/components/sugestoes-panel";
 import { AIPanel } from "@/components/ai-panel";
 import { PlanoPanel } from "@/components/plano-panel";
 import { useEscalaSlide } from "@/lib/hooks/use-escala-slide";
@@ -73,15 +72,11 @@ export function SlidesEditor({}: SlidesEditorProps) {
         </div>
 
         {/* Os painéis de pauta/plano são conteúdo, não chrome: ficam na coluna
-            do palco, com largura de leitura, abaixo do slide. */}
+            do palco, com largura de leitura, abaixo do slide.
+            O painel "Sugestões para aprovar" saiu com a issue #8: ele listava
+            pauta vinda da fila do AutoClinic, que nascia de notícia. Pauta agora
+            é o que a pessoa escreve (ou salva em "Minhas pautas", no estúdio). */}
         <div className="flex w-full flex-col items-center gap-3 px-3 pb-4 md:px-5">
-          <SugestoesPanel
-            onDocumento={(slides) => {
-              // Desenha na hora o que a fila gerou: sem isso a pessoa gera e não
-              // vê nada mudar, que é exatamente a queixa de "não mudou nada".
-              form.setValue("slides", slides as never, { shouldDirty: true });
-            }}
-          />
           <AIPanel />
           <PlanoPanel />
         </div>

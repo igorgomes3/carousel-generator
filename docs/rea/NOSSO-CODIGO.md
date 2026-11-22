@@ -46,7 +46,33 @@ Agora: `POST /api/imagem` → 9Router `/v1/images/generations` (`IMAGEM_MODEL`, 
 
 - `src/app/sinais/page.tsx` (fila de sinais — a origem era pauta de notícia; o CEO proibiu Google News).
 - Link "Sinais" na navegação; o vazio da lista agora leva ao estúdio.
-- Seção "Tema" do inspetor do editor (`ThemeForm`) — a cor vem do template do estúdio. `themes.ts`/`pallettes.tsx` continuam no repo porque o documento antigo ainda os lê ao abrir carrossel salvo (compatibilidade), mas nenhuma tela oferece escolher tema.
+- Seção "Tema" do inspetor do editor (`ThemeForm`) — a cor vem do template do estúdio.
+  `themes.ts`/`pallettes.tsx` continuam no repo porque o documento antigo ainda os lê ao
+  abrir carrossel salvo (compatibilidade), mas nenhuma tela oferece escolher tema.
+
+### Issue #8 (21/11/2026) — o resto da remoção
+
+A primeira passada tirou a tela de tema e a rota `/sinais`, mas deixou duas portas
+abertas. O que fechou nesta rodada (detalhe em
+`docs/design/issue-8-remocao-temas-e-noticias.md`):
+
+- `src/components/sugestoes-panel.tsx` **apagado**: era o painel "Sugestões para aprovar"
+  dentro do editor, lendo `GET /conteudo/fila` — o último caminho de notícia até a tela.
+- `src/lib/themes.ts`, `src/lib/pallettes.tsx`, `src/lib/theme-utils.ts`,
+  `src/components/forms/theme-form.tsx`, `src/components/color-theme-display.tsx`
+  **apagados**. Não era verdade que o documento antigo precisa deles: a cor sempre veio
+  de `config.theme.primary/secondary/background`, nunca do nome da paleta. O campo
+  `pallette` continua no schema como legado.
+- `src/lib/compat/documento-salvo.ts` (novo): todo documento salvo passa por um
+  normalizador que preenche campo por campo. Antes, um campo fora do schema fazia o
+  carrossel abrir em branco.
+- `src/lib/fonts-map.tsx`: `fontIdToClassName` não estoura mais com fonte desconhecida
+  (era `fontsMap[id].className` direto — fonte aposentada derrubava o editor).
+- `src/lib/hooks/use-persist-form.tsx`: rascunho local que não bate com o schema é
+  normalizado, não apagado com `localStorage.clear()`.
+- Fonte de pauta nova: campo de tema livre + "Minhas pautas"
+  (`src/lib/estudio/pautas-salvas.ts`, `localStorage`).
+- `/api/conteudo/gerar` **permanece**: contrato com a fila da API do AutoClinic, fora da UI.
 
 ## O que foi adicionado
 

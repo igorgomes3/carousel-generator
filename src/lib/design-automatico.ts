@@ -15,12 +15,20 @@ import type { Criativo, Tom } from "@/lib/conteudo";
 
 type Config = typeof defaultValues.config;
 
-/** Paletas disponíveis no editor. Nome tem de bater com `pallettes.tsx`. */
-const PALETAS: Record<Tom, { pallette: string; primary: string; secondary: string; background: string }> = {
-  direto: { pallette: "black", primary: "#0d0d0d", secondary: "#4b4b4b", background: "#ffffff" },
-  didatico: { pallette: "slate", primary: "#0f172a", secondary: "#475569", background: "#f8fafc" },
-  provocativo: { pallette: "red", primary: "#7f1d1d", secondary: "#dc2626", background: "#fff7f7" },
-  acolhedor: { pallette: "beige", primary: "#3f3325", secondary: "#8a7357", background: "#fbf7f1" },
+/**
+ * Paleta por tom — cores escritas à mão, não nome de paleta.
+ *
+ * Antes isto referenciava o catálogo de paletas daisyUI (`pallettes.tsx`), que
+ * saiu com a issue #8: escolher paleta era o ruído que o produto removeu. As
+ * cores sempre foram gravadas no documento, nunca resolvidas pelo nome, então a
+ * troca de catálogo por valores literais não muda um pixel do que já foi gerado.
+ * `rotulo` existe só para o motivo em texto ("paleta preto").
+ */
+const PALETAS: Record<Tom, { rotulo: string; primary: string; secondary: string; background: string }> = {
+  direto: { rotulo: "preto", primary: "#0d0d0d", secondary: "#4b4b4b", background: "#ffffff" },
+  didatico: { rotulo: "ardósia", primary: "#0f172a", secondary: "#475569", background: "#f8fafc" },
+  provocativo: { rotulo: "vermelho", primary: "#7f1d1d", secondary: "#dc2626", background: "#fff7f7" },
+  acolhedor: { rotulo: "bege", primary: "#3f3325", secondary: "#8a7357", background: "#fbf7f1" },
 };
 
 /**
@@ -72,14 +80,13 @@ export function designAutomatico(tom: Tom, criativo: Criativo | null): DesignEsc
       theme: {
         ...defaultValues.config.theme,
         isCustom: true,
-        pallette: paleta.pallette,
         primary: paleta.primary,
         secondary: escurecer(paleta.secondary, contraste),
         background: paleta.background,
         backgroundStyle: estiloFundo,
       },
     },
-    motivo: `tom ${tom} · paleta ${paleta.pallette} · fundo ${estiloFundo}${
+    motivo: `tom ${tom} · paleta ${paleta.rotulo} · fundo ${estiloFundo}${
       criativo?.ritmo ? ` · ritmo ${criativo.ritmo}` : ""
     }`,
   };

@@ -10,6 +10,7 @@ import {
 } from "@/lib/hooks/use-persist-form";
 
 import { DocumentSchema } from "@/lib/validation/document-schema";
+import { normalizarDocumento } from "@/lib/compat/documento-salvo";
 import { PagerProvider } from "@/lib/providers/pager-context";
 import { usePager } from "@/lib/hooks/use-pager";
 import { SelectionProvider } from "@/lib/providers/selection-context";
@@ -63,15 +64,20 @@ export function DocumentProvider({
   const { getSavedData } = useRetrieveFormValues(
     FORM_DATA_KEY,
     defaultValues,
-    DocumentSchema
+    DocumentSchema,
+    normalizarDocumento
   );
 
   const [pronto, setPronto] = useState(!projetoId);
   const [titulo, setTitulo] = useState("");
   const [falha, setFalha] = useState<string | null>(null);
 
-  const lido = documentoInicial
-    ? DocumentSchema.safeParse(documentoInicial)
+  // Documento salvo nunca é lido pelo schema rígido: ele passa pelo normalizador,
+  // que preenche o que falta e devolve o que dá para desenhar. Ler direto com o
+  // schema descartava o carrossel inteiro por causa de um campo — e o usuário
+  // abria a peça dele em branco.
+  const documentoNormalizado = documentoInicial
+    ? normalizarDocumento(documentoInicial)
     : null;
 
   const documentForm: DocumentFormReturn = useForm<
@@ -79,8 +85,7 @@ export function DocumentProvider({
   >({
     resolver: zodResolver(DocumentSchema),
     defaultValues:
-      (lido?.success ? lido.data : undefined) ??
-      (projetoId ? defaultValues : getSavedData()),
+      documentoNormalizado ?? (projetoId ? defaultValues : getSavedData()),
   });
 
   const autosave = useAutosaveProjeto(documentForm, projetoId, titulo);
@@ -131,8 +136,7 @@ export function DocumentProvider({
           `/carrossel/carrosseis/${projetoId}?org=autoclinic`
         );
         if (cancelado) return;
-        const parsed = DocumentSchema.safeParse(r.carrossel.documento);
-        documentForm.reset(parsed.success ? parsed.data : defaultValues);
+        documentForm.reset(normalizarDocumento(r.carrossel.documento));
         setTitulo(r.carrossel.titulo);
         autosave.definirTitulo(r.carrossel.titulo);
       } catch (e) {
