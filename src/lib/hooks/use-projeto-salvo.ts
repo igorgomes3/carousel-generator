@@ -50,6 +50,14 @@ export function useProjetoSalvo(): UseProjetoSalvo {
           tema,
           templateId: carrossel.templateId,
           slides: carrossel.slides,
+          /**
+           * Issue #12: o @ e a curadoria vão junto com os cards. `null`/`{}` de
+           * propósito quando não há escolha — a rota lê "veio vazio" como
+           * "apagou", que é o que a pessoa fez ao limpar o campo ou voltar ao
+           * estilo do template.
+           */
+          arroba: carrossel.arroba ?? null,
+          estilo: carrossel.estilo ?? {},
         };
 
         const res = await fetch(projetoId ? `/api/projetos/${projetoId}` : "/api/projetos", {

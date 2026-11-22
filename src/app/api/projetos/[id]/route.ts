@@ -55,6 +55,8 @@ export async function PATCH(request: NextRequest, ctx: { params: { id: string } 
     templateId?: unknown;
     tema?: unknown;
     slides?: unknown;
+    arroba?: unknown;
+    estilo?: unknown;
   };
 
   try {

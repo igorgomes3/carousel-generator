@@ -8,6 +8,8 @@
  * volte pela porta dos fundos: o estúdio fala só este contrato.
  */
 
+import type { EstiloEscolhido } from "@/lib/estudio/estilo";
+
 export type TipoSlide = "capa" | "conteudo" | "cta";
 
 export interface SlideCarrossel {
@@ -25,6 +27,20 @@ export interface CarrosselGerado {
   tema: string;
   slides: SlideCarrossel[];
   criadoEm: string;
+  /**
+   * Handle do perfil, já sem `@` (issue #12). Um por PROJETO, não por card: o
+   * alvo trata o @ como identidade da marca, e repetir por card é edição que a
+   * pessoa esquece em um e o carrossel sai com dois handles.
+   *
+   * Opcional porque documento gerado/salvo antes da issue #12 não tem o campo —
+   * e ele abre sem @, exatamente como abria antes.
+   */
+  arroba?: string;
+  /**
+   * Curadoria de fundo/destaque/fonte por id (issue #12). Ausente = o template
+   * decide, que é o visual de todo projeto salvo até aqui.
+   */
+  estilo?: EstiloEscolhido;
 }
 
 export function carrosselVazio(templateId: string): CarrosselGerado {

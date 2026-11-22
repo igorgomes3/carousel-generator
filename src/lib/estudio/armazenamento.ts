@@ -46,6 +46,8 @@ import {
   type ProjetoSalvo,
   type ResumoProjeto,
 } from "@/lib/estudio/projetos";
+import { normalizarArroba } from "@/lib/estudio/arroba";
+import { estiloVazio, normalizarEstilo, type EstiloEscolhido } from "@/lib/estudio/estilo";
 import type { SlideCarrossel } from "@/lib/estudio/tipos";
 
 /** Diretório raiz. `ESTUDIO_DADOS` existe para o gate rodar em diretório limpo. */
@@ -368,6 +370,22 @@ export interface DadosNovoProjeto {
   templateId: string;
   tema?: string;
   slides: unknown;
+  /** Handle do perfil (issue #12), com ou sem `@`. */
+  arroba?: unknown;
+  /** Fundo/destaque/fonte escolhidos (issue #12). */
+  estilo?: unknown;
+}
+
+/**
+ * Curadoria vinda do cliente → o que vai para o disco.
+ *
+ * Id desconhecido é descartado (`normalizarEstilo`) e estilo vazio vira
+ * `undefined`: assim o JSON do projeto antigo e o do novo que não escolheu nada
+ * ficam iguais, e "não escolheu" continua sendo um estado só.
+ */
+function estiloParaGravar(entrada: unknown): EstiloEscolhido | undefined {
+  const estilo = normalizarEstilo(entrada);
+  return estiloVazio(estilo) ? undefined : estilo;
 }
 
 export type ResultadoCriacao =
@@ -392,6 +410,8 @@ export async function criarProjeto(
   const versao = 1;
 
   const slidesGravados = await materializarImagens(id, slides, versao);
+  const arroba = normalizarArroba(dados.arroba);
+  const estilo = estiloParaGravar(dados.estilo);
   const gravado: ProjetoGravado = {
     id,
     nome: nomeLimpo(dados.nome, nomePadrao(slides, tema)) || NOME_SEM_TITULO,
@@ -403,6 +423,9 @@ export async function criarProjeto(
     salvoEm: agora,
     versao,
     dono,
+    // Campo ausente no JSON quando não há @/estilo escolhido.
+    ...(arroba ? { arroba } : {}),
+    ...(estilo ? { estilo } : {}),
   };
 
   await fs.mkdir(dirDoProjeto(id), { recursive: true });
@@ -416,6 +439,8 @@ export interface DadosAlteracao {
   templateId?: unknown;
   tema?: unknown;
   slides?: unknown;
+  arroba?: unknown;
+  estilo?: unknown;
 }
 
 /**
@@ -451,6 +476,14 @@ export async function salvarProjeto(
       ? dados.templateId
       : undefined;
 
+  /**
+   * `undefined` = campo não veio (aba antiga, cliente que não conhece a issue
+   * #12) → mantém o que está gravado. String vazia/nula = a pessoa APAGOU o @ →
+   * limpa. Sem essa distinção, salvar texto de um card apagaria o @ junto.
+   */
+  const arrobaRecebida = dados.arroba !== undefined ? normalizarArroba(dados.arroba) : undefined;
+  const estiloRecebido = dados.estilo !== undefined ? estiloParaGravar(dados.estilo) : undefined;
+
   const gravado: ProjetoGravado = {
     ...atual,
     nome:
@@ -463,6 +496,8 @@ export async function salvarProjeto(
     atualizadoEm: agora,
     salvoEm: agora,
     versao,
+    arroba: dados.arroba !== undefined ? (arrobaRecebida ?? undefined) : atual.arroba,
+    estilo: dados.estilo !== undefined ? estiloRecebido : atual.estilo,
   };
 
   await escreverAtomico(arqDoProjeto(id), JSON.stringify(gravado, null, 2));

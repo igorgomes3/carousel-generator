@@ -18,6 +18,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
 import { FotosDosCards, SeletorDeCards } from "@/components/estudio/passo-cards";
+import { BLEED_Y, EXPORT_H, EXPORT_W } from "@/lib/estudio/area-segura";
+import { limparArroba, LIMITE_ARROBA } from "@/lib/estudio/arroba";
+import {
+  CONTRASTE_MINIMO_DESTAQUE,
+  DESTAQUES,
+  FUNDOS,
+  PARES_DE_FONTES,
+  contraste,
+  corLegivelSobre,
+  destaquePorId,
+  estiloVazio,
+  fundoPorId,
+  parDeFontesPorId,
+  resolverAparencia,
+  type Aparencia,
+  type EstiloEscolhido,
+} from "@/lib/estudio/estilo";
 import {
   CARDS_PADRAO,
   ajustarQuantidade,
@@ -53,6 +70,13 @@ interface ProjetoDaLista {
 }
 
 const MAX_TEMA = 400;
+
+/**
+ * Chave da guia da área segura no `localStorage`. Guarda só on/off: a guia é
+ * preferência de tela, não dado do projeto — não vai para o servidor nem para o
+ * JSON salvo.
+ */
+const CHAVE_GUIA = "estudio.area-segura";
 
 /**
  * Manchete da vitrine. O sample do template tem até 140 caracteres — em um card
@@ -92,6 +116,49 @@ export function Estudio() {
 
   const palcoRef = useRef<HTMLDivElement>(null);
   const template = templatePorId(templateId);
+
+  /* ---------------------------------------------------------------- */
+  /* @ e curadoria de estilo (issue #12)                              */
+  /* ---------------------------------------------------------------- */
+
+  /**
+   * O @ e a escolha de fundo/destaque/fonte moram DENTRO do carrossel
+   * (`CarrosselGerado.arroba` / `.estilo`), não em estados paralelos.
+   *
+   * Por que assim: salvar e reabrir projeto já copiam o carrossel inteiro
+   * (`useProjetoSalvo`). Com estado paralelo, cada um desses dois caminhos
+   * precisaria lembrar de copiar mais dois campos — e o dia em que esquecesse,
+   * o projeto salvo voltava sem @. Fonte única, erro zero.
+   *
+   * `aparencia` é o template já resolvido com a escolha: sem escolha, é o
+   * template byte por byte (projeto antigo abre igual ao de antes).
+   */
+  const arroba = carrossel?.arroba ?? "";
+  const estilo = carrossel?.estilo;
+  const aparencia = useMemo(() => resolverAparencia(template, estilo), [template, estilo]);
+
+  /**
+   * Guia da área segura: ligada por padrão (a pessoa precisa VER a janela 4:5
+   * uma vez), desligável em um clique, e a escolha fica no navegador — quem já
+   * entendeu não precisa desligar de novo em cada carrossel.
+   */
+  const [guia, setGuia] = useState(true);
+  useEffect(() => {
+    try {
+      setGuia(window.localStorage.getItem(CHAVE_GUIA) !== "off");
+    } catch {
+      /* navegador sem storage (modo privado antigo): fica no padrão ligado */
+    }
+  }, []);
+
+  const alternarGuia = useCallback((ligada: boolean) => {
+    setGuia(ligada);
+    try {
+      window.localStorage.setItem(CHAVE_GUIA, ligada ? "on" : "off");
+    } catch {
+      /* idem: sem storage, a guia só não lembra da escolha */
+    }
+  }, []);
 
   /**
    * "Minhas pautas": as ideias que a própria pessoa salvou.
@@ -148,6 +215,40 @@ export function Estudio() {
   const [abrindoProjeto, setAbrindoProjeto] = useState(Boolean(projetoDaUrl));
   const [avisoAbertura, setAvisoAbertura] = useState<string | null>(null);
 
+  /* ---- @ e curadoria: escritores (issue #12) ------------------------- */
+
+  /**
+   * Três escritores, um objeto: `setCarrossel` subiu para cá porque `marcarSujo`
+   * só existe depois de `useProjetoSalvo`. Editar @ ou estilo é editar o
+   * projeto — e todo projeto editado fica sujo, senão a trava de fechar a aba
+   * deixa passar exatamente o que a pessoa acabou de escrever.
+   */
+  const definirArroba = useCallback(
+    (valor: string) => {
+      // Limpa enquanto digita (`@perfil` → `perfil`); a regra do Instagram
+      // (pontos, 30 caracteres) é aplicada na gravação, não no meio da digitação.
+      const limpo = limparArroba(valor).slice(0, LIMITE_ARROBA);
+      setCarrossel((atual) => (atual ? { ...atual, arroba: limpo } : atual));
+      marcarSujo();
+    },
+    [marcarSujo],
+  );
+
+  const definirEstilo = useCallback(
+    (mudanca: EstiloEscolhido) => {
+      setCarrossel((atual) =>
+        atual ? { ...atual, estilo: { ...atual.estilo, ...mudanca } } : atual,
+      );
+      marcarSujo();
+    },
+    [marcarSujo],
+  );
+
+  const voltarAoEstiloDoTemplate = useCallback(() => {
+    setCarrossel((atual) => (atual ? { ...atual, estilo: {} } : atual));
+    marcarSujo();
+  }, [marcarSujo]);
+
   /**
    * `?aviso=antigo` — chegou aqui por um link do editor antigo. O `/carrossel/<id>`
    * responde 307 para cá, então a pessoa precisa saber em uma linha por que não
@@ -187,6 +288,14 @@ export function Estudio() {
         tema: projeto.tema,
         slides: projeto.slides,
         criadoEm: projeto.criadoEm,
+        /**
+         * Projeto gravado antes da issue #12 não tem estes dois: chegam
+         * `undefined` e o card abre exatamente como abria antes (sem @, estilo
+         * do template). É o item 4 da issue — compatibilidade por ausência, sem
+         * migração e sem "documento inválido".
+         */
+        arroba: projeto.arroba,
+        estilo: projeto.estilo,
       });
       // Passo 2 espelha o projeto aberto: a quantidade e as fotos que ele tem.
       setQuantidade(limitarQuantidade(projeto.slides.length));
@@ -503,6 +612,14 @@ export function Estudio() {
           <PassoPronto
             carrossel={carrossel}
             template={template}
+            aparencia={aparencia}
+            arroba={arroba}
+            estilo={estilo}
+            guia={guia}
+            onArroba={definirArroba}
+            onEstilo={definirEstilo}
+            onGuia={alternarGuia}
+            onVoltarEstilo={voltarAoEstiloDoTemplate}
             erro={erro}
             editando={editando}
             setEditando={setEditando}
@@ -531,7 +648,12 @@ export function Estudio() {
         )}
       </div>
 
-      {/* Palco de export: os mesmos cards em tamanho real, fora da tela. */}
+      {/* Palco de export: os mesmos cards em tamanho real, fora da tela.
+          Cada nó é a JANELA 4:5 (1080×1350), não a arte 3:4: o card entra
+          deslocado 45 px para cima dentro de um wrapper com `overflow: hidden`,
+          então o PNG sai recortado na medida certa. Recortar aqui — e não no
+          html-to-image, que não recorta — é o que faz o arquivo ter 1080×1350
+          de verdade. `guia={false}`: a régua é de tela, não de arquivo. */}
       {carrossel ? (
         <div
           ref={palcoRef}
@@ -539,8 +661,22 @@ export function Estudio() {
           style={{ position: "fixed", left: -100000, top: 0, width: LARGURA_CARD }}
         >
           {carrossel.slides.map((slide, i) => (
-            <div key={i} data-card-export>
-              <CartaoCard slide={slide} template={template} indice={i} total={carrossel.slides.length} />
+            <div
+              key={i}
+              data-card-export
+              style={{ width: EXPORT_W, height: EXPORT_H, overflow: "hidden" }}
+            >
+              <div style={{ marginTop: -BLEED_Y }}>
+                <CartaoCard
+                  slide={slide}
+                  template={template}
+                  aparencia={aparencia}
+                  arroba={arroba}
+                  guia={false}
+                  indice={i}
+                  total={carrossel.slides.length}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -1034,6 +1170,14 @@ function PassoGerando({ fase, template }: { fase: number; template: TemplateCarr
 function PassoPronto({
   carrossel,
   template,
+  aparencia,
+  arroba,
+  estilo,
+  guia,
+  onArroba,
+  onEstilo,
+  onGuia,
+  onVoltarEstilo,
   erro,
   editando,
   setEditando,
@@ -1051,6 +1195,14 @@ function PassoPronto({
 }: {
   carrossel: CarrosselGerado;
   template: TemplateCarrossel;
+  aparencia: Aparencia;
+  arroba: string;
+  estilo: EstiloEscolhido | undefined;
+  guia: boolean;
+  onArroba: (valor: string) => void;
+  onEstilo: (mudanca: EstiloEscolhido) => void;
+  onGuia: (ligada: boolean) => void;
+  onVoltarEstilo: () => void;
   erro: string | null;
   editando: number | null;
   setEditando: (i: number | null) => void;
@@ -1068,6 +1220,34 @@ function PassoPronto({
 }) {
   const faixaRef = useRef<HTMLDivElement>(null);
   const slideEmEdicao = editando !== null ? carrossel.slides[editando] : null;
+
+  /* ---- Estado derivado da curadoria (issue #12) ---------------------- */
+
+  /**
+   * Qual opção está marcada. Se a pessoa escolheu, é o id; se não, procura a
+   * opção curada que tem a MESMA cor do template — assim o template "Preto"
+   * acende a bolinha "Preto" em vez de nenhuma, e a linha de fundo não parece
+   * quebrada. Nenhuma das duas: nenhuma marcada (template com cor fora da
+   * curadoria, tipo areia com laranja da marca).
+   */
+  const fundoAtual =
+    fundoPorId(estilo?.fundoId) ??
+    FUNDOS.find((f) => f.bg.toUpperCase() === aparencia.palette.bg.toUpperCase()) ??
+    null;
+  const destaqueAtual =
+    destaquePorId(estilo?.destaqueId) ??
+    DESTAQUES.find((d) => d.cor.toUpperCase() === aparencia.palette.accent.toUpperCase()) ??
+    null;
+  const fonteAtual =
+    parDeFontesPorId(estilo?.fonteId) ??
+    PARES_DE_FONTES.find((p) => p.display === aparencia.fontDisplay) ??
+    null;
+  const escolhaFeita = !estiloVazio(estilo);
+
+  /** Destaque só fica clicável se aparecer contra o fundo ATUAL da arte. */
+  const destaqueDisponivel = (cor: string) =>
+    contraste(aparencia.palette.bg, cor) >= CONTRASTE_MINIMO_DESTAQUE;
+
 
   /**
    * O que a linha de status diz. Três frases, escolhidas por estado — não é
@@ -1150,6 +1330,196 @@ function PassoPronto({
         </p>
       ) : null}
 
+      {/* ---- Marca e estilo (issue #12) ---------------------------------- */} 
+      <section
+        aria-labelledby="estilo-titulo"
+        className="rounded-2xl bg-white p-4"
+        style={{ border: "1px solid #E7E5E4" }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="estilo-titulo" className="text-[15px] font-bold" style={{ color: "#1C1917" }}>
+              Marca e estilo
+            </h2>
+            <p className="text-[12px]" style={{ color: "#57534E" }}>
+              O que você escolher aqui aparece nos cards e no PNG.
+            </p>
+          </div>
+          {/* Guia: ligada por padrão, um clique desliga. Some do PNG sempre. */}
+          <label
+            className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[12px] font-semibold"
+            style={{ color: "#57534E" }}
+          >
+            <input
+              type="checkbox"
+              checked={guia}
+              onChange={(e) => onGuia(e.target.checked)}
+              className="h-4 w-4"
+              style={{ accentColor: "#F4511E" }}
+            />
+            Área segura 4:5
+          </label>
+        </div>
+
+        {/* @ do perfil */}
+        <div className="mt-4">
+          <label htmlFor="arroba-perfil" className="block text-[12px] font-semibold" style={{ color: "#57534E" }}>
+            @ do perfil
+          </label>
+          <div
+            className="mt-1 flex w-fit items-center rounded-lg px-2"
+            style={{ border: "1px solid #E7E5E4" }}
+          >
+            <span className="pr-1 text-[14px] font-semibold" style={{ color: "#A8A29E" }}>
+              @
+            </span>
+            <input
+              id="arroba-perfil"
+              value={arroba}
+              onChange={(e) => onArroba(e.target.value)}
+              maxLength={LIMITE_ARROBA}
+              placeholder="seuperfil"
+              autoComplete="off"
+              spellCheck={false}
+              inputMode="text"
+              className="h-11 w-[190px] max-w-full bg-transparent text-[14px] outline-none"
+              style={{ color: "#1C1917" }}
+            />
+          </div>
+          <p className="mt-1 text-[11px]" style={{ color: "#A8A29E" }}>
+            Aparece em todos os cards, e sai no PNG. Opcional.
+          </p>
+        </div>
+
+        {/* Fundo */}
+        <div className="mt-4" role="group" aria-label="Cor de fundo">
+          <p className="text-[12px] font-semibold" style={{ color: "#57534E" }}>
+            Fundo
+            {fundoAtual ? null : (
+              <span data-do-template style={{ color: "#A8A29E", fontWeight: 500 }}>
+                {" "}
+                · do template
+              </span>
+            )}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {FUNDOS.map((f) => {
+              const ativo = fundoAtual?.id === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => onEstilo({ fundoId: f.id })}
+                  aria-pressed={ativo}
+                  aria-label={`Fundo ${f.nome}`}
+                  title={f.nome}
+                  className="grid h-11 w-11 place-items-center rounded-full text-[15px] font-bold"
+                  style={{
+                    backgroundColor: f.bg,
+                    color: corLegivelSobre(f.bg),
+                    border: ativo ? "2px solid #1C1917" : "1px solid #D6D3D1",
+                  }}
+                >
+                  {ativo ? <span aria-hidden>✓</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Destaque */}
+        <div className="mt-4" role="group" aria-label="Cor de destaque">
+          <p className="text-[12px] font-semibold" style={{ color: "#57534E" }}>
+            Destaque
+            {destaqueAtual ? null : (
+              <span data-do-template style={{ color: "#A8A29E", fontWeight: 500 }}>
+                {" "}
+                · do template
+              </span>
+            )}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {DESTAQUES.map((d) => {
+              const ativo = destaqueAtual?.id === d.id;
+              const liberado = destaqueDisponivel(d.cor);
+              // O destaque já salvo continua visível mesmo que hoje não passe
+              // no contraste: apagar a escolha de alguém é pior que mostrar.
+              const bloqueado = !liberado && !ativo;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => onEstilo({ destaqueId: d.id })}
+                  disabled={bloqueado}
+                  aria-pressed={ativo}
+                  aria-label={`Destaque ${d.nome}`}
+                  title={
+                    bloqueado ? `${d.nome} não aparece sobre este fundo` : d.nome
+                  }
+                  className="h-11 w-11 rounded-full disabled:opacity-25"
+                  style={{
+                    backgroundColor: d.cor,
+                    border: ativo ? "2px solid #1C1917" : "1px solid #D6D3D1",
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Fontes */}
+        <div className="mt-4" role="group" aria-label="Par de fontes">
+          <p className="text-[12px] font-semibold" style={{ color: "#57534E" }}>
+            Fontes
+            {fonteAtual ? null : (
+              <span data-do-template style={{ color: "#A8A29E", fontWeight: 500 }}>
+                {" "}
+                · do template
+              </span>
+            )}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {PARES_DE_FONTES.map((p) => {
+              const ativo = fonteAtual?.id === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onEstilo({ fonteId: p.id })}
+                  aria-pressed={ativo}
+                  title={`${p.display} + ${p.body}`}
+                  className="min-h-[44px] rounded-lg px-3 text-[16px] font-bold"
+                  style={{
+                    fontFamily: pilhaFonte(p.display),
+                    border: ativo ? "2px solid #1C1917" : "1px solid #E7E5E4",
+                    backgroundColor: ativo ? "#F5F4F1" : "#fff",
+                    color: "#1C1917",
+                  }}
+                >
+                  {p.nome}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {escolhaFeita ? (
+          <button
+            type="button"
+            onClick={onVoltarEstilo}
+            className="mt-4 text-[12px] font-semibold underline"
+            style={{ color: "#57534E" }}
+          >
+            Voltar ao estilo do template ({template.nome})
+          </button>
+        ) : (
+          <p className="mt-4 text-[11px]" style={{ color: "#A8A29E" }}>
+            Sem escolha aqui, o carrossel usa o estilo do template{" "}
+            <strong style={{ color: "#57534E" }}>{template.nome}</strong>.
+          </p>
+        )}
+      </section>
+
       <div
         ref={faixaRef}
         className="flex w-full max-w-full min-w-0 snap-x snap-mandatory gap-4 overflow-x-auto pb-3"
@@ -1160,6 +1530,9 @@ function PassoPronto({
             <Cartao
               slide={slide}
               template={template}
+              aparencia={aparencia}
+              arroba={arroba}
+              guia={guia}
               indice={i}
               total={carrossel.slides.length}
               largura={300}

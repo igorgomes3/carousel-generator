@@ -236,15 +236,25 @@ test.describe("passo 2 — cards e foto", () => {
     const capa = cards.nth(0);
     await expect(capa.locator("img")).toHaveCount(1);
     await expect(capa.locator("img")).toHaveAttribute("src", /^data:image\//);
+    /**
+     * Issue #12: a arte do card é 3:4 (1080×1440) e o que sai no PNG é a janela
+     * 4:5 (1080×1350) recortada dela. A foto cobre a ARTE inteira — inclusive a
+     * sangria de 45 px em cima e embaixo —, e é o nó de export que tem o tamanho
+     * do arquivo. Antes da #12 os dois eram 1350, porque card e arquivo eram a
+     * mesma coisa.
+     */
     const caixaCapa = await capa.locator("img").boundingBox();
     expect(Math.round(caixaCapa?.width ?? 0)).toBe(1080);
-    expect(Math.round(caixaCapa?.height ?? 0)).toBe(1350);
+    expect(Math.round(caixaCapa?.height ?? 0)).toBe(1440);
+    const caixaJanela = await capa.boundingBox();
+    expect(Math.round(caixaJanela?.width ?? 0), "nó de export é a janela 4:5").toBe(1080);
+    expect(Math.round(caixaJanela?.height ?? 0), "nó de export é a janela 4:5").toBe(1350);
 
     const conteudo = cards.nth(1);
     await expect(conteudo.locator("img")).toHaveCount(1);
     const caixaConteudo = await conteudo.locator("img").boundingBox();
     expect(Math.round(caixaConteudo?.width ?? 0)).toBe(1080);
-    expect(Math.round(caixaConteudo?.height ?? 0)).toBe(1350);
+    expect(Math.round(caixaConteudo?.height ?? 0)).toBe(1440);
 
     for (const i of [2, 3]) {
       await expect(cards.nth(i).locator("img")).toHaveCount(0);
