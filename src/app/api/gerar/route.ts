@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
+import { promptDeEmergencia, resolverFormato } from "@/lib/conteudo";
 import { generateCarouselSlides } from "@/lib/langchain";
 import { templatePorId } from "@/lib/templates";
 import { ajustarQuantidade, limitarQuantidade } from "@/lib/estudio/cards";
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
 
   const corpo = (await request.json().catch(() => null)) as
-    | { tema?: string; templateId?: string; slides?: number }
+    | { tema?: string; templateId?: string; slides?: number; nicho?: string; formato?: string }
     | null;
 
   const tema = (corpo?.tema ?? "").trim();
@@ -63,7 +64,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const gerado = await gerarDocumentoCompleto(tema, chave, quantidade).catch(() => null);
+  const gerado = await gerarDocumentoCompleto(tema, chave, quantidade, {
+    nicho: corpo?.nicho,
+    formato: corpo?.formato,
+  }).catch(() => null);
 
   /**
    * Plano B obrigatório: o pipeline de 6 etapas é ótimo quando o modelo coopera,
@@ -72,13 +76,22 @@ export async function POST(request: NextRequest) {
    * Nesse caso cai para a chamada direta (`generateCarouselSlides`), que é o
    * caminho curto que o próprio repo já usava. Melhor um carrossel bom do que
    * uma tela de erro para o leigo.
+   *
+   * O plano B agora recebe o prompt de emergência (formato + regras do gancho),
+   * e não a instrução genérica: era exatamente aí que o slide 1 saía sem gancho.
    */
   let slidesOriginais: { elements?: Elemento[] }[] | null = gerado
     ? (gerado.documento.slides as { elements?: Elemento[] }[])
     : null;
 
   if (!slidesOriginais) {
-    const direto = await generateCarouselSlides(tema, chave).catch(() => null);
+    const emergencia = promptDeEmergencia({
+      tema,
+      slides: quantidade,
+      nicho: corpo?.nicho,
+      formato: corpo?.formato,
+    });
+    const direto = await generateCarouselSlides(tema, chave, emergencia).catch(() => null);
     if (!direto) {
       return NextResponse.json(
         { erro: "A IA não conseguiu escrever o carrossel agora. Tente de novo." },
@@ -108,5 +121,12 @@ export async function POST(request: NextRequest) {
     criadoEm: new Date().toISOString(),
   };
 
-  return NextResponse.json({ carrossel });
+  // O formato vai na resposta para a tela poder dizer qual estrutura foi usada —
+  // sem isso o usuário não sabe se a escolha dele foi respeitada.
+  const formato =
+    gerado?.formato ??
+    resolverFormato({ tema, slides: quantidade, nicho: corpo?.nicho, formato: corpo?.formato })?.nome ??
+    "";
+
+  return NextResponse.json({ carrossel, formato });
 }
