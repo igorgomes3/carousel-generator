@@ -103,7 +103,36 @@ export function lintCarrossel(slides: SlideParaLint[], faixa = { min: 5, max: 10
       erros.push(`slide ${n} tem ${slide.elements.length} elemento (mínimo 2: título + corpo)`);
     }
 
-    if (corpo.length < 20) {
+    /**
+     * Capa é exceção, e isso é decisão de produto, não afrouxamento.
+     *
+     * A regra de "corpo com pelo menos 8 palavras" existe para o miolo, onde o
+     * texto precisa sustentar o título. Aplicada ao slide 1, ela obrigava o
+     * modelo a encher a capa de texto para passar no portão — e foi assim que a
+     * capa de um teste real saiu com 17 palavras ("Dia 1º, agenda vazia /
+     * Promoção no grupo depois de um mês de elogios / Arrasta pro lado"). Hook
+     * que passa no linter e não faz ninguém arrastar é o pior dos dois mundos.
+     *
+     * Medido em 18.215 carrosséis: capa de 6 a 10 palavras é a faixa que mais
+     * dobra o usual do criador (25,3%); acima de 15 cai para 20,1%. Em pt-BR o
+     * texto é mais longo que o original medido em inglês, então o teto aqui é 14.
+     */
+    const ehCapa = n === 1;
+
+    if (ehCapa) {
+      const totalCapa = palavras(`${titulo} ${corpo}`);
+      if (corpo.length < 8) {
+        erros.push(`slide 1 sem subtítulo (a capa precisa de uma segunda linha curta)`);
+      } else if (totalCapa > 18) {
+        // Acima de 18 deixa de ser aviso: é capa que ninguém lê. Vira erro para o
+        // pipeline reescrever a copy (a segunda tentativa recebe a lista).
+        erros.push(`capa com ${totalCapa} palavras (máximo 18: capa longa não é lida)`);
+      } else if (totalCapa > 14) {
+        avisos.push(
+          `capa com ${totalCapa} palavras (ideal de 6 a 14: capa longa é a que ninguém lê de relance)`,
+        );
+      }
+    } else if (corpo.length < 20) {
       erros.push(`slide ${n} sem corpo de texto suficiente (${corpo.length} caracteres)`);
     } else {
       const p = palavras(corpo);
@@ -111,7 +140,8 @@ export function lintCarrossel(slides: SlideParaLint[], faixa = { min: 5, max: 10
       if (p > 40) avisos.push(`slide ${n} com ${p} palavras (acima de 40 cansa no celular)`);
     }
 
-    if (titulo && palavras(titulo) > 8) {
+    // A capa tem regra própria (acima); esta vale para o miolo.
+    if (!ehCapa && titulo && palavras(titulo) > 8) {
       avisos.push(`slide ${n} com título de ${palavras(titulo)} palavras (ideal até 6)`);
     }
 

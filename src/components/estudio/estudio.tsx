@@ -18,6 +18,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
 import { FotosDosCards, SeletorDeCards } from "@/components/estudio/passo-cards";
+import { SeletorDeFormato } from "@/components/estudio/seletor-formato";
+import { formatoPorId } from "@/lib/estudio/formatos";
 import { BLEED_Y, EXPORT_H, EXPORT_W } from "@/lib/estudio/area-segura";
 import { limparArroba, LIMITE_ARROBA } from "@/lib/estudio/arroba";
 import {
@@ -106,6 +108,14 @@ export function Estudio() {
    * impede o card 5 herdar a foto de um card que não existe mais.
    */
   const [quantidade, setQuantidade] = useState(CARDS_PADRAO);
+  /**
+   * Nicho e formato (W90). Ficam em estado de tela, não no projeto salvo: são
+   * decisão de geração, como o tema — reabrir um carrossel antigo não deve
+   * reescrever o formato que ele já tem desenhado nos cards.
+   */
+  const [nicho, setNicho] = useState("");
+  const [formato, setFormato] = useState("");
+
   const [imagens, setImagens] = useState<(string | null)[]>(() =>
     Array.from({ length: CARDS_PADRAO }, () => null),
   );
@@ -395,7 +405,13 @@ export function Estudio() {
         const res = await fetch("/api/gerar", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ tema, templateId: templateEscolhido.id, slides: quantidade }),
+          body: JSON.stringify({
+            tema,
+            templateId: templateEscolhido.id,
+            slides: quantidade,
+            nicho: nicho || undefined,
+            formato: formato || undefined,
+          }),
         });
         const dados = (await res.json().catch(() => ({}))) as {
           carrossel?: CarrosselGerado;
@@ -458,7 +474,7 @@ export function Estudio() {
         setPasso("tema");
       }
     },
-    [tema, quantidade, imagens, zerarSalvamento, marcarSujo],
+    [tema, quantidade, imagens, nicho, formato, zerarSalvamento, marcarSujo],
   );
 
   const gerarImagemDoSlide = useCallback(
@@ -575,6 +591,10 @@ export function Estudio() {
             templateId={templateId}
             tema={tema}
             setTema={setTema}
+            nicho={nicho}
+            setNicho={setNicho}
+            formato={formato}
+            setFormato={setFormato}
             lista={lista}
             pautas={pautas}
             pautaJaSalva={pautaJaSalva}
@@ -596,6 +616,7 @@ export function Estudio() {
             template={template}
             tema={tema}
             setTema={setTema}
+            formatoNome={formatoPorId(formato)?.nome ?? ""}
             erro={erro}
             quantidade={quantidade}
             onMudarQuantidade={mudarQuantidade}
@@ -744,6 +765,10 @@ function PassoIdeia({
   templateId,
   tema,
   setTema,
+  nicho,
+  setNicho,
+  formato,
+  setFormato,
   lista,
   pautas,
   pautaJaSalva,
@@ -757,6 +782,10 @@ function PassoIdeia({
   templateId: string;
   tema: string;
   setTema: (t: string) => void;
+  nicho: string;
+  setNicho: (n: string) => void;
+  formato: string;
+  setFormato: (f: string) => void;
   lista: ProjetoDaLista[] | null;
   pautas: string[];
   pautaJaSalva: boolean;
@@ -890,6 +919,14 @@ function PassoIdeia({
         </div>
       </section>
 
+      <SeletorDeFormato
+        nicho={nicho}
+        formato={formato}
+        tema={tema}
+        onNicho={setNicho}
+        onFormato={setFormato}
+      />
+
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#57534E" }}>
@@ -1005,6 +1042,7 @@ function PassoTema({
   template,
   tema,
   setTema,
+  formatoNome,
   erro,
   quantidade,
   onMudarQuantidade,
@@ -1016,6 +1054,8 @@ function PassoTema({
   template: TemplateCarrossel;
   tema: string;
   setTema: (t: string) => void;
+  /** Formato escolhido no passo 1. Vazio = a IA usa o melhor do nicho. */
+  formatoNome: string;
   erro: string | null;
   quantidade: number;
   onMudarQuantidade: (n: number) => void;
@@ -1058,6 +1098,13 @@ function PassoTema({
             </p>
           </div>
         </div>
+
+        {formatoNome ? (
+          <p className="mt-3 text-[13px]" style={{ color: "#57534E" }}>
+            Formato do roteiro:{" "}
+            <strong style={{ color: "#1C1917" }}>{formatoNome}</strong>
+          </p>
+        ) : null}
 
         <h2 className="mt-5 text-[22px] font-bold" style={{ color: "#1C1917" }}>
           Qual é o tema do carrossel?

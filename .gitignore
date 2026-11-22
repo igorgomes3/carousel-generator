@@ -46,3 +46,6 @@ tests/visual/diff/
 # playwright
 /test-results/
 /playwright-report/
+
+# saída de provas locais (geração real, não versionar)
+saida/

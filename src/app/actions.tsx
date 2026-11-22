@@ -85,6 +85,7 @@ export async function generateCarouselSlidesAction(
         dor: "",
         promessa: "",
         angulo: "",
+        gancho: "",
         tom: "direto",
       },
       plano: { slides: [] },
