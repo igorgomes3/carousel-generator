@@ -10,8 +10,17 @@
  * As capturas saem em 1440 e 390 (`screenshots/projetos/`), que é o par que o
  * CEO pede: desktop e celular.
  *
- * Requisito de ambiente: `ESTUDIO_DADOS` apontando para um diretório VAZIO —
- * o estado inicial é "nenhum projeto salvo" e ele precisa ser verdade.
+ * Dois mundos na mesma tela (issue #13 + correção de rumo da coordenação):
+ *   - `MODO=dados` (padrão): a API do editor devolve os carrosséis antigos
+ *     (via `scripts/stub-api-editor.py`, que lê o banco real porque a API exige
+ *     JWT). Prova que os antigos aparecem ao lado dos projetos do estúdio.
+ *   - `MODO=vazio`: a API do editor devolve lista vazia. Prova o estado
+ *     "nada salvo ainda" de ponta a ponta.
+ *   - `MODO=erro`: API do editor sem sessão (401). Prova o aviso explícito —
+ *     a tela nunca fica vazia sem explicar.
+ *
+ * Requisito de ambiente: `ESTUDIO_DADOS` apontando para um diretório VAZIO e,
+ * em `MODO=dados|vazio`, `AUTOCLINIC_API_URL` apontando para o stub local.
  *
  *   ESTUDIO_DADOS=$(mktemp -d) BASE=http://127.0.0.1:8098 node scripts/prova-projetos.mjs
  */
@@ -20,6 +29,8 @@ import { mkdirSync } from "node:fs";
 import { deflateSync } from "node:zlib";
 
 const BASE = process.env.BASE ?? "http://127.0.0.1:8098";
+const MODO = process.env.MODO ?? "dados";
+const EDITOR_ESPERADO = Number(process.env.EDITOR_ESPERADO ?? "2");
 const SAIDA = process.env.SAIDA ?? "screenshots/projetos";
 mkdirSync(SAIDA, { recursive: true });
 
@@ -124,9 +135,10 @@ async function criarProjetos(ctx, quantos) {
   return criados;
 }
 
+/** Conta SÓ as linhas do estúdio: a seção do editor tem `article` também. */
 async function listaTem(page, quantidade) {
   await page.waitForFunction(
-    (n) => document.querySelectorAll("article").length === n,
+    (n) => document.querySelectorAll('section[aria-labelledby="sec-estudio"] article').length === n,
     quantidade,
     { timeout: 15_000 },
   );
@@ -142,11 +154,34 @@ async function cenario(width, height, browser) {
     if (m.type() === "error") erros.push(m.text());
   });
 
-  /* 1. Lista vazia ------------------------------------------------ */
+  /* 1. Os dois mundos -------------------------------------------- */
   await page.goto(`${BASE}/projetos`, { waitUntil: "networkidle" });
-  await page.getByText("Você ainda não salvou nenhum projeto").waitFor({ timeout: 15_000 });
-  await page.screenshot({ path: `${SAIDA}/01-lista-vazia-${sufixo}.png`, fullPage: false });
-  console.log(`✓ ${sufixo} lista vazia`);
+  await page.waitForTimeout(600);
+
+  if (MODO === "vazio") {
+    await page.getByText("Você ainda não salvou nenhum projeto").waitFor({ timeout: 15_000 });
+    await page.screenshot({ path: `${SAIDA}/01-lista-vazia-${sufixo}.png`, fullPage: false });
+    console.log(`✓ ${sufixo} lista vazia (estúdio e editor sem nada)`);
+  }
+
+  if (MODO === "erro") {
+    await page.getByText("Não conseguimos ler seus carrosséis antigos").waitFor({ timeout: 15_000 });
+    await page.getByRole("link", { name: "Entrar de novo" }).waitFor();
+    await page.screenshot({ path: `${SAIDA}/08-editor-erro-${sufixo}.png`, fullPage: false });
+    console.log(`✓ ${sufixo} editor sem sessão: aviso explícito, sem lista vazia mentindo`);
+  }
+
+  if (MODO === "dados") {
+    await page.getByRole("heading", { name: /Carrosséis do editor/i }).waitFor({ timeout: 15_000 });
+    const linhasEditor = page.locator('section[aria-labelledby="sec-editor"] article');
+    const total = await linhasEditor.count();
+    if (total !== EDITOR_ESPERADO) {
+      throw new Error(`esperava ${EDITOR_ESPERADO} carrosséis do editor, achei ${total}`);
+    }
+    await page.getByRole("link", { name: "Abrir no editor" }).first().waitFor();
+    await page.screenshot({ path: `${SAIDA}/08-editor-${sufixo}.png`, fullPage: false });
+    console.log(`✓ ${sufixo} ${total} carrosséis do editor listados ao lado dos do estúdio`);
+  }
 
   /* 2. Lista com itens -------------------------------------------- */
   const criados = await criarProjetos(ctx, 3);
@@ -160,7 +195,7 @@ async function cenario(width, height, browser) {
 
   /* 3. Renomear --------------------------------------------------- */
   const alvo = criados[0];
-  const linha = page.locator("article", { hasText: alvo.nome });
+  const linha = page.locator('section[aria-labelledby="sec-estudio"] article', { hasText: alvo.nome });
   await linha.getByRole("button", { name: "Renomear" }).click();
   const dialogo = page.getByRole("dialog");
   await dialogo.waitFor();
@@ -178,7 +213,7 @@ async function cenario(width, height, browser) {
 
   /* 4. Apagar com confirmação ------------------------------------- */
   const descartavel = criados[2];
-  await page.locator("article", { hasText: descartavel.nome }).getByRole("button", { name: "Apagar" }).click();
+  await page.locator('section[aria-labelledby="sec-estudio"] article', { hasText: descartavel.nome }).getByRole("button", { name: "Apagar" }).click();
   await dialogo.waitFor();
   await dialogo.getByText("Não tem como desfazer").waitFor();
   await page.screenshot({ path: `${SAIDA}/04-apagar-${sufixo}.png`, fullPage: false });
@@ -188,7 +223,7 @@ async function cenario(width, height, browser) {
   await listaTem(page, 3);
 
   // Agora sim: apagar de verdade.
-  await page.locator("article", { hasText: descartavel.nome }).getByRole("button", { name: "Apagar" }).click();
+  await page.locator('section[aria-labelledby="sec-estudio"] article', { hasText: descartavel.nome }).getByRole("button", { name: "Apagar" }).click();
   await dialogo.waitFor();
   await dialogo.getByRole("button", { name: "Apagar projeto" }).click();
   await listaTem(page, 2);
@@ -197,7 +232,7 @@ async function cenario(width, height, browser) {
   console.log(`✓ ${sufixo} apagar (cancelar mantém, confirmar remove)`);
 
   /* 5. Abrir no estúdio + salvar com hora na tela ------------------ */
-  await page.locator("article", { hasText: "Carrossel de novembro — versão final" })
+  await page.locator('section[aria-labelledby="sec-estudio"] article', { hasText: "Carrossel de novembro — versão final" })
     .getByRole("button", { name: "Abrir" })
     .click();
   await page.getByRole("heading", { name: "Seu carrossel está pronto" }).waitFor({ timeout: 20_000 });

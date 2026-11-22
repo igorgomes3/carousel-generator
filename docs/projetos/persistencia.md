@@ -91,6 +91,32 @@ Cookie `estudio_dono` (uuid, `httpOnly`, 1 ano, `sameSite=lax`,
 `secure:false` porque o app roda em http na tailnet). Nasce no primeiro
 salvamento; projeto de outro dono responde **404**, nunca 403.
 
+## Dois mundos na mesma lista (correção de rumo da coordenação)
+
+A tela **Meus projetos** lista os dois conjuntos, com origem explícita:
+
+| seção | fonte | o que dá para fazer |
+|---|---|---|
+| **Projetos do estúdio** | `GET /api/projetos` (nosso store) | abrir, renomear, apagar |
+| **Carrosséis do editor** | `GET /api/carrossel/carrosseis?org=autoclinic` (API do AutoClinic, leitura) | abrir no editor, ver ficha |
+
+Trocar a lista antiga pela nossa, sem mais nada, faria os carrosséis existentes
+sumirem da tela — o que parece perda de dado. Por isso os dois aparecem, com
+pílula de origem (`estúdio` / `editor`), contagem rotulada e uma linha dizendo
+onde cada um se edita. O estúdio também mostra a seção do editor quando ela
+existe (até 6, com "Ver todos").
+
+Quando a leitura da API antiga falha (sessão expirada, API fora), a seção **não
+fica vazia**: mostra "Não conseguimos ler seus carrosséis antigos / Eles
+continuam salvos na API do AutoClinic — nada foi perdido" com `Tentar de novo` e
+`Entrar de novo`.
+
+**Bug pego no gate:** a leitura da API antiga passava por `apiJson`, que em 401
+chama `sair()` e apaga o cookie `ac_sessao`. Resultado medido: abrir a tela
+derrubava a sessão e o POST do próprio store virava **405** (redirect para
+`/login`). Correção: `apiJsonLeitura` em `src/lib/auth/sessao.ts` — mesma
+renovação em 401, sem deslogar. Leitura secundária não pode destruir sessão.
+
 ## Onde fica cada coisa na tela
 
 - **Salvar**: botão explícito no passo "Seu carrossel está pronto". Não é
@@ -102,6 +128,23 @@ salvamento; projeto de outro dono responde **404**, nunca 403.
   HH:MM", Abrir / Renomear / Apagar com confirmação).
 - **Abrir**: `/?abrir=<id>` (não `?projeto=`, que é link antigo do editor e o
   middleware responde 301 para `/carrossel/<id>`).
+
+## Prova com dado real
+
+O banco da API tem 2 carrosséis do editor (ambos de teste, com "(remover)" no
+título):
+
+```
+psql "$AUTOCLINIC_DATABASE_URL" -c \
+  "select id, left(titulo,42), estado, atualizado_em from carrosseis order by atualizado_em desc;"
+→ 73204026-92f8-4d10-bb17-d573639b6e4e | Teste W28 — prova do 409 (remover)  | pronta | 2026-11-21 17:02
+  7e7ded22-878b-4b4f-b18f-a7b891bb20b7 | Fase 0 — prova da marca (remover)   | pronta | 2026-11-12 22:32
+```
+
+Como `GET /api/carrossel/carrosseis` exige JWT do GoTrue (401 sem sessão),
+`scripts/stub-api-editor.py` serve as **mesmas linhas do banco** para a prova
+visual (`MODO=dados`), e o gate também roda `MODO=erro` (API real, 401) para
+provar o aviso explícito. O que o stub substitui é a autenticação, não o dado.
 
 ## Pendências conhecidas
 
@@ -119,3 +162,6 @@ salvamento; projeto de outro dono responde **404**, nunca 403.
    diretório é responsabilidade do deploy, não do app.
 5. **`/projetos` continua atrás do middleware de sessão** (`ac_sessao`), igual a
    `/`. Quando a identidade for a real (item 1), essa porta pode mudar.
+6. **O store novo não é lido pelo editor antigo nem o contrário.** São dois
+   mundos; unificar exige decidir o formato canônico (o `DocumentSchema` do
+   editor ou o `CarrosselGerado` do estúdio). A tela mostra os dois, não funde.
