@@ -14,10 +14,16 @@
  *
  * Fonte dos templates: `src/lib/templates.ts`, extraído do bundle do alvo.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
 import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 import { baixarTodosOsCards, baixarUmCard } from "@/lib/estudio/exportar";
+import {
+  adicionarPauta,
+  carregarPautas,
+  removerPauta,
+  salvarPautas,
+} from "@/lib/estudio/pautas-salvas";
 import {
   CATEGORIAS,
   TEMPLATES,
@@ -66,6 +72,40 @@ export function Estudio() {
 
   const palcoRef = useRef<HTMLDivElement>(null);
   const template = templatePorId(templateId);
+
+  /**
+   * "Minhas pautas": as ideias que a própria pessoa salvou.
+   *
+   * Substitui a pauta por notícia (Google News, via fila do AutoClinic), que
+   * enchia a tela de assunto sem gancho e não virava carrossel viral. Lê do
+   * navegador no primeiro render do cliente e grava a cada mudança; sem rede,
+   * sem tabela, sem migração.
+   */
+  const [pautas, setPautas] = useState<string[]>([]);
+  useEffect(() => {
+    setPautas(carregarPautas());
+  }, []);
+
+  const guardarPautas = useCallback((lista: string[]) => {
+    setPautas(lista);
+    salvarPautas(lista);
+  }, []);
+
+  const salvarPautaAtual = useCallback(() => {
+    guardarPautas(adicionarPauta(pautas, tema));
+  }, [guardarPautas, pautas, tema]);
+
+  const esquecerPauta = useCallback(
+    (alvo: string) => {
+      guardarPautas(removerPauta(pautas, alvo));
+    },
+    [guardarPautas, pautas],
+  );
+
+  const pautaJaSalva = useMemo(
+    () => pautas.some((p) => p.toLowerCase() === tema.trim().toLowerCase()),
+    [pautas, tema],
+  );
 
   // "Meus carrosséis": se a API não responder, a seção simplesmente não aparece.
   // O estúdio não depende dela para funcionar — download é client-side.
@@ -200,6 +240,10 @@ export function Estudio() {
             tema={tema}
             setTema={setTema}
             lista={lista}
+            pautas={pautas}
+            pautaJaSalva={pautaJaSalva}
+            onSalvarPauta={salvarPautaAtual}
+            onEsquecerPauta={esquecerPauta}
             onEscolherTemplate={(id) => {
               setTemplateId(id);
               setPasso("tema");
@@ -319,6 +363,10 @@ function PassoIdeia({
   tema,
   setTema,
   lista,
+  pautas,
+  pautaJaSalva,
+  onSalvarPauta,
+  onEsquecerPauta,
   onEscolherTemplate,
   onCriar,
 }: {
@@ -328,6 +376,10 @@ function PassoIdeia({
   tema: string;
   setTema: (t: string) => void;
   lista: CarrosselDaLista[] | null;
+  pautas: string[];
+  pautaJaSalva: boolean;
+  onSalvarPauta: () => void;
+  onEsquecerPauta: (pauta: string) => void;
   onEscolherTemplate: (id: string) => void;
   onCriar: () => void;
 }) {
@@ -365,6 +417,7 @@ function PassoIdeia({
         </h1>
         <p className="mt-2 text-[14px]" style={{ color: "#57534E" }}>
           A IA escreve o roteiro e desenha as artes. Você baixa os PNGs e posta no Instagram.
+          Comece pela sua ideia — as que você mais usa ficam guardadas em “Minhas pautas”.
         </p>
 
         <textarea
@@ -391,6 +444,64 @@ function PassoIdeia({
           >
             ✨ Criar com IA
           </button>
+        </div>
+
+        {/* Minhas pautas: substitui a pauta por notícia. É onde a pessoa guarda as
+            ideias dela para não reescrever do zero na próxima vez. */}
+        <div className="mt-5 border-t pt-4" style={{ borderColor: "#E7E5E4" }}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p
+              className="text-[12px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "#57534E" }}
+            >
+              Minhas pautas
+            </p>
+            {tema.trim().length >= 3 && !pautaJaSalva ? (
+              <button
+                type="button"
+                onClick={onSalvarPauta}
+                className="min-h-[44px] rounded-lg px-3 text-[13px] font-semibold"
+                style={{ color: "#C2410C", backgroundColor: "#FFF7ED", border: "1px solid #FED7AA" }}
+              >
+                + Guardar esta ideia
+              </button>
+            ) : null}
+          </div>
+
+          {pautas.length > 0 ? (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {pautas.map((p) => (
+                <li
+                  key={p}
+                  className="flex items-stretch overflow-hidden rounded-lg bg-white"
+                  style={{ border: "1px solid #E7E5E4" }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setTema(p)}
+                    title={p}
+                    className="min-h-[44px] max-w-[240px] truncate px-3 text-left text-[13px] font-medium"
+                    style={{ color: "#1C1917" }}
+                  >
+                    {p}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEsquecerPauta(p)}
+                    aria-label={`Remover a pauta: ${p}`}
+                    className="grid w-11 shrink-0 place-items-center text-[15px] leading-none"
+                    style={{ color: "#78716C", borderLeft: "1px solid #E7E5E4" }}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-[13px]" style={{ color: "#78716C" }}>
+              Escreva uma ideia, gere o carrossel e guarde a pauta aqui para reaproveitar depois.
+            </p>
+          )}
         </div>
       </section>
 
@@ -550,7 +661,8 @@ function PassoTema({
           Qual é o tema do carrossel?
         </h2>
         <p className="mt-1 text-[14px]" style={{ color: "#57534E" }}>
-          Uma frase basta. Se tiver o link de uma matéria, cole o link.
+          Uma frase basta — de preferência com um gancho: “5 erros que…”, “o que ninguém
+          conta sobre…”. Assunto de notícia não rende salvamento; dúvida do seu público, sim.
         </p>
 
         <textarea

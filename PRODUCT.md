@@ -7,6 +7,11 @@
 > respondeu nesta sessão. Cada afirmação abaixo tem origem verificável no repositório,
 > nos documentos de `docs/` ou no comportamento medido do app rodando. O que é
 > inferência está marcado como **[inferido]**.
+>
+> **Revisado em 21/11/2026 (issue #8).** Duas afirmações abaixo deixaram de valer: a
+> pauta **não** nasce de notícia e não existe mais catálogo de tema/paleta na interface.
+> Onde o texto antigo contradiz isso, o texto foi corrigido e a origem da mudança está em
+> `docs/design/issue-8-remocao-temas-e-noticias.md`.
 
 ## Platform
 
@@ -17,9 +22,11 @@ web
 **Operador de conteúdo do AutoClinic** (`app_usuarios.papel = operador | admin | owner`).
 Trabalha para o Clécio, dono do AutoClinic — plataforma de automação comercial e
 inteligência de prospecção para **clínicas de estética**. O trabalho dele é manter o
-Instagram da AutoClinic abastecido: pegar uma pauta real (notícia ou tendência do setor
-de estética), transformá-la em carrossel de 5 a 10 slides, aprovar, exportar PNG e
-publicar. Vocabulário: pauta, sinal, briefing, gancho, CTA, aprovar, descartar.
+Instagram da AutoClinic abastecido: partir de uma pauta **que ele mesmo escreve** (dúvida
+do público, erro comum do setor, oferta), transformá-la em carrossel de 5 a 10 slides de
+engajamento, editar, exportar PNG e publicar. Vocabulário: pauta, gancho, CTA, template,
+baixar. Notícia do setor **não** é pauta: rende assunto datado e nenhum salvamento
+(issue #8).
 
 Papéis, verificados em `docs/auth-carrossel.md` e `src/app/projetos/page.tsx`:
 `owner` e `admin` enxergam todos os projetos da organização; `operador` vê só os
@@ -30,25 +37,26 @@ carrossel. Sem login, sem autor, sem organização, sem id interno.
 
 ## Product Purpose
 
-Transformar um sinal real de mercado em carrossel pronto para o Instagram **sem perder
-trabalho e sem publicar besteira**. O produto existe porque a alternativa era: alguém
+Transformar uma pauta escrita por uma pessoa em carrossel pronto para o Instagram **sem
+perder trabalho e sem publicar besteira**. O produto existe porque a alternativa era: alguém
 digita o texto no Canva, ninguém sabe quem escreveu, e o carrossel de ontem some quando a
 aba fecha.
 
-Sucesso = o operador sai da abertura do app com PNG 1080×1350 na mão, e o carrossel
-publicado nasceu de uma pauta que uma pessoa aprovou.
+Sucesso = o usuário sai do estúdio com PNG 1080×1350 na mão, e o carrossel tem um gancho
+que dá vontade de salvar.
 
 ## Positioning
 
-**A pauta nasce de sinal, não de inspiração, e nada publica sozinho.** O estado máximo
-que o robô cria é `ideia`; `aprovado` só existe por clique humano
-(`src/app/fila/page.tsx`, cabeçalho do arquivo). O gerador é o único elo entre a coleta
-(Apify/Google News) e a peça: ele recebe briefing, roda um pipeline de 6 etapas e passa
-por um lint **bloqueante** antes de desenhar.
+**A pauta nasce de quem publica, não de um feed.** A entrada é o campo de tema livre do
+estúdio, com as ideias que a própria pessoa guardou em “Minhas pautas”. Coleta automática
+de notícia (Google News/Trends) foi **removida** na issue #8: notícia rende assunto
+datado, não carrossel viral. O gerador recebe o tema, roda um pipeline de 6 etapas
+(ângulo → plano → copy → direção visual → revisão → publicação) e passa por um lint
+**bloqueante** antes de desenhar.
 
-Um concorrente pode copiar "gerar carrossel com IA". Não copia de graça: fila de sinais
-com pontuação explicável + lint com voz de IA proibida + histórico de versões com
-restaurar + link público revogável, tudo sobre a mesma conta do painel.
+Um concorrente pode copiar "gerar carrossel com IA". Não copia de graça: pipeline de 6
+etapas com voz de IA proibida no lint + 30 templates medidos de um produto real + histórico
+de versões com restaurar + link público revogável, tudo sobre a mesma conta do painel.
 
 ## Operating Context
 
@@ -70,18 +78,17 @@ restaurar + link público revogável, tudo sobre a mesma conta do painel.
 
 Funciona hoje:
 
+- estúdio em `/`: tema livre + 30 templates + capa por IA + download PNG/ZIP;
+- “Minhas pautas”: atalhos com as ideias que o usuário salvou (navegador);
 - galeria com título, versão, contagem de slides, autor, link público, duplicar,
   histórico com restaurar e excluir em dois passos;
-- fila de conteúdo: coleta de sinais, pontuação por relevância/recência/novidade,
-  briefing por pauta, filtro de nicho (termos de busca, palavras proibidas, itens/dia),
-  calendário editorial, tabela de qualidade por fonte, padrão medido dos concorrentes;
-- geração por prompt livre (editor) e por pauta (fila → `/api/conteudo/gerar`);
+- geração pelo estúdio (tema → `/api/gerar`) e pelo editor (prompt livre);
 - lint bloqueante: 5–10 slides, ≥2 elementos e ≥8 palavras por slide, um conceito por
   slide, sem emoji, lista de frases de IA proibida, capa sem "conheça nosso", CTA com
   verbo de ação; dígito no slide é aviso, não erro;
-- design automático (paleta + fundo + contraste) a partir do tom e da direção visual;
+- design automático (cor + fundo + contraste) a partir do tom e da direção visual;
 - link público `/p/<token>`, revogável, republicar mantém a mesma URL;
-- edição de marca (nome, handle, avatar), tema, fontes, números de página e opacidade.
+- edição de marca (nome, handle, avatar), fontes, números de página e opacidade.
 
 Restrições e dívidas declaradas:
 
@@ -89,11 +96,13 @@ Restrições e dívidas declaradas:
   `@name` (`references/carousel-generator.md` do stack AutoClinic). O operador reescreve
   a marca em cada peça.
 - **O chrome do editor é o do projeto open-source de origem** (inglês: "File", "Brand",
-  "Theme", "Fonts", "Numbers", "My Carousel File", "YOUR TITLE", "Your awesome subtitle").
+  "Fonts", "Numbers", "My Carousel File", "YOUR TITLE", "Your awesome subtitle").
 - Sem provedor de imagem: fundo fotográfico não é prometido em lugar nenhum.
 - Autenticação compartilhada com o painel significa que uma sessão vale para os dois — e
   que qualquer 401 tratado errado derruba as duas telas (ver Evidence).
 - Sem SMTP no GoTrue: senha não é recuperável, só substituível.
+- **A coleta de notícia do backend continua fora deste repositório.** A UI e a rota
+  interna saíram; desligar o coletor é trabalho no repositório da API do AutoClinic.
 
 ## Brand Commitments
 
@@ -126,8 +135,9 @@ Restrições e dívidas declaradas:
    modelo com a lista; aviso só informa — portão que reprova tudo é desligado.
 4. **A peça é do cliente, a ferramenta é nossa.** O que o cliente recebe (`/p/<token>`)
    não pode mostrar ferramenta de editor.
-5. **A pauta tem origem.** Todo carrossel publicado deveria poder responder de qual
-   sinal ele nasceu.
+5. **A pauta tem dono.** Todo carrossel nasce de uma pauta escrita por uma pessoa (ou
+   guardada por ela em “Minhas pautas”), nunca de um feed de notícia — e o documento
+   guarda o texto de origem.
 
 ## Accessibility & Inclusion
 

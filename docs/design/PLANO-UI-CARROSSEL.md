@@ -1,5 +1,13 @@
 # Plano de UI/UX — gerador de carrossel (v2)
 
+> **Documento histórico — superado em parte.** A coleta por notícia que este plano
+> desenha (Google News RSS, Google Trends BR, `conteudo_fontes.origem = google_news`,
+> filtro `?fonte=`) **não foi implementada e foi descartada**: a issue #8 tirou notícia
+> como fonte de pauta e o catálogo de temas/paletas. O que continua valendo aqui é a
+> estrutura de telas e o sistema de design. Leia as seções de "fontes" como registro do
+> que foi considerado, não como contrato. Ver
+> `docs/design/issue-8-remocao-temas-e-noticias.md`.
+
 Escrito em 12/11/2026. Só plano: nada em `src/`, nenhum commit.
 
 O que este documento é: a nova estrutura de telas do gerador de carrossel, com o
