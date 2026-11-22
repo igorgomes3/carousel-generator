@@ -356,8 +356,8 @@ export function Estudio() {
             style={{ backgroundColor: "#FFFFFF", border: "1px solid #E7E5E4", color: "#57534E" }}
           >
             <span>
-              O editor antigo foi desligado e os carrosséis antigos foram apagados para começar do
-              zero no sistema novo. <strong>Para criar o seu, use o campo abaixo.</strong>
+              Os carrosséis antigos foram removidos para começar do zero no sistema novo.
+              <strong>Comece um novo aqui, no campo abaixo.</strong>
             </span>
             <button
               type="button"

@@ -247,7 +247,7 @@ async function cenario(width, height, browser) {
     }
   }
   await page.goto(`${BASE}/carrossel/${ID_ANTIGO}`, { waitUntil: "networkidle" });
-  await page.getByText(/O editor antigo foi desligado/).waitFor({ timeout: 15_000 });
+  await page.getByText(/Os carrosséis antigos foram removidos/).waitFor({ timeout: 15_000 });
   await page.screenshot({ path: `${SAIDA}/08-rota-antiga-${sufixo}.png`, fullPage: false });
   console.log(`✓ ${sufixo} /carrossel/<id> cai no estúdio com aviso (307), sem 404`);
 
