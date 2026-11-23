@@ -1,25 +1,26 @@
 /**
  * `/api/projetos` — listar e criar projeto do estúdio.
  *
- * GET  → `{ projetos: ResumoProjeto[] }` do dono deste navegador.
+ * GET  → `{ projetos: ResumoProjeto[] }` do usuário logado.
  * POST → cria um projeto e devolve o objeto inteiro.
  *
- * A lista nunca cria identidade (GET sem cookie devolve lista vazia); o cookie
- * nasce no primeiro salvamento, que é quando ele passa a fazer diferença.
+ * Regra nova (W97, 23/11/2026): sem sessão não há lista nem criação. O dono não
+ * é mais um UUID de cookie — é `auth.uid()` do Supabase do carrossel, e quem
+ * aplica isso é a RLS da tabela (a rota passa o token do usuário ao PostgREST).
  */
 import { NextRequest, NextResponse } from "next/server";
 
 import { criarProjeto, listarProjetos } from "@/lib/estudio/armazenamento";
-import { donoAtual, garantirDono } from "@/lib/estudio/dono";
+import { exigirSessao } from "@/lib/auth/supabase-servidor";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const dono = donoAtual();
-  if (!dono) return NextResponse.json({ projetos: [] });
+export async function GET(request: NextRequest) {
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
 
   try {
-    const projetos = await listarProjetos(dono);
+    const projetos = await listarProjetos(portao.sessao);
     return NextResponse.json({ projetos }, { headers: { "cache-control": "no-store" } });
   } catch (erro) {
     console.error("[projetos] falha ao listar:", erro);
@@ -31,6 +32,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
+
   let corpo: unknown;
   try {
     corpo = await request.json();
@@ -47,9 +51,8 @@ export async function POST(request: NextRequest) {
     estilo?: unknown;
   };
 
-  const dono = garantirDono();
   try {
-    const resultado = await criarProjeto(dono, {
+    const resultado = await criarProjeto(portao.sessao, {
       nome: dados.nome,
       templateId: dados.templateId ?? "minimalist",
       tema: dados.tema,

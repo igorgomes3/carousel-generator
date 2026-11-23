@@ -220,25 +220,31 @@ function Cabecalho() {
       style={{ backgroundColor: "#FFFFFFEE", borderColor: COR.borda, backdropFilter: "blur(8px)" }}
     >
       <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between px-4 sm:px-6">
-        <a href="/" className="flex items-center gap-2">
+        <a href="/" className="flex min-w-0 items-center gap-2">
           <span
             aria-hidden="true"
-            className="grid h-8 w-8 place-items-center rounded-lg text-[15px] font-bold text-white"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[15px] font-bold text-white"
             style={{ backgroundColor: COR.laranja }}
           >
             C
           </span>
-          <span className="text-[16px] font-bold tracking-tight" style={{ color: COR.tinta }}>
+          {/* Em 390 px o wordmark + "Ir ao estúdio" + o menu da conta estouravam
+              a barra e cortavam o avatar. Abaixo de `sm` fica só o selo "C". */}
+          <span
+            className="hidden text-[16px] font-bold tracking-tight sm:inline"
+            style={{ color: COR.tinta }}
+          >
             Carrossel<span style={{ color: COR.laranja }}>IA</span>
           </span>
         </a>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <a
             href="/"
             className="rounded-lg px-3 py-2 text-[13px] font-semibold"
             style={{ color: COR.tinta, border: `1px solid ${COR.borda}`, backgroundColor: "#fff" }}
           >
-            Ir ao estúdio
+            <span className="sm:hidden">Estúdio</span>
+            <span className="hidden sm:inline">Ir ao estúdio</span>
           </a>
           {/* Mesmo menu do estúdio: a identidade e o "Sair" não podem existir
               numa tela e faltar na outra (issue #19). */}

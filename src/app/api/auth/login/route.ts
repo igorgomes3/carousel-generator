@@ -1,18 +1,31 @@
 /**
  * Login do carrossel — feito no servidor do próprio carrossel.
  *
- * Por que proxy em vez de o navegador chamar o GoTrue direto: assim o carrossel
- * não depende de CORS do GoTrue nem de expor a URL do GoTrue no bundle. O
- * navegador fala só com a própria origem; este route handler fala com o auth.
+ * Fala com o GoTrue do **projeto Supabase dedicado** (`CARROSSEL_SUPABASE_URL`),
+ * não mais com o auth do AutoClinic. Duas razões para continuar proxeando em vez
+ * de o navegador chamar o GoTrue direto:
+ *   - não depende de CORS do GoTrue nem expõe a URL do auth no bundle;
+ *   - o access token pode ir para um cookie httpOnly, que é o que permite
+ *     `<img src="/api/projetos/…">` e o download de PNG autenticarem sem header.
+ *
+ * O cookie `cr_sessao` é o access token. O `ac_sessao=1` continua existindo como
+ * marcador que o middleware lê — forjá-lo não dá acesso a nada: cada rota valida
+ * o token no GoTrue.
  *
  * A senha nunca é logada e nunca é guardada: passa e é descartada.
  */
 import { NextRequest, NextResponse } from "next/server";
 
 import { mensagemDeFalhaDeLogin } from "@/lib/auth/mensagens";
+import { COOKIE_MARCADOR, COOKIE_TOKEN, chaveAnon } from "@/lib/auth/supabase-servidor";
 
-const AUTH_URL =
-  process.env.AUTOCLINIC_AUTH_URL ?? "https://autoclinic.149-56-214-54.sslip.io";
+export const dynamic = "force-dynamic";
+
+function urlBase(): string {
+  const url = process.env.CARROSSEL_SUPABASE_URL?.trim();
+  if (!url) throw new Error("CARROSSEL_SUPABASE_URL não configurada.");
+  return url.replace(/\/$/, "");
+}
 
 export async function POST(request: NextRequest) {
   let corpo: { email?: string; senha?: string };
@@ -28,9 +41,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Informe e-mail e senha." }, { status: 400 });
   }
 
-  const res = await fetch(`${AUTH_URL}/auth/v1/token?grant_type=password`, {
+  let auth = urlBase();
+  let chave = chaveAnon();
+  const res = await fetch(`${auth}/auth/v1/token?grant_type=password`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", apikey: chave },
     body: JSON.stringify({ email, password: senha }),
     cache: "no-store",
   }).catch(() => null);
@@ -53,9 +68,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: falha.erro }, { status: falha.status });
   }
 
-  return NextResponse.json({
+  const resposta = NextResponse.json({
     access_token: dados.access_token,
     refresh_token: dados.refresh_token,
     expira_em: dados.expires_in ?? 3600,
   });
+
+  /**
+   * `secure: false` é de propósito: o app também é servido em http na tailnet e
+   * por IP interno, e um cookie `secure` simplesmente não seria gravado — o
+   * sintoma seria "entre e não entre". O que protege o token é `httpOnly` (JS da
+   * página não lê) e `sameSite: lax`.
+   */
+  resposta.cookies.set(COOKIE_TOKEN, String(dados.access_token ?? ""), {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: Number(dados.expires_in ?? 3600),
+    secure: false,
+  });
+  // Marcador do middleware: 30 dias porque é ele que evita o redirect para
+  // /login; quem decide de verdade é o token acima.
+  resposta.cookies.set(COOKIE_MARCADOR, "1", {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 30 * 24 * 3600,
+    secure: false,
+  });
+
+  return resposta;
 }

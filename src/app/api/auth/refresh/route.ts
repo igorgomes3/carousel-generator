@@ -6,18 +6,16 @@
  * vencido — a pessoa TEM que entrar de novo) ou se a chamada nem chegou (502 —
  * a sessão continua válida, o problema é de infraestrutura).
  *
- * Por que importa: até a issue #19 as duas situações viravam `false` no cliente,
- * e uma queda de dez segundos do auth deslogava a pessoa no meio de um
- * carrossel. Agora o corpo diz qual é qual:
- *
- *   - `401` + `codigo: "sessao_invalida"` → limpar a sessão e mandar ao login;
- *   - `502` + `codigo: "auth_indisponivel"` → NÃO limpar nada; avisar e deixar a
- *     pessoa tentar de novo.
+ * O GoTrue agora é o do projeto Supabase dedicado do carrossel. Além de devolver
+ * os tokens no corpo, este handler **rotaciona o cookie `cr_sessao`**: sem isso
+ * o cookie continuaria com o access token velho e as imagens dos cards (que
+ * autenticam por cookie) quebrariam de hora em hora.
  */
 import { NextRequest, NextResponse } from "next/server";
 
-const AUTH_URL =
-  process.env.AUTOCLINIC_AUTH_URL ?? "https://autoclinic.149-56-214-54.sslip.io";
+import { COOKIE_TOKEN, chaveAnon } from "@/lib/auth/supabase-servidor";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   let corpo: { refresh_token?: string };
@@ -35,9 +33,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const res = await fetch(`${AUTH_URL}/auth/v1/token?grant_type=refresh_token`, {
+  const url = process.env.CARROSSEL_SUPABASE_URL?.trim().replace(/\/$/, "");
+  if (!url) {
+    return NextResponse.json(
+      { erro: "O serviço de login está mal configurado.", codigo: "auth_indisponivel" },
+      { status: 502 },
+    );
+  }
+
+  const res = await fetch(`${url}/auth/v1/token?grant_type=refresh_token`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", apikey: chaveAnon() },
     body: JSON.stringify({ refresh_token: refresh }),
     cache: "no-store",
   }).catch(() => null);
@@ -73,9 +79,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({
+  const resposta = NextResponse.json({
     access_token: dados.access_token,
     refresh_token: dados.refresh_token ?? refresh,
     expira_em: dados.expires_in ?? 3600,
   });
+
+  resposta.cookies.set(COOKIE_TOKEN, String(dados.access_token), {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: Number(dados.expires_in ?? 3600),
+    secure: false,
+  });
+
+  return resposta;
 }

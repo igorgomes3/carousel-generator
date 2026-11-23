@@ -3,11 +3,20 @@
 /**
  * Sessão do carrossel no navegador.
  *
- * Modelo: access token em memória (nunca em localStorage — XSS lê localStorage),
- * refresh token em localStorage + cookie `ac_sessao` só com um marcador de
- * "tem sessão", que o middleware usa para redirecionar sem poder validar nada.
- * A validação de verdade é sempre do servidor: o middleware só evita renderizar
- * tela vazia para quem não tem sessão nenhuma.
+ * Modelo: access token em memória + refresh token em `localStorage`. O
+ * **cookie httpOnly `cr_sessao`** (posto pelo `/api/auth/login`) é o que
+ * autentica as requisições que não passam por `fetch` do nosso JS — `<img>` dos
+ * cards e o download de PNG — e é ele que autoriza as rotas de geração no
+ * servidor. O `ac_sessao=1` continua sendo só o marcador que o middleware lê
+ * para escolher entre redirect e 401 JSON.
+ *
+ * Por que access em memória e não em localStorage: XSS lê localStorage. O
+ * refresh token fica lá porque ele sozinho não abre a API (precisa do hop do
+ * servidor em `/api/auth/refresh`) e porque perder a sessão a cada F5 num
+ * produto de trabalho é pior que o risco residual.
+ *
+ * O auth é o **Supabase do próprio carrossel** (projeto dedicado, W97). O
+ * AutoClinic saiu do caminho: `AUTOCLINIC_AUTH_URL` não é mais lido aqui.
  */
 const CHAVE_REFRESH = "ac_refresh";
 const COOKIE_SESSAO = "ac_sessao";
@@ -25,9 +34,6 @@ export interface UsuarioCarrossel {
   id: string;
   email: string;
   nome: string;
-  papel: "owner" | "admin" | "operador";
-  organization_id: string | null;
-  deve_trocar_senha: boolean;
 }
 
 /**
@@ -123,11 +129,21 @@ export async function renovar(): Promise<ResultadoRenovacao> {
   return renovando;
 }
 
+/**
+ * Sair no navegador. Os cookies `cr_sessao`/`ac_sessao` são httpOnly (ou postos
+ * pelo servidor com outro maxAge), então apagá-los daqui é best-effort: o
+ * servidor também os expira em `/api/auth/sair` quando existe. O que garante que
+ * a sessão morreu é o refresh token sair do localStorage + o cookie de token
+ * ser sobrescrito na próxima entrada.
+ */
 export function sair(): void {
   accessToken = null;
   usuario = null;
   localStorage.removeItem(CHAVE_REFRESH);
   apagarCookie(COOKIE_SESSAO);
+  // O cookie `cr_sessao` é httpOnly: JS não apaga. Só o servidor fecha essa
+  // porta — sem esta chamada o token continuaria valendo por até 1h.
+  void fetch("/api/auth/sair", { method: "POST", keepalive: true }).catch(() => {});
 }
 
 export function usuarioAtual(): UsuarioCarrossel | null {
@@ -135,86 +151,14 @@ export function usuarioAtual(): UsuarioCarrossel | null {
 }
 
 export async function carregarUsuario(): Promise<UsuarioCarrossel | null> {
-  const dados = await apiJson<{ usuario: UsuarioCarrossel }>("/me").catch(() => null);
+  const dados = await fetch("/api/auth/eu", {
+    headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
+    cache: "no-store",
+  })
+    .then(async (res) => (res.ok ? ((await res.json()) as { usuario?: UsuarioCarrossel }) : null))
+    .catch(() => null);
   usuario = dados?.usuario ?? null;
   return usuario;
-}
-
-/**
- * Chamada autenticada. Em 401 tenta renovar uma vez e repete — sessão de 1h cai
- * no meio do trabalho e a pessoa não deveria perder o que estava montando.
- */
-export async function apiFetch(caminho: string, init: RequestInit = {}): Promise<Response> {
-  const montar = (token: string | null) =>
-    ({
-      ...init,
-      headers: {
-        ...(init.body ? { "content-type": "application/json" } : {}),
-        ...(init.headers ?? {}),
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-    }) as RequestInit;
-
-  if (!accessToken) await renovar();
-
-  let res = await fetch(`/api/ac${caminho}`, montar(accessToken));
-
-  if (res.status === 401) {
-    const resultado = await renovar();
-    if (resultado === "ok") res = await fetch(`/api/ac${caminho}`, montar(accessToken));
-    // Auth fora do ar: avisa sem apagar nada. A sessão continua válida e a
-    // próxima tentativa pode funcionar.
-    else if (resultado === "indisponivel") avisar(EVENTO_AUTH_INDISPONIVEL);
-  }
-
-  if (res.status === 401) {
-    sair();
-    avisar(EVENTO_SESSAO_EXPIRADA);
-  }
-
-  return res;
-}
-
-export async function apiJson<T>(caminho: string, init: RequestInit = {}): Promise<T> {
-  const res = await apiFetch(caminho, init);
-  const corpo = (await res.json().catch(() => ({}))) as { erro?: string };
-  if (!res.ok) throw new Error(corpo.erro ?? `HTTP ${res.status}`);
-  return corpo as T;
-}
-
-/**
- * Leitura autenticada que **não derruba a sessão** quando a API responde 401.
- *
- * Por que existe: `apiFetch` chama `sair()` em 401 de propósito — numa tela cujo
- * conteúdo É a API, sessão inválida tem que mandar para o login. Mas telas que
- * juntam fontes diferentes (o "Meus projetos" lê nosso store E a API do
- * AutoClinic) não podem deslogar a pessoa só porque a fonte secundária
- * respondeu 401: o efeito colateral medido foi o cookie `ac_sessao` sumir e o
- * POST do próprio store virar 405 (redirect para `/login`). Aqui o 401 volta
- * como resposta, e quem chamou decide o que mostrar.
- */
-export async function apiJsonLeitura<T>(caminho: string, init: RequestInit = {}): Promise<T> {
-  const montar = (token: string | null) =>
-    ({
-      ...init,
-      headers: {
-        ...(init.body ? { "content-type": "application/json" } : {}),
-        ...(init.headers ?? {}),
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-    }) as RequestInit;
-
-  if (!accessToken) await renovar();
-
-  let res = await fetch(`/api/ac${caminho}`, montar(accessToken));
-  if (res.status === 401) {
-    const resultado = await renovar();
-    if (resultado === "ok") res = await fetch(`/api/ac${caminho}`, montar(accessToken));
-  }
-
-  const corpo = (await res.json().catch(() => ({}))) as { erro?: string };
-  if (!res.ok) throw new Error(corpo.erro ?? `HTTP ${res.status}`);
-  return corpo as T;
 }
 
 /** Garante sessão válida antes de renderizar tela privada. */
@@ -237,4 +181,14 @@ export function destinoSeguro(de: string | null | undefined): string {
   if (!de.startsWith("/")) return "/";
   if (de.startsWith("//")) return "/";
   return de;
+}
+
+/** Avisa as telas que a sessão morreu (usado quando uma rota responde 401). */
+export function avisarSessaoExpirada(): void {
+  sair();
+  avisar(EVENTO_SESSAO_EXPIRADA);
+}
+
+export function avisarAuthIndisponivel(): void {
+  avisar(EVENTO_AUTH_INDISPONIVEL);
 }

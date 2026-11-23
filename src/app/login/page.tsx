@@ -3,8 +3,9 @@
 /**
  * Tela de login do carrossel.
  *
- * Mesmo login do painel do AutoClinic (GoTrue): uma conta, dois produtos. O
- * texto diz isso explicitamente para ninguém procurar "senha do carrossel".
+ * O auth é o do **projeto Supabase do próprio carrossel** (W97): o AutoClinic
+ * saiu do caminho, então o texto não pode mais prometer "a mesma conta do
+ * painel". Quem tem conta aqui é quem foi criado neste projeto.
  */
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -51,7 +52,8 @@ export default function LoginPage() {
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Carrossel</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Entre com a mesma conta do painel do AutoClinic.
+            Entre com a sua conta. A geração de texto e imagem consome IA paga, por isso ela
+            só funciona logado.
           </p>
         </div>
 

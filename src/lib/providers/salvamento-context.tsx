@@ -14,7 +14,17 @@
  * a aba e limpar o cache apaga o trabalho.
  */
 import React, { useContext } from "react";
-import type { EstadoSalvamento } from "@/lib/hooks/use-autosave-projeto";
+
+/**
+ * Estado do salvamento do documento aberto.
+ *
+ * `ocioso` entrou com a W97: o editor antigo que este contexto servia foi
+ * desligado (a rota redireciona para o estúdio) e a única superfície que sobrou
+ * é o link público `/p/<token>`, que é somente leitura. Antes o tipo vinha de
+ * `use-autosave-projeto` — o hook que gravava no AutoClinic e que foi removido
+ * junto com `/api/ac/*`.
+ */
+export type EstadoSalvamento = "ocioso" | "limpo" | "sujo" | "salvando" | "erro";
 
 export interface SalvamentoContextValue {
   estado: EstadoSalvamento;

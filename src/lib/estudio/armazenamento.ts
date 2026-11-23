@@ -1,36 +1,31 @@
 /**
- * Onde os projetos salvos vivem — disco, um diretório por projeto.
+ * Onde os projetos salvos vivem — agora no Supabase dedicado do carrossel.
  *
- * ## Por que store próprio, e não a tabela `carrossel_projetos`
+ * ## O que mudou (23/11/2026)
  *
- * A issue #13 deixou a pergunta aberta ("persistimos pelo caminho existente ou
- * criamos store próprio?"). Foi medido antes de decidir:
+ * Antes: um `projeto.json` por projeto em `data/estudio/projetos/<id>/`, e o
+ * dono era um UUID de cookie (`estudio_dono`) — porque o estúdio não tinha
+ * login. Igor decidiu que geração de conteúdo exige conta, então a identidade
+ * passou a ser `auth.uid()` do GoTrue do projeto novo e o documento passou a
+ * morar na tabela `projetos` (`documento jsonb`), com RLS por `auth_user_id`.
  *
- * - `carrossel_projetos` mora no Postgres do AutoClinic e guarda o documento do
- *   **editor antigo** (`DocumentSchema`: slides com elementos soltos). O estúdio
- *   fala `CarrosselGerado` — card + texto + imagem. Converter um no outro para
- *   gravar seria inventar compatibilidade que ninguém usa.
- * - aquela tabela exige `organization_id` + `autor_id`, ou seja sessão do
- *   GoTrue. O estúdio não tem login: o leigo chega em `/` e cria. Exigir a conta
- *   do painel AutoClinic do Clécio para salvar o carrossel dele é o oposto do
- *   que a tela promete.
- * - as capas vêm em `data:image/...;base64` com 1–2 MB cada. Em `jsonb` isso
- *   vira lixo no banco que todo mundo consulta; em arquivo é o que é.
+ * ## O que continua no disco, e por quê
  *
- * Então: store próprio, no disco deste servidor, com um arquivo JSON por
- * projeto e as imagens como arquivos irmãos. A API é a única que toca aqui.
+ * Os BYTES das imagens. Uma capa por IA chega em `data:image/png;base64` com
+ * 1–2 MB; em `jsonb` isso vira lixo que toda consulta da lista carrega. O
+ * `documento` guarda o caminho (`/api/projetos/<id>/arquivos/card-01.png?v=2`)
+ * e o arquivo fica em `data/estudio/projetos/<id>/arquivos/`.
  *
- * ## Migração idempotente
- *
- * `MIGRACOES` é aplicada uma vez, em ordem, e cada id aplicado fica registrado
- * em `migracoes.json`. Rodar de novo não faz nada — nem em paralelo, porque a
- * aplicação é serializada por uma promise única por processo. Criar o store é
- * `mkdir -p`; a migração 2 limpa temporários de gravações interrompidas.
+ * Consequência assumida: documento = banco (durável, por usuário, visível de
+ * qualquer navegador); imagem = disco deste host. Perder o host perde as
+ * imagens, não os textos. O passo seguinte é mover os bytes para o Storage do
+ * mesmo projeto Supabase — não está feito aqui.
  *
  * ## Segurança
  *
- * O `id` do projeto é validado por regex antes de virar caminho (`..` recusado)
- * e todo acesso confere o dono. Projeto de outro dono responde **null**, que a
+ * Toda leitura/escrita vai ao PostgREST com o **token do usuário**, então a RLS
+ * (`auth.uid() = auth_user_id`) é quem decide. O filtro por id aparece no SQL
+ * também: cinto e suspensório. Projeto de outro dono responde **null**, que a
  * rota traduz em 404 — nunca 403, que confirmaria a existência do id.
  */
 import { promises as fs } from "node:fs";
@@ -49,205 +44,103 @@ import {
 import { normalizarArroba } from "@/lib/estudio/arroba";
 import { estiloVazio, normalizarEstilo, type EstiloEscolhido } from "@/lib/estudio/estilo";
 import type { SlideCarrossel } from "@/lib/estudio/tipos";
+import { comoServico, comoUsuario, type Sessao } from "@/lib/auth/supabase-servidor";
 
-/** Diretório raiz. `ESTUDIO_DADOS` existe para o gate rodar em diretório limpo. */
+/** Diretório das imagens. `ESTUDIO_DADOS` existe para o gate rodar em diretório limpo. */
 export const RAIZ_DADOS =
   process.env.ESTUDIO_DADOS?.trim() || path.join(process.cwd(), "data", "estudio");
 
 const DIR_PROJETOS = path.join(RAIZ_DADOS, "projetos");
-const ARQ_MIGRACOES = path.join(RAIZ_DADOS, "migracoes.json");
 
 const RE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const RE_ARQUIVO = /^[a-z0-9][a-z0-9._-]{0,80}$/i;
 
-/** Projeto como fica no disco: o contrato público + o dono (nunca sai daqui). */
-interface ProjetoGravado extends ProjetoSalvo {
-  dono: string;
-}
-
-interface EstadoMigracoes {
-  aplicadas: number[];
-}
-
-interface Migracao {
-  id: number;
+/** Linha da tabela `projetos`. `documento` é o `ProjetoSalvo` inteiro. */
+interface LinhaProjeto {
+  id: string;
+  auth_user_id: string;
   nome: string;
-  aplicar: () => Promise<void>;
+  documento: ProjetoSalvo;
+  token_publico: string;
+  criado_em: string;
+  atualizado_em: string;
 }
-
-/* ------------------------------------------------------------------ */
-/* Migrações                                                           */
-/* ------------------------------------------------------------------ */
-
-const MIGRACOES: Migracao[] = [
-  {
-    id: 1,
-    nome: "cria-diretorios",
-    // `recursive: true` é o idempotente do `mkdir -p`: existe? não reclama.
-    aplicar: async () => {
-      await fs.mkdir(DIR_PROJETOS, { recursive: true });
-    },
-  },
-  {
-    id: 2,
-    nome: "remove-temporarios",
-    // Gravação interrompida (queda de energia no meio do rename) deixa
-    // `.tmp-*` para trás. Nenhum deles é um projeto válido; apagar é seguro.
-    aplicar: async () => {
-      const entradas = await fs.readdir(DIR_PROJETOS).catch(() => [] as string[]);
-      for (const entrada of entradas) {
-        if (!entrada.startsWith(".tmp-")) continue;
-        await fs.rm(path.join(DIR_PROJETOS, entrada), { recursive: true, force: true }).catch(() => {});
-      }
-    },
-  },
-];
-
-let migracaoEmCurso: Promise<void> | null = null;
-
-/**
- * Garante o store pronto. Chamado por toda função pública: a primeira chamada
- * aplica as migrações pendentes, as seguintes reaproveitam a mesma promise.
- */
-export async function garantirArmazenamento(): Promise<void> {
-  if (migracaoEmCurso) return migracaoEmCurso;
-
-  migracaoEmCurso = (async () => {
-    await fs.mkdir(RAIZ_DADOS, { recursive: true });
-    let estado: EstadoMigracoes = { aplicadas: [] };
-    try {
-      estado = JSON.parse(await fs.readFile(ARQ_MIGRACOES, "utf8")) as EstadoMigracoes;
-    } catch {
-      // Primeira execução (ou arquivo corrompido): começa do zero. Reaplicar
-      // tudo é seguro — cada migração é idempotente por construção.
-      estado = { aplicadas: [] };
-    }
-    const aplicadas = new Set(estado.aplicadas ?? []);
-
-    for (const migracao of MIGRACOES) {
-      if (aplicadas.has(migracao.id)) continue;
-      await migracao.aplicar();
-      aplicadas.add(migracao.id);
-      const novo: EstadoMigracoes = { aplicadas: Array.from(aplicadas).sort((a, b) => a - b) };
-      await escreverAtomico(ARQ_MIGRACOES, JSON.stringify(novo, null, 2));
-    }
-  })();
-
-  try {
-    await migracaoEmCurso;
-  } catch (erro) {
-    // Falhou? libera para tentar de novo na próxima requisição, em vez de
-    // deixar o app inteiro em erro até reiniciar o processo.
-    migracaoEmCurso = null;
-    throw erro;
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Escrita atômica                                                     */
-/* ------------------------------------------------------------------ */
-
-async function escreverAtomico(destino: string, conteudo: string | Uint8Array): Promise<void> {
-  const temporario = `${destino}.tmp-${crypto.randomBytes(6).toString("hex")}`;
-  await fs.writeFile(temporario, conteudo);
-  await fs.rename(temporario, destino);
-}
-
-/* ------------------------------------------------------------------ */
-/* Caminhos                                                            */
-/* ------------------------------------------------------------------ */
 
 export function idValido(id: string): boolean {
   return RE_ID.test(id);
 }
 
-function dirDoProjeto(id: string): string {
-  if (!idValido(id)) throw new Error("id de projeto inválido");
-  return path.join(DIR_PROJETOS, id);
+/* ------------------------------------------------------------------ */
+/* Mapeamento banco ↔ contrato da tela                                 */
+/* ------------------------------------------------------------------ */
+
+function linhaParaProjeto(linha: LinhaProjeto): ProjetoSalvo {
+  const doc = (linha.documento ?? {}) as Partial<ProjetoSalvo>;
+  return {
+    id: linha.id,
+    nome: linha.nome || doc.nome || NOME_SEM_TITULO,
+    templateId: doc.templateId ?? "minimalist",
+    tema: doc.tema ?? "",
+    slides: Array.isArray(doc.slides) ? doc.slides : [],
+    criadoEm: doc.criadoEm ?? linha.criado_em,
+    atualizadoEm: doc.atualizadoEm ?? linha.atualizado_em,
+    salvoEm: doc.salvoEm ?? linha.atualizado_em,
+    versao: Number.isFinite(doc.versao) ? Number(doc.versao) : 1,
+    ...(doc.arroba ? { arroba: doc.arroba } : {}),
+    ...(doc.estilo ? { estilo: doc.estilo } : {}),
+  };
 }
 
-function dirDosArquivos(id: string): string {
-  return path.join(dirDoProjeto(id), "arquivos");
-}
-
-function arqDoProjeto(id: string): string {
-  return path.join(dirDoProjeto(id), "projeto.json");
+function resumoDe(projeto: ProjetoSalvo): ResumoProjeto {
+  const capa: SlideCarrossel = projeto.slides[0] ?? {
+    tipo: "capa",
+    titulo: projeto.nome,
+    corpo: "",
+    imagem: null,
+  };
+  return {
+    id: projeto.id,
+    nome: projeto.nome,
+    templateId: projeto.templateId,
+    tema: projeto.tema,
+    slides: projeto.slides.length,
+    atualizadoEm: projeto.atualizadoEm,
+    salvoEm: projeto.salvoEm,
+    capa,
+  };
 }
 
 /* ------------------------------------------------------------------ */
 /* Leitura                                                             */
 /* ------------------------------------------------------------------ */
 
-async function lerGravado(id: string): Promise<ProjetoGravado | null> {
+async function buscarLinha(sessao: Sessao, id: string): Promise<LinhaProjeto | null> {
   if (!idValido(id)) return null;
-  try {
-    const texto = await fs.readFile(arqDoProjeto(id), "utf8");
-    const dados = JSON.parse(texto) as ProjetoGravado;
-    if (!dados || typeof dados.id !== "string" || !Array.isArray(dados.slides)) return null;
-    return dados;
-  } catch {
-    return null;
-  }
+  const { ok, dados } = await comoUsuario<LinhaProjeto[]>(sessao, `projetos?id=eq.${id}&select=*`);
+  if (!ok || !dados || dados.length === 0) return null;
+  return dados[0];
 }
 
-/** Sem o `dono`: é o que a tela pode ver. */
-function publico(gravado: ProjetoGravado): ProjetoSalvo {
-  const { dono: _dono, ...resto } = gravado;
-  return resto;
-}
-
-function resumoDe(gravado: ProjetoGravado): ResumoProjeto {
-  const capa: SlideCarrossel = gravado.slides[0] ?? {
-    tipo: "capa",
-    titulo: gravado.nome,
-    corpo: "",
-    imagem: null,
-  };
-  return {
-    id: gravado.id,
-    nome: gravado.nome,
-    templateId: gravado.templateId,
-    tema: gravado.tema,
-    slides: gravado.slides.length,
-    atualizadoEm: gravado.atualizadoEm,
-    salvoEm: gravado.salvoEm,
-    capa,
-  };
-}
-
-/** Projeto inteiro, só se for do dono. */
-export async function lerProjeto(dono: string, id: string): Promise<ProjetoSalvo | null> {
-  await garantirArmazenamento();
-  const gravado = await lerGravado(id);
-  if (!gravado || gravado.dono !== dono) return null;
-  return publico(gravado);
+export async function lerProjeto(sessao: Sessao, id: string): Promise<ProjetoSalvo | null> {
+  const linha = await buscarLinha(sessao, id);
+  return linha ? linhaParaProjeto(linha) : null;
 }
 
 /**
- * Lista do dono, do mais recente para o mais antigo.
- *
- * Sem índice: `readdir` + `readFile` por projeto. Com centenas de projetos isso
- * são poucos ms; um índice paralelo seria mais uma coisa para dessincronizar.
+ * Lista do usuário, do mais recente para o mais antigo. A ordenação é do
+ * Postgres — a lista cresce e ordenar no Node seria carregar tudo à toa.
  */
-export async function listarProjetos(dono: string): Promise<ResumoProjeto[]> {
-  await garantirArmazenamento();
-  const entradas = await fs.readdir(DIR_PROJETOS).catch(() => [] as string[]);
-  const resumos: ResumoProjeto[] = [];
-
-  for (const entrada of entradas) {
-    if (!idValido(entrada)) continue;
-    const gravado = await lerGravado(entrada);
-    if (!gravado || gravado.dono !== dono) continue;
-    resumos.push(resumoDe(gravado));
-  }
-
-  return resumos.sort(
-    (a, b) => new Date(b.atualizadoEm).getTime() - new Date(a.atualizadoEm).getTime(),
+export async function listarProjetos(sessao: Sessao): Promise<ResumoProjeto[]> {
+  const { ok, dados, erro } = await comoUsuario<LinhaProjeto[]>(
+    sessao,
+    `projetos?select=*&order=atualizado_em.desc&limit=200`,
   );
+  if (!ok) throw new Error(erro ?? "Não foi possível abrir seus projetos.");
+  return (dados ?? []).map((linha) => resumoDe(linhaParaProjeto(linha)));
 }
 
 /* ------------------------------------------------------------------ */
-/* Imagens                                                             */
+/* Imagens (bytes em disco)                                            */
 /* ------------------------------------------------------------------ */
 
 const EXTENSOES: Record<string, string> = {
@@ -267,8 +160,28 @@ export const TIPOS_POR_EXTENSAO: Record<string, string> = {
   avif: "image/avif",
 };
 
+function dirDosArquivos(id: string): string {
+  if (!idValido(id)) throw new Error("id de projeto inválido");
+  return path.join(DIR_PROJETOS, id, "arquivos");
+}
+
 function nomeDoCard(indice: number, extensao: string): string {
   return `card-${String(indice + 1).padStart(2, "0")}.${extensao}`;
+}
+
+async function escreverAtomico(destino: string, conteudo: string | Uint8Array): Promise<void> {
+  const temporario = `${destino}.tmp-${crypto.randomBytes(6).toString("hex")}`;
+  await fs.writeFile(temporario, conteudo);
+  await fs.rename(temporario, destino);
+}
+
+async function removerImagemDoCard(dir: string, indice: number): Promise<void> {
+  const existentes = await fs.readdir(dir).catch(() => [] as string[]);
+  const prefixo = `card-${String(indice + 1).padStart(2, "0")}.`;
+  for (const arquivo of existentes) {
+    if (!arquivo.startsWith(prefixo)) continue;
+    await fs.rm(path.join(dir, arquivo), { force: true }).catch(() => {});
+  }
 }
 
 /**
@@ -334,24 +247,20 @@ async function materializarImagens(
   return saida;
 }
 
-async function removerImagemDoCard(dir: string, indice: number): Promise<void> {
-  const existentes = await fs.readdir(dir).catch(() => [] as string[]);
-  const prefixo = `card-${String(indice + 1).padStart(2, "0")}.`;
-  for (const arquivo of existentes) {
-    if (!arquivo.startsWith(prefixo)) continue;
-    await fs.rm(path.join(dir, arquivo), { force: true }).catch(() => {});
-  }
-}
-
-/** Caminho absoluto de um arquivo do projeto, ou null se o dono/arquivo não bater. */
+/**
+ * Caminho absoluto de um arquivo do projeto, ou null se o projeto não for do
+ * usuário da sessão. O dono é conferido no banco (RLS); o disco só entrega
+ * bytes depois disso.
+ */
 export async function caminhoDoArquivo(
-  dono: string,
+  sessao: Sessao,
   id: string,
   arquivo: string,
 ): Promise<string | null> {
-  if (!RE_ARQUIVO.test(arquivo)) return null;
-  const gravado = await lerGravado(id);
-  if (!gravado || gravado.dono !== dono) return null;
+  if (!RE_ARQUIVO.test(arquivo) || !idValido(id)) return null;
+  const linha = await buscarLinha(sessao, id);
+  if (!linha) return null;
+
   const caminho = path.join(dirDosArquivos(id), arquivo);
   try {
     const info = await fs.stat(caminho);
@@ -362,7 +271,7 @@ export async function caminhoDoArquivo(
 }
 
 /* ------------------------------------------------------------------ */
-/* Escrita de projetos                                                 */
+/* Escrita                                                             */
 /* ------------------------------------------------------------------ */
 
 export interface DadosNovoProjeto {
@@ -377,7 +286,7 @@ export interface DadosNovoProjeto {
 }
 
 /**
- * Curadoria vinda do cliente → o que vai para o disco.
+ * Curadoria vinda do cliente → o que vai para o banco.
  *
  * Id desconhecido é descartado (`normalizarEstilo`) e estilo vazio vira
  * `undefined`: assim o JSON do projeto antigo e o do novo que não escolheu nada
@@ -393,16 +302,16 @@ export type ResultadoCriacao =
   | { ok: false; motivo: string };
 
 export async function criarProjeto(
-  dono: string,
+  sessao: Sessao,
   dados: DadosNovoProjeto,
 ): Promise<ResultadoCriacao> {
-  await garantirArmazenamento();
-
   const slides = normalizarSlides(dados.slides);
   if (!slides) return { ok: false, motivo: "O carrossel chegou vazio ou com cards demais." };
 
   const templateId =
-    typeof dados.templateId === "string" && dados.templateId.trim() ? dados.templateId : "minimalist";
+    typeof dados.templateId === "string" && dados.templateId.trim()
+      ? dados.templateId
+      : "minimalist";
   const tema = typeof dados.tema === "string" ? dados.tema.slice(0, 400) : "";
 
   const agora = new Date().toISOString();
@@ -412,7 +321,8 @@ export async function criarProjeto(
   const slidesGravados = await materializarImagens(id, slides, versao);
   const arroba = normalizarArroba(dados.arroba);
   const estilo = estiloParaGravar(dados.estilo);
-  const gravado: ProjetoGravado = {
+
+  const projeto: ProjetoSalvo = {
     id,
     nome: nomeLimpo(dados.nome, nomePadrao(slides, tema)) || NOME_SEM_TITULO,
     templateId,
@@ -422,16 +332,27 @@ export async function criarProjeto(
     atualizadoEm: agora,
     salvoEm: agora,
     versao,
-    dono,
-    // Campo ausente no JSON quando não há @/estilo escolhido.
     ...(arroba ? { arroba } : {}),
     ...(estilo ? { estilo } : {}),
   };
 
-  await fs.mkdir(dirDoProjeto(id), { recursive: true });
-  await escreverAtomico(arqDoProjeto(id), JSON.stringify(gravado, null, 2));
+  const { ok, dados: criado, erro } = await comoUsuario<LinhaProjeto[]>(sessao, "projetos", {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: JSON.stringify({
+      id,
+      auth_user_id: sessao.usuario.id,
+      nome: projeto.nome,
+      documento: projeto,
+    }),
+  });
 
-  return { ok: true, projeto: publico(gravado) };
+  if (!ok || !criado || criado.length === 0) {
+    console.error("[projetos] falha ao criar:", erro);
+    return { ok: false, motivo: "Não foi possível salvar o projeto. Tente de novo." };
+  }
+
+  return { ok: true, projeto: linhaParaProjeto(criado[0]) };
 }
 
 export interface DadosAlteracao {
@@ -449,14 +370,12 @@ export interface DadosAlteracao {
  * carimbo de tempo e a versão contam a verdade.
  */
 export async function salvarProjeto(
-  dono: string,
+  sessao: Sessao,
   id: string,
   dados: DadosAlteracao,
 ): Promise<ResultadoCriacao> {
-  await garantirArmazenamento();
-
-  const atual = await lerGravado(id);
-  if (!atual || atual.dono !== dono) return { ok: false, motivo: "nao_encontrado" };
+  const atual = await lerProjeto(sessao, id);
+  if (!atual) return { ok: false, motivo: "nao_encontrado" };
 
   const versao = (Number.isFinite(atual.versao) ? atual.versao : 1) + 1;
   const agora = new Date().toISOString();
@@ -468,8 +387,7 @@ export async function salvarProjeto(
     slides = await materializarImagens(id, normalizados, versao);
   }
 
-  const nomeRecebido =
-    typeof dados.nome === "string" ? dados.nome : undefined;
+  const nomeRecebido = typeof dados.nome === "string" ? dados.nome : undefined;
   const temaRecebido = typeof dados.tema === "string" ? dados.tema.slice(0, 400) : undefined;
   const templateRecebido =
     typeof dados.templateId === "string" && dados.templateId.trim()
@@ -484,7 +402,7 @@ export async function salvarProjeto(
   const arrobaRecebida = dados.arroba !== undefined ? normalizarArroba(dados.arroba) : undefined;
   const estiloRecebido = dados.estilo !== undefined ? estiloParaGravar(dados.estilo) : undefined;
 
-  const gravado: ProjetoGravado = {
+  const projeto: ProjetoSalvo = {
     ...atual,
     nome:
       nomeRecebido !== undefined
@@ -500,14 +418,47 @@ export async function salvarProjeto(
     estilo: dados.estilo !== undefined ? estiloRecebido : atual.estilo,
   };
 
-  await escreverAtomico(arqDoProjeto(id), JSON.stringify(gravado, null, 2));
-  return { ok: true, projeto: publico(gravado) };
+  const { ok, dados: salvo, erro } = await comoUsuario<LinhaProjeto[]>(
+    sessao,
+    `projetos?id=eq.${id}`,
+    {
+      method: "PATCH",
+      headers: { prefer: "return=representation" },
+      body: JSON.stringify({ nome: projeto.nome, documento: projeto }),
+    },
+  );
+
+  if (!ok || !salvo || salvo.length === 0) {
+    console.error("[projetos] falha ao salvar:", erro);
+    return { ok: false, motivo: erro ?? "Não foi possível salvar as alterações. Tente de novo." };
+  }
+
+  return { ok: true, projeto: linhaParaProjeto(salvo[0]) };
 }
 
-export async function apagarProjeto(dono: string, id: string): Promise<boolean> {
-  await garantirArmazenamento();
-  const gravado = await lerGravado(id);
-  if (!gravado || gravado.dono !== dono) return false;
-  await fs.rm(dirDoProjeto(id), { recursive: true, force: true });
+export async function apagarProjeto(sessao: Sessao, id: string): Promise<boolean> {
+  const atual = await lerProjeto(sessao, id);
+  if (!atual) return false;
+
+  const { ok } = await comoUsuario<null>(sessao, `projetos?id=eq.${id}`, { method: "DELETE" });
+  if (!ok) return false;
+
+  await fs.rm(path.join(DIR_PROJETOS, id), { recursive: true, force: true }).catch(() => {});
   return true;
+}
+
+/**
+ * Projeto por token público (`/p/<token>`), sem sessão.
+ *
+ * Usa `service_role` porque quem abre o link não tem conta — e é exatamente por
+ * isso que o token é um UUID opaco: ele É a credencial, então não pode ser
+ * adivinhado nem listado.
+ */
+export async function projetoPorToken(token: string): Promise<ProjetoSalvo | null> {
+  if (!idValido(token)) return null;
+  const { ok, dados } = await comoServico<LinhaProjeto[]>(
+    `projetos?token_publico=eq.${token}&select=*`,
+  );
+  if (!ok || !dados || dados.length === 0) return null;
+  return linhaParaProjeto(dados[0]);
 }

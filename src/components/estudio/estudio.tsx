@@ -16,6 +16,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
 import { FotosDosCards, SeletorDeCards } from "@/components/estudio/passo-cards";
 import { MenuConta } from "@/components/conta/menu-conta";
@@ -48,6 +49,8 @@ import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 import { baixarTodosOsCards, baixarUmCard } from "@/lib/estudio/exportar";
 import { quandoSalvo } from "@/lib/estudio/projetos";
 import { useProjetoSalvo, type EstadoSalvamento } from "@/lib/hooks/use-projeto-salvo";
+import { useSessao } from "@/lib/auth/use-sessao";
+import { avisarSessaoExpirada } from "@/lib/auth/sessao";
 import {
   adicionarPauta,
   carregarPautas,
@@ -222,6 +225,17 @@ export function Estudio() {
   const projetoDaUrl = busca?.get("abrir") ?? null;
   const salvamento = useProjetoSalvo();
   const { abrir: abrirProjeto, marcarSujo, zerar: zerarSalvamento } = salvamento;
+
+  /**
+   * Portão de login na interface (W97). O middleware já barra a navegação e as
+   * rotas barram de verdade (401), mas quem chega com o marcador vencido — ou
+   * numa aba aberta desde ontem — precisa ver o botão desligado com o motivo,
+   * não um clique que falha.
+   *
+   * `logado` só fica true depois de uma chamada real (`/api/auth/eu`).
+   */
+  const sessaoTela = useSessao();
+  const logado = sessaoTela.estado === "logado";
 
   const [abrindoProjeto, setAbrindoProjeto] = useState(Boolean(projetoDaUrl));
   const [avisoAbertura, setAvisoAbertura] = useState<string | null>(null);
@@ -419,6 +433,9 @@ export function Estudio() {
           erro?: string;
         };
         if (!res.ok || !dados.carrossel) {
+          // 401 = sem sessão válida no servidor (W97). A mensagem diz o que
+          // fazer; o evento leva a pessoa ao login com o caminho de volta.
+          if (res.status === 401) avisarSessaoExpirada();
           throw new Error(dados.erro ?? "A IA não conseguiu escrever o carrossel agora.");
         }
 
@@ -609,6 +626,7 @@ export function Estudio() {
               if (tema.trim().length < 3) return;
               void gerarCarrossel(template);
             }}
+            logado={logado}
           />
         )}
 
@@ -625,6 +643,7 @@ export function Estudio() {
             onImagem={definirImagem}
             onVoltar={() => setPasso("ideia")}
             onGerar={() => void gerarCarrossel(template)}
+            logado={logado}
           />
         )}
 
@@ -666,6 +685,7 @@ export function Estudio() {
               marcarSujo();
             }}
             onNovo={recomecar}
+            logado={logado}
           />
         )}
       </div>
@@ -780,6 +800,7 @@ function PassoIdeia({
   onEsquecerPauta,
   onEscolherTemplate,
   onCriar,
+  logado,
 }: {
   categoria: string;
   setCategoria: (c: string) => void;
@@ -797,6 +818,8 @@ function PassoIdeia({
   onEsquecerPauta: (pauta: string) => void;
   onEscolherTemplate: (id: string) => void;
   onCriar: () => void;
+  /** Sessão válida (W97): sem ela a geração não é liberada. */
+  logado: boolean;
 }) {
   const visiveis = templatesDaCategoria(categoria);
 
@@ -845,21 +868,38 @@ function PassoIdeia({
         />
         <div className="mt-3 flex items-center justify-between gap-3">
           <span className="text-[12px]" style={{ color: "#78716C" }}>
-            {tema.trim().length < 3 ? "Digite o tema para liberar" : `${tema.length}/${MAX_TEMA}`}
+            {!logado
+              ? "Entre na sua conta para gerar"
+              : tema.trim().length < 3
+                ? "Digite o tema para liberar"
+                : `${tema.length}/${MAX_TEMA}`}
           </span>
           <button
             type="button"
             onClick={onCriar}
-            disabled={tema.trim().length < 3}
-            className="rounded-xl px-5 py-3 text-[15px] font-semibold text-white"
+            disabled={tema.trim().length < 3 || !logado}
+            title={
+              logado
+                ? undefined
+                : "A geração usa IA paga — entre na sua conta para liberar."
+            }
+            className="rounded-xl px-5 py-3 text-[15px] font-semibold text-white disabled:cursor-not-allowed"
             style={{
-              backgroundColor: tema.trim().length < 3 ? "#E7E5E4" : "#F4511E",
-              color: tema.trim().length < 3 ? "#57534E" : "#FFFFFF",
+              backgroundColor: tema.trim().length < 3 || !logado ? "#E7E5E4" : "#F4511E",
+              color: tema.trim().length < 3 || !logado ? "#57534E" : "#FFFFFF",
             }}
           >
             ✨ Criar com IA
           </button>
         </div>
+        {!logado ? (
+          <p className="mt-2 text-[12px]" style={{ color: "#92400E" }}>
+            Geração de texto e imagem é paga por uso, então só funciona com uma conta.{" "}
+            <Link href="/login?de=/" className="font-semibold underline">
+              Entrar
+            </Link>
+          </p>
+        ) : null}
 
         {/* Minhas pautas: substitui a pauta por notícia. É onde a pessoa guarda as
             ideias dela para não reescrever do zero na próxima vez. */}
@@ -1054,6 +1094,7 @@ function PassoTema({
   onImagem,
   onVoltar,
   onGerar,
+  logado,
 }: {
   template: TemplateCarrossel;
   tema: string;
@@ -1067,9 +1108,11 @@ function PassoTema({
   onImagem: (indice: number, imagem: string | null) => void;
   onVoltar: () => void;
   onGerar: () => void;
+  /** Sessão válida (W97). Sem ela o botão de gerar fica desligado. */
+  logado: boolean;
 }) {
   const [preparandoFoto, setPreparandoFoto] = useState(false);
-  const pronto = tema.trim().length >= 3 && !preparandoFoto;
+  const pronto = tema.trim().length >= 3 && !preparandoFoto && logado;
 
   return (
     <div className="mx-auto flex max-w-[760px] flex-col gap-5">
@@ -1151,17 +1194,29 @@ function PassoTema({
           type="button"
           onClick={onGerar}
           disabled={!pronto}
+          title={
+            logado ? undefined : "A geração usa IA paga — entre na sua conta para liberar."
+          }
           className="mt-4 min-h-[44px] w-full rounded-xl px-5 py-3.5 text-[15px] font-semibold text-white disabled:opacity-40"
           style={{ backgroundColor: "#F4511E" }}
         >
           {preparandoFoto ? "Preparando a foto…" : `✨ Gerar ${quantidade} cards`}
         </button>
-        <p className="mt-2 text-center text-[12px]" style={{ color: "#78716C" }}>
-          {pronto
-            ? "As fotos que você escolheu entram nos cards como fundo. O texto você ajusta no fim."
-            : tema.trim().length < 3
-              ? "Escreva o tema para liberar a geração."
-              : "Espere a foto terminar de ser preparada."}
+        <p className="mt-2 text-center text-[12px]" style={{ color: logado ? "#78716C" : "#92400E" }}>
+          {!logado ? (
+            <>
+              Entre na sua conta para gerar: cada carrossel consome IA paga.{" "}
+              <Link href="/login?de=/" className="font-semibold underline">
+                Entrar
+              </Link>
+            </>
+          ) : pronto ? (
+            "As fotos que você escolheu entram nos cards como fundo. O texto você ajusta no fim."
+          ) : tema.trim().length < 3 ? (
+            "Escreva o tema para liberar a geração."
+          ) : (
+            "Espere a foto terminar de ser preparada."
+          )}
         </p>
       </div>
     </div>
@@ -1243,6 +1298,7 @@ function PassoPronto({
   onGerarImagem,
   onEditar,
   onNovo,
+  logado,
 }: {
   carrossel: CarrosselGerado;
   template: TemplateCarrossel;
@@ -1268,6 +1324,8 @@ function PassoPronto({
   onGerarImagem: (i: number) => void;
   onEditar: (i: number, campo: keyof SlideCarrossel, valor: string) => void;
   onNovo: () => void;
+  /** Sessão válida (W97): imagem por IA também é geração paga. */
+  logado: boolean;
 }) {
   const faixaRef = useRef<HTMLDivElement>(null);
   const slideEmEdicao = editando !== null ? carrossel.slides[editando] : null;
@@ -1613,7 +1671,12 @@ function PassoPronto({
             <button
               type="button"
               onClick={() => onGerarImagem(i)}
-              disabled={gerandoImagem === i}
+              disabled={gerandoImagem === i || !logado}
+              title={
+                logado
+                  ? undefined
+                  : "A imagem por IA é paga por geração — entre na sua conta para liberar."
+              }
               className="mt-2 w-full rounded-lg px-3 py-2 text-[12px] font-semibold disabled:opacity-50"
               style={{ backgroundColor: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA" }}
             >
@@ -1670,6 +1733,7 @@ async function gerarImagem(prompt: string): Promise<string> {
     body: JSON.stringify({ prompt }),
   });
   const dados = (await res.json().catch(() => ({}))) as { jobId?: string; erro?: string };
+  if (res.status === 401) avisarSessaoExpirada();
   if (!res.ok || !dados.jobId) throw new Error(dados.erro ?? "Não consegui iniciar a imagem.");
 
   const prazo = Date.now() + 260_000;

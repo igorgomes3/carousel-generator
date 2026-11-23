@@ -14,13 +14,44 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiJson, garantirSessao, usuarioAtual, type UsuarioCarrossel } from "@/lib/auth/sessao";
+import { garantirSessao, usuarioAtual, type UsuarioCarrossel } from "@/lib/auth/sessao";
 import { Button } from "@/components/ui/button";
 import { NavPrincipal } from "@/components/carrosseis/nav-principal";
 import { Input } from "@/components/ui/input";
-import type { MarcaConta } from "@/lib/providers/document-provider";
 
-const ORG = "org=autoclinic";
+/** Espelha `Marca` em `src/app/api/marca/route.ts`. */
+export interface MarcaConta {
+  nome: string;
+  handle: string;
+  avatar_url: string | null;
+}
+
+/**
+ * A marca agora é do USUÁRIO, no Supabase do próprio carrossel (`/api/marca`).
+ * Era `/api/ac/carrossel/marca?org=autoclinic` — dado da organização no
+ * AutoClinic, que deixou de estar no caminho do carrossel (W97).
+ */
+async function lerMarca(): Promise<MarcaConta> {
+  const res = await fetch("/api/marca", { cache: "no-store" });
+  const dados = (await res.json().catch(() => ({}))) as { marca?: MarcaConta; erro?: string };
+  if (!res.ok || !dados.marca) throw new Error(dados.erro ?? "Falha ao carregar a marca");
+  return dados.marca;
+}
+
+async function gravarMarca(corpo: {
+  marca_nome: string;
+  marca_handle: string;
+  marca_avatar_url: string;
+}): Promise<MarcaConta> {
+  const res = await fetch("/api/marca", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(corpo),
+  });
+  const dados = (await res.json().catch(() => ({}))) as { marca?: MarcaConta; erro?: string };
+  if (!res.ok || !dados.marca) throw new Error(dados.erro ?? "Falha ao salvar a marca");
+  return dados.marca;
+}
 
 /**
  * Mesma regra da API (`normalizarHandle` em `apps/api/src/carrossel.ts`):
@@ -67,11 +98,11 @@ export default function ConfiguracoesPage() {
       }
       if (!cancelado) setUsuario(usuarioAtual());
       try {
-        const r = await apiJson<{ marca: MarcaConta }>(`/carrossel/marca?${ORG}`);
+        const marca = await lerMarca();
         if (cancelado) return;
-        setNome(r.marca?.nome ?? "");
-        setHandle(r.marca?.handle ?? "");
-        setAvatar(r.marca?.avatar_url ?? "");
+        setNome(marca.nome ?? "");
+        setHandle(marca.handle ?? "");
+        setAvatar(marca.avatar_url ?? "");
       } catch (e) {
         if (!cancelado) setErro(e instanceof Error ? e.message : "Falha ao carregar a marca");
       } finally {
@@ -96,17 +127,14 @@ export default function ConfiguracoesPage() {
 
     setEstado("salvando");
     try {
-      const r = await apiJson<{ marca: MarcaConta }>(`/carrossel/marca?${ORG}`, {
-        method: "POST",
-        body: JSON.stringify({
-          marca_nome: marcaNome,
-          marca_handle: normalizado.valor,
-          marca_avatar_url: avatar.trim(),
-        }),
+      const marca = await gravarMarca({
+        marca_nome: marcaNome ?? "",
+        marca_handle: normalizado.valor,
+        marca_avatar_url: avatar.trim(),
       });
-      setNome(r.marca?.nome ?? "");
-      setHandle(r.marca?.handle ?? "");
-      setAvatar(r.marca?.avatar_url ?? "");
+      setNome(marca.nome ?? "");
+      setHandle(marca.handle ?? "");
+      setAvatar(marca.avatar_url ?? "");
       setEstado("salvo");
     } catch (e) {
       setEstado("erro");

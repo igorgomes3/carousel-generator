@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
+import { exigirSessao } from "@/lib/auth/supabase-servidor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,11 +41,17 @@ function temaDoBriefing(b: Briefing): string {
 }
 
 export async function POST(request: NextRequest) {
-  const segredo = process.env.CONTEUDO_INTERNO_TOKEN ?? "";
-  const recebido = request.headers.get("x-interno-token") ?? "";
-  if (!segredo || recebido !== segredo) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-  }
+  /**
+   * Portão de custo (W97): a rota deixou de aceitar `x-interno-token`.
+   *
+   * Antes quem chamava era a API do AutoClinic, com um segredo compartilhado —
+   * ou seja, geração de conteúdo paga por automação, sem dono e sem limite. A
+   * decisão do Igor em 23/11/2026 é que TODA geração de conteúdo exige uma
+   * pessoa logada. Consequência assumida: a fila de conteúdo do AutoClinic não
+   * consegue mais gerar por aqui.
+   */
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
 
   const corpo = (await request.json().catch(() => null)) as
     | { briefing?: Briefing; titulo?: string }

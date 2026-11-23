@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
+import { exigirSessao } from "@/lib/auth/supabase-servidor";
 import { promptDeEmergencia, resolverFormato } from "@/lib/conteudo";
 import { generateCarouselSlides } from "@/lib/langchain";
 import { templatePorId } from "@/lib/templates";
@@ -38,9 +39,11 @@ function lerSlide(slide: { elements?: Elemento[] }): { titulo: string; corpo: st
 }
 
 export async function POST(request: NextRequest) {
-  if (request.cookies.get("ac_sessao")?.value !== "1") {
-    return NextResponse.json({ erro: "Sessão expirada. Entre de novo." }, { status: 401 });
-  }
+  // Portão de custo (W97): geração de texto só com sessão válida no GoTrue do
+  // carrossel. Antes bastava o cookie marcador — forjável, e este é o endpoint
+  // que gasta token de LLM.
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
 
   const corpo = (await request.json().catch(() => null)) as
     | { tema?: string; templateId?: string; slides?: number; nicho?: string; formato?: string }

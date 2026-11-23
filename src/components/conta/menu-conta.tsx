@@ -11,7 +11,7 @@
  *
  * Decisões que valem explicação:
  *
- * - **A identidade carrega sozinha** (`/api/ac/me`), em vez de vir por prop. O
+ * - **A identidade carrega sozinha** (`/api/auth/eu`), em vez de vir por prop. O
  *   mesmo componente entra no estúdio, em "Meus projetos" e onde mais precisar,
  *   sem cada tela ter que buscar a sessão antes de renderizar o chrome.
  * - **No celular só a inicial.** E-mail completo + "Meus projetos" + "Novo" não
@@ -45,12 +45,6 @@ const COR = {
   /** Laranja de ação: branco sobre #F4511E reprova AA; sobre #C2410C dá 5,18:1. */
   acao: "#C2410C",
   perigo: "#B91C1C",
-};
-
-const PAPEL: Record<UsuarioCarrossel["papel"], string> = {
-  owner: "Dono da conta",
-  admin: "Administrador",
-  operador: "Operador",
 };
 
 export interface MenuContaProps {
@@ -191,7 +185,7 @@ export function MenuConta({ usuario: usuarioInicial }: MenuContaProps = {}) {
               {usuario?.email ?? "Conta sem identificação carregada"}
             </p>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: COR.acao }}>
-              {usuario ? PAPEL[usuario.papel] ?? "Conta" : "Sessão ativa"}
+              {usuario ? "Conta do carrossel" : "Sessão ativa"}
             </p>
           </div>
 

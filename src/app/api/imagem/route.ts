@@ -20,6 +20,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
+import { exigirSessao } from "@/lib/auth/supabase-servidor";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -115,9 +117,10 @@ async function gerar(jobId: string, prompt: string, tamanho: string) {
 }
 
 export async function POST(request: NextRequest) {
-  if (request.cookies.get("ac_sessao")?.value !== "1") {
-    return NextResponse.json({ erro: "Sessão expirada. Entre de novo." }, { status: 401 });
-  }
+  // Portão de custo (W97): imagem também exige sessão válida. Este é o endpoint
+  // mais caro do produto — uma capa por IA por card.
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
 
   const corpo = (await request.json().catch(() => null)) as
     | { prompt?: string; tamanho?: string }

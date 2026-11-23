@@ -7,25 +7,29 @@
  * DELETE → apaga o projeto e as imagens dele.
  *
  * Projeto de outro dono responde **404**, não 403: 403 confirmaria que o id
- * existe, e o id não é informação de quem está de fora.
+ * existe, e o id não é informação de quem está de fora. Quem garante isso é a
+ * RLS da tabela `projetos` — a leitura passa com o token do usuário e volta
+ * vazia.
  */
 import { NextRequest, NextResponse } from "next/server";
 
 import { apagarProjeto, idValido, lerProjeto, salvarProjeto } from "@/lib/estudio/armazenamento";
-import { donoAtual } from "@/lib/estudio/dono";
+import { exigirSessao } from "@/lib/auth/supabase-servidor";
 
 export const dynamic = "force-dynamic";
 
 const NAO_ENCONTRADO = "Este projeto não existe mais. Ele pode ter sido apagado.";
 
-export async function GET(_request: NextRequest, ctx: { params: { id: string } }) {
-  const dono = donoAtual();
-  if (!dono || !idValido(ctx.params.id)) {
+export async function GET(request: NextRequest, ctx: { params: { id: string } }) {
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
+
+  if (!idValido(ctx.params.id)) {
     return NextResponse.json({ erro: NAO_ENCONTRADO }, { status: 404 });
   }
 
   try {
-    const projeto = await lerProjeto(dono, ctx.params.id);
+    const projeto = await lerProjeto(portao.sessao, ctx.params.id);
     if (!projeto) return NextResponse.json({ erro: NAO_ENCONTRADO }, { status: 404 });
     return NextResponse.json({ projeto }, { headers: { "cache-control": "no-store" } });
   } catch (erro) {
@@ -38,8 +42,10 @@ export async function GET(_request: NextRequest, ctx: { params: { id: string } }
 }
 
 export async function PATCH(request: NextRequest, ctx: { params: { id: string } }) {
-  const dono = donoAtual();
-  if (!dono || !idValido(ctx.params.id)) {
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
+
+  if (!idValido(ctx.params.id)) {
     return NextResponse.json({ erro: NAO_ENCONTRADO }, { status: 404 });
   }
 
@@ -60,7 +66,7 @@ export async function PATCH(request: NextRequest, ctx: { params: { id: string } 
   };
 
   try {
-    const resultado = await salvarProjeto(dono, ctx.params.id, dados);
+    const resultado = await salvarProjeto(portao.sessao, ctx.params.id, dados);
     if (!resultado.ok) {
       const status = resultado.motivo === "nao_encontrado" ? 404 : 400;
       return NextResponse.json(
@@ -78,14 +84,16 @@ export async function PATCH(request: NextRequest, ctx: { params: { id: string } 
   }
 }
 
-export async function DELETE(_request: NextRequest, ctx: { params: { id: string } }) {
-  const dono = donoAtual();
-  if (!dono || !idValido(ctx.params.id)) {
+export async function DELETE(request: NextRequest, ctx: { params: { id: string } }) {
+  const portao = await exigirSessao(request);
+  if (!portao.ok) return portao.resposta;
+
+  if (!idValido(ctx.params.id)) {
     return NextResponse.json({ erro: NAO_ENCONTRADO }, { status: 404 });
   }
 
   try {
-    const apagou = await apagarProjeto(dono, ctx.params.id);
+    const apagou = await apagarProjeto(portao.sessao, ctx.params.id);
     if (!apagou) return NextResponse.json({ erro: NAO_ENCONTRADO }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (erro) {

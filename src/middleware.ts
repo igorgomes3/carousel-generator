@@ -1,26 +1,39 @@
 /**
  * Porta de entrada do carrossel.
  *
- * O middleware só verifica a PRESENÇA do marcador de sessão — cookie não é
- * verificável aqui sem a chave, e forjar o cookie não dá acesso a dado nenhum:
- * a API responde 401 em cada chamada e a tela cai no login. O que este arquivo
- * evita é só o caso feio: abrir o editor vazio para quem não tem sessão.
+ * Duas decisões moram aqui:
+ *
+ * 1. **Nada de geração sem sessão.** A partir da W97 (decisão do Igor em
+ *    23/11/2026) o login é obrigatório antes de qualquer geração de conteúdo —
+ *    texto e imagem custam dinheiro e anônimo não paga. Navegação sem sessão vai
+ *    para `/login?de=<caminho>`; rota de API sem sessão responde **401 JSON**,
+ *    porque um `fetch` que recebe redirect de página HTML vira
+ *    `Unexpected token '<'` na tela em vez de "entre de novo".
+ * 2. **O middleware não é a autorização.** Ele só olha a PRESENÇA do marcador
+ *    (`ac_sessao`) ou de um header `Authorization` — validar JWT aqui custaria
+ *    um round-trip por asset. Quem autoriza de verdade é cada rota: valida o
+ *    token no GoTrue e usa o token do usuário no PostgREST (RLS). Forjar o
+ *    marcador não abre nada; só evita o redirect feio.
  */
 import { NextRequest, NextResponse } from "next/server";
 
 /** Rotas que não exigem sessão: login, link público e assets do Next. */
 const LIVRES = [
   /^\/login/,
+  // Link público: o token é a credencial, e quem abre não tem conta.
   /^\/p\//,
   /^\/_next\//,
   /^\/favicon/,
+  // /login, /refresh, /eu (responde 401 sozinho), /sair.
   /^\/api\/auth\//,
-  /^\/api\/ac\//,
+  // Proxy de imagem pública da exportação: sem credencial, sem custo.
   /^\/api\/proxy/,
-  // Geração da fila de conteúdo: rota interna, autenticada por segredo próprio
-  // (x-interno-token). Se dependesse de sessão, o cron não conseguiria chamar.
-  /^\/api\/conteudo\//,
 ];
+
+/** Rotas de API: 401 JSON em vez de redirect. */
+function ehApi(pathname: string): boolean {
+  return pathname.startsWith("/api/");
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -45,15 +58,27 @@ export function middleware(request: NextRequest) {
 
   if (LIVRES.some((r) => r.test(pathname))) return NextResponse.next();
 
-  const temCookie = request.cookies.get("ac_sessao")?.value === "1";
-  if (temCookie) return NextResponse.next();
+  const temMarcador = request.cookies.get("ac_sessao")?.value === "1";
+  const temHeader = (request.headers.get("authorization") ?? "")
+    .toLowerCase()
+    .startsWith("bearer ");
+  if (temMarcador || temHeader) return NextResponse.next();
+
+  if (ehApi(pathname)) {
+    return NextResponse.json(
+      {
+        erro: "Entre na sua conta para gerar. A geração usa IA e é exclusiva de quem está logado.",
+        codigo: "sem_sessao",
+      },
+      { status: 401, headers: { "cache-control": "no-store" } },
+    );
+  }
 
   const url = request.nextUrl.clone();
   url.pathname = "/login";
   // `de` é sempre o caminho de origem, inclusive `/` — o critério 1 da §8.1
   // pede `301`-like (`/login?de=/`) também na raiz, para quem entra por um
-  // atalho e é devolvido ao lugar certo depois de entrar. Antes a raiz ia sem
-  // `de` e a pessoa caía na tela inicial errada depois do login.
+  // atalho e é devolvido ao lugar certo depois de entrar.
   url.search = `?de=${pathname === "/" ? "/" : encodeURIComponent(pathname)}`;
   return NextResponse.redirect(url);
 }

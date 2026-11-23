@@ -4,6 +4,11 @@
  * As capas saem da IA em base64; no disco viram arquivo. Esta rota serve esses
  * arquivos para o `Cartao` (prévia) e para o `html-to-image` (PNG final).
  *
+ * Autenticação por cookie: `<img src>` não manda header `Authorization`, então
+ * o token da sessão precisa estar no cookie `cr_sessao` (httpOnly, definido no
+ * login). Sem sessão, 404 — não 401, porque um `<img>` quebrado só precisa não
+ * mostrar bytes; o texto do projeto é que explica o estado.
+ *
  * `immutable` porque o nome carrega `?v=<versão do projeto>`: quando a pessoa
  * troca a capa, o caminho muda e o navegador não serve a imagem velha.
  */
@@ -11,18 +16,20 @@ import { promises as fs } from "node:fs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { TIPOS_POR_EXTENSAO, caminhoDoArquivo } from "@/lib/estudio/armazenamento";
-import { donoAtual } from "@/lib/estudio/dono";
+import { sessaoDoPedido } from "@/lib/auth/supabase-servidor";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   ctx: { params: { id: string; nome: string } },
 ) {
-  const dono = donoAtual();
-  if (!dono) return new NextResponse(null, { status: 404 });
+  const sessao = await sessaoDoPedido(request).catch(() => null);
+  if (!sessao) return new NextResponse(null, { status: 404 });
 
-  const caminho = await caminhoDoArquivo(dono, ctx.params.id, ctx.params.nome);
+  const caminho = await caminhoDoArquivo(sessao, ctx.params.id, ctx.params.nome).catch(
+    () => null,
+  );
   if (!caminho) return new NextResponse(null, { status: 404 });
 
   try {

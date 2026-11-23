@@ -1,44 +1,34 @@
 /**
  * Link público do carrossel: `/p/<token>`.
  *
- * Busca no servidor (a API é interna, não precisa passar pelo navegador) e
- * renderiza somente leitura. Token inválido ou revogado cai em 404 — revogar tem
- * que valer imediatamente, não "no próximo login".
+ * Muda nesta versão (W97): o projeto vem do banco do **próprio carrossel**
+ * (tabela `projetos`, coluna `token_publico`), não mais da API do AutoClinic.
+ * Usa `service_role` no servidor porque quem abre o link não tem conta — e é
+ * exatamente por isso que o token é um UUID opaco: ele É a credencial. Token
+ * inválido, de projeto apagado ou de outro formato cai em 404.
  */
 import { notFound } from "next/navigation";
-import { DocumentProvider } from "@/lib/providers/document-provider";
-import { VisualizadorPublico } from "@/components/visualizador-publico";
 
-const API_URL = process.env.AUTOCLINIC_API_URL ?? "http://100.87.192.48:8097";
+import { GaleriaPublica } from "@/components/publico/galeria-publica";
+import { projetoPorToken } from "@/lib/estudio/armazenamento";
 
 export const dynamic = "force-dynamic";
 
-async function buscarProjeto(token: string) {
-  const res = await fetch(`${API_URL}/api/publico/carrossel/${token}`, {
-    cache: "no-store",
-  }).catch(() => null);
-  if (!res || !res.ok) return null;
-  const dados = (await res.json().catch(() => null)) as
-    | { carrossel?: { titulo: string; documento: unknown; atualizado_em?: string } }
-    | null;
-  return dados?.carrossel ?? null;
-}
-
 export default async function PaginaPublica({ params }: { params: { token: string } }) {
-  const projeto = await buscarProjeto(params.token);
+  const projeto = await projetoPorToken(params.token).catch(() => null);
   if (!projeto) notFound();
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <header className="border-b bg-card">
-        <div className="mx-auto max-w-3xl px-4 h-14 flex items-center justify-between">
-          <span className="font-semibold tracking-tight truncate">{projeto.titulo}</span>
-          <span className="text-xs text-muted-foreground">carrossel compartilhado</span>
+    <main className="min-h-screen bg-[#FAF9F7]">
+      <header className="border-b border-[#E7E5E4] bg-white">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+          <span className="truncate font-semibold tracking-tight text-[#1C1917]">
+            {projeto.nome}
+          </span>
+          <span className="text-[12px] text-[#78716C]">carrossel compartilhado</span>
         </div>
       </header>
-      <DocumentProvider documentoInicial={projeto.documento}>
-        <VisualizadorPublico />
-      </DocumentProvider>
+      <GaleriaPublica projeto={projeto} />
     </main>
   );
 }
