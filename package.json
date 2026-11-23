@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:visual": "playwright test",
-    "test:lib": "tsx src/lib/estudio/cards.test.ts && tsx src/lib/estudio/pautas-salvas.test.ts && tsx src/lib/estudio/formatos.test.ts && tsx src/lib/conteudo.test.ts && tsx src/lib/lint-carrossel.test.ts && tsx src/lib/gerar-documento.test.ts",
+    "test:lib": "tsx src/lib/estudio/cards.test.ts && tsx src/lib/estudio/pautas-salvas.test.ts && tsx src/lib/estudio/formatos.test.ts && tsx src/lib/conteudo.test.ts && tsx src/lib/lint-carrossel.test.ts && tsx src/lib/gerar-documento.test.ts && tsx src/lib/auth/mensagens.test.ts",
     "test:visual:update": "UPDATE_BASELINE=1 playwright test",
     "test:visual:report": "playwright show-report",
     "tokens": "node scripts/build-tokens.mjs",

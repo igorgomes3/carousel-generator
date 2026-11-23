@@ -1,0 +1,138 @@
+{
+  "a11y": {
+    "images_without_alt": 0,
+    "landmarks": {},
+    "lang": "",
+    "unnamed_controls": 0,
+    "unnamed_examples": []
+  },
+  "assets": {
+    "background_images": [],
+    "fonts": [],
+    "images": [],
+    "inline_scripts": 13,
+    "requests": [
+      {
+        "bytes": 300,
+        "type": "link",
+        "url": "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/webpack-e5aa8c94d2cedc99.js"
+      },
+      {
+        "bytes": 53665,
+        "type": "script",
+        "url": "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/396e64c1-ef0a9a761ec961c4.js"
+      },
+      {
+        "bytes": 762,
+        "type": "script",
+        "url": "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/main-app-9d7fbcb3f9f6dce0.js"
+      },
+      {
+        "bytes": 27081,
+        "type": "script",
+        "url": "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/691-fc7882bf4d3f2839.js"
+      },
+      {
+        "bytes": 15706,
+        "type": "other",
+        "url": "https://carrossel.149-56-214-54.sslip.io/favicon.ico"
+      }
+    ],
+    "scripts": [
+      "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/396e64c1-ef0a9a761ec961c4.js",
+      "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/691-fc7882bf4d3f2839.js",
+      "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/main-app-9d7fbcb3f9f6dce0.js",
+      "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+      "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/webpack-e5aa8c94d2cedc99.js"
+    ],
+    "stylesheets": []
+  },
+  "breakpoints": [],
+  "design": {
+    "backgrounds": [],
+    "css_variables": {},
+    "font_faces": [],
+    "font_sizes": [],
+    "font_weights": [],
+    "fonts": [],
+    "max_widths": [],
+    "radii": [],
+    "shadows": [],
+    "spacing": [],
+    "text_colors": []
+  },
+  "forms": [],
+  "headings": [],
+  "health": {
+    "errors": [],
+    "failed_requests": [
+      {
+        "status": 400,
+        "type": "Script",
+        "url": "https://carrossel.149-56-214-54.sslip.io/_next/static/chunks/webpack-e5aa8c94d2cedc99.js"
+      }
+    ]
+  },
+  "lang": "",
+  "layouts": [
+    {
+      "blocks": [],
+      "page_h": 900,
+      "page_w": 390,
+      "type": {
+        "body": 0,
+        "h1": 0,
+        "h2": 0,
+        "h3": 0
+      },
+      "width": 390
+    },
+    {
+      "blocks": [],
+      "page_h": 900,
+      "page_w": 768,
+      "type": {
+        "body": 0,
+        "h1": 0,
+        "h2": 0,
+        "h3": 0
+      },
+      "width": 768
+    },
+    {
+      "blocks": [],
+      "page_h": 900,
+      "page_w": 1440,
+      "type": {
+        "body": 0,
+        "h1": 0,
+        "h2": 0,
+        "h3": 0
+      },
+      "width": 1440
+    }
+  ],
+  "links": [],
+  "meta": {
+    "description": "An open source carousel maker for LinkedIn",
+    "icons": [
+      "https://carrossel.149-56-214-54.sslip.io/favicon.ico"
+    ],
+    "og_image": "http://100.87.192.48:8099/opengraph-image.png?5b8234afa284166f",
+    "og_title": "Carousel Generator",
+    "theme_color": ""
+  },
+  "outline": [],
+  "page": {
+    "h": 900,
+    "w": 390
+  },
+  "text": "",
+  "title": "Carousel Generator",
+  "unreadable_stylesheets": 0,
+  "url": "https://carrossel.149-56-214-54.sslip.io/login?de=/",
+  "viewport": {
+    "h": 900,
+    "w": 390
+  }
+}

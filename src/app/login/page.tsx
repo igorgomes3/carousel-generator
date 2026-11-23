@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { entrar } from "@/lib/auth/sessao";
+import { entrar, destinoSeguro } from "@/lib/auth/sessao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,13 @@ import { Label } from "@/components/ui/label";
 export default function LoginPage() {
   const router = useRouter();
   const params = useSearchParams();
-  const destino = params.get("de") || "/";
+  // `de` vem da URL: só caminho interno (ver `destinoSeguro`). Sem isso, um link
+  // /login?de=//outro-site levaria a pessoa recém-logada para fora do produto.
+  const destino = destinoSeguro(params.get("de"));
+  // Dois motivos para a pessoa estar aqui de novo, cada um com sua frase: sessão
+  // que venceu no meio do trabalho, e saída pedida por ela mesma.
+  const expirou = params.get("expirado") === "1";
+  const saiu = params.get("saiu") === "1";
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -31,6 +37,7 @@ export default function LoginPage() {
     try {
       await entrar(email, senha);
       router.replace(destino);
+      router.refresh();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível entrar.");
     } finally {
@@ -47,6 +54,28 @@ export default function LoginPage() {
             Entre com a mesma conta do painel do AutoClinic.
           </p>
         </div>
+
+        {/* Estado explicado, não silêncio: quem foi deslogado no meio do trabalho
+            precisa entender por que a tela voltou para cá. */}
+        {expirou && !erro ? (
+          <p
+            role="status"
+            className="mb-4 rounded-lg border px-3 py-2 text-sm"
+            style={{ backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#92400E" }}
+          >
+            Sua sessão expirou. Entre de novo para continuar
+            {destino !== "/" ? " de onde parou" : ""} — o que você já tinha salvo continua lá.
+          </p>
+        ) : null}
+        {saiu && !erro ? (
+          <p
+            role="status"
+            className="mb-4 rounded-lg border px-3 py-2 text-sm"
+            style={{ backgroundColor: "#F0FDF4", borderColor: "#BBF7D0", color: "#166534" }}
+          >
+            Você saiu da sua conta. Pode fechar esta aba com segurança.
+          </p>
+        ) : null}
 
         <form onSubmit={enviar} className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
           <div className="space-y-1.5">

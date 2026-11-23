@@ -14,7 +14,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiJson, garantirSessao } from "@/lib/auth/sessao";
+import { apiJson, garantirSessao, usuarioAtual, type UsuarioCarrossel } from "@/lib/auth/sessao";
 import { Button } from "@/components/ui/button";
 import { NavPrincipal } from "@/components/carrosseis/nav-principal";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,10 @@ export default function ConfiguracoesPage() {
   const [estado, setEstado] = useState<Estado>("ocioso");
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  // A barra mostrava e-mail nenhum porque esta tela passava `usuario={null}` de
+  // propósito ("a tela é da fase 3"). Com o menu da conta (issue #19), quem está
+  // logado passa a ser visível em todas as telas do produto.
+  const [usuario, setUsuario] = useState<UsuarioCarrossel | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -61,6 +65,7 @@ export default function ConfiguracoesPage() {
         router.replace("/login?de=/configuracoes");
         return;
       }
+      if (!cancelado) setUsuario(usuarioAtual());
       try {
         const r = await apiJson<{ marca: MarcaConta }>(`/carrossel/marca?${ORG}`);
         if (cancelado) return;
@@ -114,7 +119,7 @@ export default function ConfiguracoesPage() {
       {/* Só a navegação muda nesta tela na fase 1: a barra própria apontava
           para /projetos e dizia "Galeria", rota e vocabulário que deixaram de
           existir. O conteúdo da tela é o da fase 3. */}
-      <NavPrincipal usuario={null} />
+      <NavPrincipal usuario={usuario} />
 
       <div className="mx-auto max-w-[680px] px-4 py-6">
         <h1 className="text-title font-semibold tracking-[-0.01em]">Configurações</h1>

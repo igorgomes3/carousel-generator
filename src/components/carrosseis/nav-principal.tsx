@@ -55,7 +55,11 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioCarrossel | null }) 
 
   function aoSair() {
     sair();
-    router.replace("/login");
+    // `replace` e não `push`: voltar pelo botão do navegador não pode reabrir a
+    // tela de quem acabou de sair. `?saiu=1` faz o login confirmar a saída em vez
+    // de mostrar o formulário mudo (issue #19).
+    router.replace("/login?saiu=1");
+    router.refresh();
   }
 
   return (

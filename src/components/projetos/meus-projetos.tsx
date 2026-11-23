@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 import { Cartao } from "@/components/estudio/cartao";
+import { MenuConta } from "@/components/conta/menu-conta";
 import { templatePorId } from "@/lib/templates";
 import { contagemDeCards, quandoSalvo, type ResumoProjeto } from "@/lib/estudio/projetos";
 
@@ -231,13 +232,18 @@ function Cabecalho() {
             Carrossel<span style={{ color: COR.laranja }}>IA</span>
           </span>
         </a>
-        <a
-          href="/"
-          className="rounded-lg px-3 py-2 text-[13px] font-semibold"
-          style={{ color: COR.tinta, border: `1px solid ${COR.borda}`, backgroundColor: "#fff" }}
-        >
-          Ir ao estúdio
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href="/"
+            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
+            style={{ color: COR.tinta, border: `1px solid ${COR.borda}`, backgroundColor: "#fff" }}
+          >
+            Ir ao estúdio
+          </a>
+          {/* Mesmo menu do estúdio: a identidade e o "Sair" não podem existir
+              numa tela e faltar na outra (issue #19). */}
+          <MenuConta />
+        </div>
       </div>
     </header>
   );
