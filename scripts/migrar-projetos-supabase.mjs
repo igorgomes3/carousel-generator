@@ -1,128 +1,182 @@
 #!/usr/bin/env node
 /**
- * Migra os projetos do estúdio do disco (`data/estudio/projetos/<id>/projeto.json`)
- * para a tabela `projetos` do Supabase dedicado do carrossel.
+ * Copia os projetos salvos de um projeto Supabase para outro — hoje
+ * `carrossel-ia` (origem/rollback) → `carroseia-prod` (definitivo).
  *
- * Por que precisa: até a W97 o "dono" de um projeto era um UUID de cookie
- * (`estudio_dono`) — não havia usuário. Agora o dono é `auth.uid()` do GoTrue
- * novo, então cada projeto do disco tem de ser amarrado a uma conta real. A
- * conta usada é a de QA (`qa.owner@autoclinic.com.br`), criada no projeto novo
- * para isso: as duas linhas vieram de navegadores anônimos de teste, não de
- * cliente pagante.
+ * Por que existe: a infraestrutura nasceu num projeto de teste e foi
+ * reconstruída no projeto definitivo (org CarroseIA, sa-east-1). O que não pode
+ * se perder no caminho é o trabalho das pessoas: `id`, `nome`, `documento`
+ * (cards, tema, template, estilo, @), datas e `token_publico` (os links
+ * `/p/<token>` já compartilhados continuam valendo).
  *
- * IDEMPOTENTE: o `id` do projeto é preservado e o upsert é por `id`
- * (`Prefer: resolution=merge-duplicates`). Rodar duas vezes atualiza as mesmas
- * duas linhas; rodar dez não cria dez.
+ * ## Como escreve: como PESSOA (`authenticated`), não como `service_role`
+ *
+ * O `service_role` do projeto novo **não tem GRANT** nas tabelas criadas por SQL
+ * pelo Management API — o PostgREST responde `42501 permission denied`. Quem tem
+ * GRANT é `authenticated`, e com RLS ligada. Então a cópia roda com o token de
+ * login do dono de QA dos dois projetos:
+ *
+ *   - na origem, lê as linhas dele mesmo (RLS de SELECT);
+ *   - no destino, insere/atualiza linhas com `auth_user_id` igual ao `auth.uid()`
+ *     dele (as políticas de INSERT/UPDATE exigem exatamente isso).
+ *
+ * Isso é melhor que "pedir um GRANT": o caminho da migração passa a ser o MESMO
+ * caminho que o app usa em produção — se funcionar aqui, funciona na tela.
+ *
+ * ## Regras
+ *
+ * - **Idempotente por `id`** (`on_conflict=id`, `resolution=merge-duplicates`):
+ *   rodar duas vezes atualiza as mesmas linhas, nunca duplica.
+ * - **O dono muda de identidade:** `auth_user_id` é FK para `auth.users`, então o
+ *   id do projeto antigo não existiria no novo. As linhas passam a pertencer ao
+ *   usuário de QA do destino (`CARROSSEL_PROD_QA_USER_ID`).
+ * - **Nada é apagado na origem** — ela é o rollback.
+ * - **Nenhum segredo em argv ou log.**
  *
  * Uso:
- *   node scripts/migrar-projetos-supabase.mjs            # aplica
+ *   node scripts/migrar-projetos-supabase.mjs            # copia origem → destino
  *   node scripts/migrar-projetos-supabase.mjs --dry-run  # só mostra o plano
- *
- * Credenciais: lê `/root/.ctxswap/contexts/carrossel/creds.json` (600) —
- * `CARROSSEL_SUPABASE_URL`, `CARROSSEL_SUPABASE_SERVICE_ROLE_KEY`,
- * `CARROSSEL_QA_USER_ID`. Nada de segredo em argumento de linha de comando (vai
- * para o histórico do shell) e nada de segredo impresso.
+ *   node scripts/migrar-projetos-supabase.mjs --conferir # relê o destino e prova que abre
  */
-import { readFile, readdir } from "node:fs/promises";
-import path from "node:path";
+import { readFile } from "node:fs/promises";
 
-const RAIZ = path.resolve(process.cwd(), "data", "estudio", "projetos");
 const CREDS = process.env.CARROSSEL_CREDS ?? "/root/.ctxswap/contexts/carrossel/creds.json";
 const DRY = process.argv.includes("--dry-run");
+const SO_CONFERIR = process.argv.includes("--conferir");
 
-async function credenciais() {
-  const json = JSON.parse(await readFile(CREDS, "utf8"));
-  const env = json.env ?? {};
-  const faltando = [
-    "CARROSSEL_SUPABASE_URL",
-    "CARROSSEL_SUPABASE_SERVICE_ROLE_KEY",
-    "CARROSSEL_QA_USER_ID",
-  ].filter((k) => !env[k]);
-  if (faltando.length) throw new Error(`faltam em ${CREDS}: ${faltando.join(", ")}`);
+const env = JSON.parse(await readFile(CREDS, "utf8")).env ?? {};
+
+function exigir(campos) {
+  const faltando = campos.filter((c) => !env[c]);
+  if (faltando.length) throw new Error(`faltam no cofre: ${faltando.join(", ")}`);
+}
+
+function alvo(prefixo, usuarioChave) {
   return {
-    url: env.CARROSSEL_SUPABASE_URL.replace(/\/$/, ""),
-    chave: env.CARROSSEL_SUPABASE_SERVICE_ROLE_KEY,
-    usuario: env.CARROSSEL_QA_USER_ID,
+    nome: prefixo.replace(/_$/, ""),
+    url: String(env[`${prefixo}URL`]).replace(/\/$/, ""),
+    anon: env[`${prefixo}ANON_KEY`],
+    usuario: env[usuarioChave],
   };
 }
 
-async function projetosDoDisco() {
-  const entradas = await readdir(RAIZ, { withFileTypes: true }).catch(() => []);
-  const saida = [];
-  for (const entrada of entradas) {
-    if (!entrada.isDirectory() || entrada.name.startsWith(".tmp-")) continue;
-    const arquivo = path.join(RAIZ, entrada.name, "projeto.json");
-    try {
-      const dados = JSON.parse(await readFile(arquivo, "utf8"));
-      if (!dados?.id || !Array.isArray(dados.slides)) continue;
-      saida.push({ arquivo, dados });
-    } catch {
-      /* projeto ilegível: não é migrável, e o disco continua sendo a verdade */
-    }
+exigir([
+  "CARROSSEL_SUPABASE_URL",
+  "CARROSSEL_SUPABASE_ANON_KEY",
+  "CARROSSEL_PROD_URL",
+  "CARROSSEL_PROD_ANON_KEY",
+  "CARROSSEL_PROD_QA_USER_ID",
+  "CARROSSEL_QA_EMAIL",
+  "CARROSSEL_QA_PASSWORD",
+]);
+
+const origem = alvo("CARROSSEL_SUPABASE_", "CARROSSEL_QA_USER_ID");
+const destino = alvo("CARROSSEL_PROD_", "CARROSSEL_PROD_QA_USER_ID");
+
+/** Login por e-mail/senha no GoTrue do projeto. A mesma conta existe nos dois. */
+async function entrar(base) {
+  const res = await fetch(`${base.url}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: base.anon, "content-type": "application/json" },
+    body: JSON.stringify({ email: env.CARROSSEL_QA_EMAIL, password: env.CARROSSEL_QA_PASSWORD }),
+  });
+  const dados = await res.json().catch(() => ({}));
+  if (!res.ok || !dados.access_token) {
+    throw new Error(`login em ${base.nome} falhou: HTTP ${res.status}`);
   }
-  return saida;
+  return { token: dados.access_token, usuario: dados.user?.id ?? null };
 }
 
-function documentoDe(dados) {
-  // O `dono` (UUID de cookie) sai: não existe mais esse dono. O resto é o
-  // contrato `ProjetoSalvo` que o estúdio lê.
-  const { dono: _dono, ...resto } = dados;
-  return resto;
+async function rest(base, token, caminho, init = {}) {
+  const res = await fetch(`${base.url}/rest/v1/${caminho}`, {
+    ...init,
+    headers: {
+      apikey: base.anon,
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+  const texto = await res.text();
+  let dados = null;
+  try {
+    dados = texto ? JSON.parse(texto) : null;
+  } catch {
+    dados = null;
+  }
+  return { ok: res.ok, status: res.status, dados, texto };
+}
+
+async function conferir(tokenDestino, ids) {
+  const r = await rest(destino, tokenDestino, "projetos?select=id,nome,auth_user_id,token_publico,documento&order=criado_em.asc");
+  if (!r.ok) throw new Error(`leitura do destino: HTTP ${r.status} ${r.texto.slice(0, 200)}`);
+  const linhas = r.dados ?? [];
+  console.log(`\ndestino: ${linhas.length} projeto(s)`);
+  for (const l of linhas) {
+    const cards = Array.isArray(l.documento?.slides) ? l.documento.slides.length : 0;
+    const migrado = !ids || ids.includes(l.id) ? "migrado" : "outro";
+    console.log(`  ${l.id} | ${migrado} | ${cards} cards | dono ${l.auth_user_id} | token ${l.token_publico} | ${l.nome}`);
+  }
+
+  // A prova que importa: abrir cada um pelo id, com o token do dono (RLS ligada).
+  for (const linha of linhas) {
+    const um = await rest(destino, tokenDestino, `projetos?id=eq.${linha.id}&select=id,nome`);
+    const abriu = Array.isArray(um.dados) && um.dados.length === 1;
+    console.log(`  abre ${linha.id}: HTTP ${um.status} ${abriu ? "ok" : "NÃO ENCONTRADO"}`);
+  }
+  return linhas;
 }
 
 async function main() {
-  const { url, chave, usuario } = await credenciais();
-  const projetos = await projetosDoDisco();
-  console.log(`projetos no disco: ${projetos.length} (destino: usuário QA ${usuario})`);
+  const sessaoOrigem = await entrar(origem);
+  const sessaoDestino = await entrar(destino);
+  console.log(`origem ${origem.url}: login HTTP ok (usuário ${sessaoOrigem.usuario})`);
+  console.log(`destino ${destino.url}: login HTTP ok (usuário ${sessaoDestino.usuario})`);
 
-  const ids = [];
-  for (const { arquivo, dados } of projetos) {
-    const documento = documentoDe(dados);
-    const linha = {
-      id: dados.id,
-      auth_user_id: usuario,
-      nome: dados.nome ?? "Carrossel sem título",
-      documento,
+  if (sessaoDestino.usuario !== destino.usuario) {
+    throw new Error(
+      `o login do destino é ${sessaoDestino.usuario} mas o cofre diz ${destino.usuario} — não vou gravar com dono trocado`,
+    );
+  }
+
+  if (SO_CONFERIR) {
+    await conferir(sessaoDestino.token);
+    return;
+  }
+
+  const r = await rest(origem, sessaoOrigem.token, "projetos?select=*&order=criado_em.asc");
+  if (!r.ok) throw new Error(`leitura da origem: HTTP ${r.status} ${r.texto.slice(0, 200)}`);
+  const linhas = r.dados ?? [];
+  const ids = linhas.map((l) => l.id);
+  console.log(`origem: ${linhas.length} projeto(s), dono ${sessaoOrigem.usuario}`);
+
+  for (const linha of linhas) {
+    const registro = {
+      id: linha.id,
+      auth_user_id: destino.usuario,
+      nome: linha.nome,
+      documento: linha.documento,
+      // Preservar o token mantém válidos os links `/p/<token>` já enviados.
+      token_publico: linha.token_publico,
+      criado_em: linha.criado_em,
+      atualizado_em: linha.atualizado_em,
     };
-    ids.push(dados.id);
 
     if (DRY) {
-      console.log(`[dry-run] ${path.relative(process.cwd(), arquivo)} → id ${dados.id} (${dados.slides.length} cards)`);
+      console.log(`[dry-run] ${linha.id} → ${destino.usuario} (${linha.documento?.slides?.length ?? 0} cards) ${linha.nome}`);
       continue;
     }
 
-    const res = await fetch(`${url}/rest/v1/projetos?on_conflict=id`, {
+    const g = await rest(destino, sessaoDestino.token, "projetos?on_conflict=id", {
       method: "POST",
-      headers: {
-        apikey: chave,
-        authorization: `Bearer ${chave}`,
-        "content-type": "application/json",
-        // merge-duplicates = upsert por id; sem isto o segundo run dá 409.
-        prefer: "resolution=merge-duplicates,return=representation",
-      },
-      body: JSON.stringify(linha),
+      headers: { prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify(registro),
     });
-
-    const corpo = await res.text();
-    if (!res.ok) {
-      throw new Error(`falha ao gravar ${dados.id}: HTTP ${res.status} ${corpo.slice(0, 300)}`);
-    }
-    console.log(`ok ${dados.id} ← ${path.relative(process.cwd(), arquivo)} (${dados.slides.length} cards)`);
+    if (!g.ok) throw new Error(`gravação de ${linha.id}: HTTP ${g.status} ${g.texto.slice(0, 300)}`);
+    console.log(`ok ${linha.id} (${linha.documento?.slides?.length ?? 0} cards) ${linha.nome}`);
   }
 
-  if (DRY) return;
-
-  // Prova de idempotência e de integridade: conta linhas e ids migrados.
-  const conf = await fetch(
-    `${url}/rest/v1/projetos?select=id,nome,auth_user_id,token_publico&order=criado_em.asc`,
-    { headers: { apikey: chave, authorization: `Bearer ${chave}` } },
-  );
-  const linhas = await conf.json();
-  console.log(`linhas na tabela agora: ${Array.isArray(linhas) ? linhas.length : "?"}`);
-  for (const l of linhas ?? []) {
-    const migrado = ids.includes(l.id) ? "migrado" : "outro";
-    console.log(`  ${l.id} | ${migrado} | dono ${l.auth_user_id} | token ${l.token_publico} | ${l.nome}`);
-  }
+  if (!DRY) await conferir(sessaoDestino.token, ids);
 }
 
 main().catch((erro) => {

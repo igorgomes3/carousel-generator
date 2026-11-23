@@ -13,7 +13,7 @@
  *   4. OUTRO navegador (contexto novo, storage zerado) faz login e vê o projeto
  *      em `/projetos` — é a prova de que o dono é a conta e não o cookie.
  *   5. NENHUMA requisição saiu para o AutoClinic: nem `:8097`, nem
- *      `autoclinic.*`, nem `/api/ac/`. O log de rede é coletado nos dois
+ *      o host do auth antigo, nem `/api/ac/`. O log de rede é coletado nos dois
  *      contextos e impresso no fim.
  *
  * Custo: a geração usa um template SEM capa por IA (`full-texto`), então o run
@@ -67,10 +67,13 @@ function espiao(contexto, rotulo) {
 }
 
 const PROIBIDOS = [
-  { padrao: ":8097", motivo: "API do AutoClinic" },
-  { padrao: "/api/ac/", motivo: "proxy /api/ac do AutoClinic" },
-  { padrao: "autoclinic.149-56-214-54", motivo: "host do auth do AutoClinic" },
-  { padrao: "nvmsfkpirobmupadgfcq", motivo: "projeto Supabase antigo do Thor" },
+  { padrao: ":8097", motivo: "API do produto anterior" },
+  { padrao: "/api/ac/", motivo: "proxy /api/ac removido" },
+  { padrao: "autoclinic.149-56-214-54", motivo: "host do auth antigo" },
+  // O projeto Supabase de teste saiu do caminho: nada no app deve falar com ele.
+  // (Os dois sinalizadores cobrem URL e nome, caso alguém hardcode um dos dois.)
+  { padrao: "sjlcyghpogetolzuoziy", motivo: "projeto Supabase ANTIGO (rollback, não produção)" },
+  { padrao: "nvmsfkpirobmupadgfcq", motivo: "projeto Supabase ainda mais antigo" },
 ];
 
 await mkdir(SHOTS, { recursive: true });
