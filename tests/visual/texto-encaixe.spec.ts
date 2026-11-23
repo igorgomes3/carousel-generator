@@ -101,6 +101,24 @@ async function preparar(page: Page) {
     }
     return r.fulfill({ json: {} });
   });
+  /**
+   * Sessão: a camada de auth da main (W97) resolve identidade em `/api/auth/eu`,
+   * que devolve `{ usuario }`. Mock só de `access_token` deixava a tela em
+   * "deslogado" e o wizard nunca abria — o sintoma era `locator.click` esperando
+   * o botão do template para sempre.
+   */
+  await page.route("**/api/auth/eu", (r) =>
+    r.fulfill({ json: {
+        usuario: {
+          id: "u1",
+          email: "ana@autoclinic.com",
+          nome: "Ana Prado",
+          papel: "admin",
+          organization_id: "org-autoclinic",
+          deve_trocar_senha: false,
+        },
+      } }),
+  );
   await page.route("**/api/auth/**", (r) =>
     r.fulfill({ json: { access_token: "token-de-teste", refresh_token: "refresh-de-teste" } }),
   );
