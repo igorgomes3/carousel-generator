@@ -12,6 +12,15 @@
 const CHAVE_REFRESH = "ac_refresh";
 const COOKIE_SESSAO = "ac_sessao";
 
+/** Disparado quando a sessão não existe mais do lado do servidor. */
+export const EVENTO_SESSAO_EXPIRADA = "ac:sessao-expirada";
+/** Disparado quando o auth não respondeu — a sessão continua válida. */
+export const EVENTO_AUTH_INDISPONIVEL = "ac:auth-indisponivel";
+
+function avisar(evento: string) {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(evento));
+}
+
 export interface UsuarioCarrossel {
   id: string;
   email: string;
@@ -21,9 +30,20 @@ export interface UsuarioCarrossel {
   deve_trocar_senha: boolean;
 }
 
+/**
+ * Resultado de uma tentativa de renovação.
+ *
+ * - `ok`: access token novo em mãos.
+ * - `sessao-invalida`: o auth recusou o refresh (vencido/revogado). Só aqui a
+ *   sessão local deve ser apagada.
+ * - `indisponivel`: o auth não respondeu (rede, 5xx, 502 do nosso BFF). A sessão
+ *   continua válida; a tela avisa e a pessoa tenta de novo.
+ */
+export type ResultadoRenovacao = "ok" | "sessao-invalida" | "indisponivel";
+
 let accessToken: string | null = null;
 let usuario: UsuarioCarrossel | null = null;
-let renovando: Promise<boolean> | null = null;
+let renovando: Promise<ResultadoRenovacao> | null = null;
 
 function guardarCookie(nome: string, valor: string, dias: number) {
   const expira = new Date(Date.now() + dias * 86_400_000).toUTCString();
@@ -50,7 +70,9 @@ export async function entrar(email: string, senha: string): Promise<void> {
     refresh_token?: string;
   };
   if (!res.ok || !dados.access_token || !dados.refresh_token) {
-    throw new Error(dados.erro ?? "Não foi possível entrar.");
+    // A frase já vem pronta em português do route handler (`mensagens.ts`); o
+    // fallback cobre o caso de o servidor responder algo que não é JSON.
+    throw new Error(dados.erro ?? "Não foi possível entrar. Tente de novo em instantes.");
   }
   aplicarSessao(dados.access_token, dados.refresh_token);
   await carregarUsuario();
@@ -62,25 +84,37 @@ function aplicarSessao(access: string, refresh: string) {
   guardarCookie(COOKIE_SESSAO, "1", 30);
 }
 
-export async function renovar(): Promise<boolean> {
+export async function renovar(): Promise<ResultadoRenovacao> {
   if (renovando) return renovando;
   const refresh = localStorage.getItem(CHAVE_REFRESH);
-  if (!refresh) return false;
+  if (!refresh) return "sessao-invalida";
 
-  renovando = (async () => {
+  renovando = (async (): Promise<ResultadoRenovacao> => {
     try {
       const res = await fetch("/api/auth/refresh", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ refresh_token: refresh }),
       });
-      if (!res.ok) return false;
-      const dados = (await res.json()) as { access_token?: string; refresh_token?: string };
-      if (!dados.access_token) return false;
+
+      // 400/401 = o auth recusou o refresh (vencido, revogado, sessão trocada em
+      // outro aparelho). Único caso que apaga a sessão local.
+      if (res.status === 400 || res.status === 401) return "sessao-invalida";
+      // 5xx/502/429 = o hop até o auth está com problema. O refresh token pode
+      // estar perfeito: derrubar a sessão aqui é perder o trabalho de alguém por
+      // causa de uma queda de dez segundos.
+      if (!res.ok) return "indisponivel";
+
+      const dados = (await res.json().catch(() => ({}))) as {
+        access_token?: string;
+        refresh_token?: string;
+      };
+      if (!dados.access_token) return "indisponivel";
       aplicarSessao(dados.access_token, dados.refresh_token ?? refresh);
-      return true;
+      return "ok";
     } catch {
-      return false;
+      // TypeError de fetch = rede fora. Sessão fica.
+      return "indisponivel";
     } finally {
       renovando = null;
     }
@@ -126,13 +160,16 @@ export async function apiFetch(caminho: string, init: RequestInit = {}): Promise
   let res = await fetch(`/api/ac${caminho}`, montar(accessToken));
 
   if (res.status === 401) {
-    const ok = await renovar();
-    if (ok) res = await fetch(`/api/ac${caminho}`, montar(accessToken));
+    const resultado = await renovar();
+    if (resultado === "ok") res = await fetch(`/api/ac${caminho}`, montar(accessToken));
+    // Auth fora do ar: avisa sem apagar nada. A sessão continua válida e a
+    // próxima tentativa pode funcionar.
+    else if (resultado === "indisponivel") avisar(EVENTO_AUTH_INDISPONIVEL);
   }
 
   if (res.status === 401) {
     sair();
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("ac:sessao-expirada"));
+    avisar(EVENTO_SESSAO_EXPIRADA);
   }
 
   return res;
@@ -171,8 +208,8 @@ export async function apiJsonLeitura<T>(caminho: string, init: RequestInit = {})
 
   let res = await fetch(`/api/ac${caminho}`, montar(accessToken));
   if (res.status === 401) {
-    const ok = await renovar();
-    if (ok) res = await fetch(`/api/ac${caminho}`, montar(accessToken));
+    const resultado = await renovar();
+    if (resultado === "ok") res = await fetch(`/api/ac${caminho}`, montar(accessToken));
   }
 
   const corpo = (await res.json().catch(() => ({}))) as { erro?: string };
@@ -183,7 +220,21 @@ export async function apiJsonLeitura<T>(caminho: string, init: RequestInit = {})
 /** Garante sessão válida antes de renderizar tela privada. */
 export async function garantirSessao(): Promise<boolean> {
   if (usuario) return true;
-  const renovou = await renovar();
-  if (!renovou) return false;
+  const resultado = await renovar();
+  if (resultado !== "ok") return false;
   return Boolean(await carregarUsuario());
+}
+
+/**
+ * Para onde voltar depois do login: só caminho interno.
+ *
+ * `?de=` vem da URL, então é entrada de terceiro. Sem esta trava, um link
+ * `/login?de=//site-falso` mandaria a pessoa recém-autenticada para fora do
+ * produto — o truque clássico de phishing com a tela de login de verdade.
+ */
+export function destinoSeguro(de: string | null | undefined): string {
+  if (!de) return "/";
+  if (!de.startsWith("/")) return "/";
+  if (de.startsWith("//")) return "/";
+  return de;
 }

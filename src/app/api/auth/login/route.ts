@@ -9,6 +9,8 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 
+import { mensagemDeFalhaDeLogin } from "@/lib/auth/mensagens";
+
 const AUTH_URL =
   process.env.AUTOCLINIC_AUTH_URL ?? "https://autoclinic.149-56-214-54.sslip.io";
 
@@ -43,18 +45,12 @@ export async function POST(request: NextRequest) {
   const dados = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    // Mensagem única para credencial errada: dizer "e-mail não existe" entrega
-    // a quem tenta adivinhar quais contas são reais.
-    const status = res.status === 400 || res.status === 401 ? 401 : res.status;
-    return NextResponse.json(
-      {
-        erro:
-          status === 401
-            ? "E-mail ou senha incorretos."
-            : (dados?.msg ?? dados?.error_description ?? "Falha no login."),
-      },
-      { status },
-    );
+    // Uma frase por tipo de falha, sempre em português (ver
+    // `src/lib/auth/mensagens.ts`): credencial errada não pode se distinguir de
+    // conta inexistente, e-mail não confirmado precisa dizer o próximo passo, e
+    // 5xx do auth não é culpa de quem digitou.
+    const falha = mensagemDeFalhaDeLogin(res.status, dados);
+    return NextResponse.json({ erro: falha.erro }, { status: falha.status });
   }
 
   return NextResponse.json({

@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cartao, CartaoCard, LARGURA_CARD } from "@/components/estudio/cartao";
 import { FotosDosCards, SeletorDeCards } from "@/components/estudio/passo-cards";
+import { MenuConta } from "@/components/conta/menu-conta";
 import { SeletorDeFormato } from "@/components/estudio/seletor-formato";
 import { formatoPorId } from "@/lib/estudio/formatos";
 import { BLEED_Y, EXPORT_H, EXPORT_W } from "@/lib/estudio/area-segura";
@@ -725,7 +726,7 @@ function Topo({ passo, onRecomecar }: { passo: Passo; onRecomecar: () => void })
             Carrossel<span style={{ color: "#F4511E" }}>IA</span>
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[13px]">
+        <div className="flex items-center gap-2 text-[13px] sm:gap-3">
           {/* Em 390 px "Meus projetos" + status + "Novo" não cabem numa linha:
               o rótulo encurta e o status (informação, não ação) some no celular. */}
           <a
@@ -749,6 +750,9 @@ function Topo({ passo, onRecomecar }: { passo: Passo; onRecomecar: () => void })
               Novo
             </button>
           ) : null}
+          {/* Quem está logado e como sair (issue #19). Fecha o grupo: é o último
+              controle da barra, como no alvo. */}
+          <MenuConta />
         </div>
       </div>
     </header>
