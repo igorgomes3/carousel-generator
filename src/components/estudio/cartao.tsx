@@ -52,8 +52,10 @@ import { useState } from "react";
 import type { SlideCarrossel } from "@/lib/estudio/tipos";
 import { ART_H, ART_W, BLEED_Y, SAFE_AREA, SAFE_H } from "@/lib/estudio/area-segura";
 import { arrobaVisivel } from "@/lib/estudio/arroba";
+import { ENCAIXE } from "@/lib/estudio/encaixe";
 import { corLegivelSobre, type Aparencia } from "@/lib/estudio/estilo";
 import { pilhaFonte, type PaletteTemplate, type TemplateCarrossel } from "@/lib/templates";
+import { BlocoTexto } from "@/components/estudio/bloco-texto";
 
 export const LARGURA_CARD = ART_W;
 export const ALTURA_CARD = ART_H;
@@ -281,6 +283,13 @@ export function CartaoCard({ slide, template, indice, total, aparencia, arroba, 
   // ---------- CAPA ----------
   if (slide.tipo === "capa") {
     const tamanho = corpoDaManchete(slide.titulo || "", template.tituloGrande);
+    /**
+     * `base` é um número, não um objeto: a regra continua sendo a constante do
+     * módulo (referência estável) e o tamanho de partida entra como prop. Passar
+     * `{ ...ENCAIXE, base }` criaria objeto novo a cada render e o medidor do
+     * bloco rodaria de novo sem nada ter mudado — com 30 miniaturas de template
+     * montadas, isso é medição de graça em laço.
+     */
 
     return (
       <div style={base} id={`card-${indice}`} {...marcas}>
@@ -332,37 +341,36 @@ export function CartaoCard({ slide, template, indice, total, aparencia, arroba, 
             gap: 24,
           }}
         >
-          <div
-            style={{
+          <BlocoTexto
+            bloco="manchete"
+            texto={slide.titulo || "Escreva a manchete aqui"}
+            textoPuro={limparMarcacao(slide.titulo || "Escreva a manchete aqui")}
+            regra={ENCAIXE.capa.manchete}
+            base={tamanho}
+            renderizar={(t) => comDestaque(t, palette.accent)}
+            estilo={{
               fontFamily: display,
               fontWeight: 800,
-              fontSize: tamanho,
-              lineHeight: 1,
               letterSpacing: -1,
               textTransform: "uppercase",
               color: temImagem ? "#FFFFFF" : palette.text,
-              maxHeight: 640,
-              overflow: "hidden",
             }}
-          >
-            {comDestaque(slide.titulo || "Escreva a manchete aqui", palette.accent)}
-          </div>
+          />
 
           {slide.corpo ? (
-            <div
-              style={{
+            <BlocoTexto
+              bloco="corpo"
+              texto={slide.corpo}
+              textoPuro={limparMarcacao(slide.corpo)}
+              regra={ENCAIXE.capa.corpo}
+              renderizar={(t) => t}
+              estilo={{
                 fontFamily: body,
-                fontSize: 34,
-                lineHeight: 1.32,
                 color: temImagem ? "#FFFFFF" : palette.muted,
                 opacity: temImagem ? 0.92 : 1,
-                maxHeight: 140,
                 maxWidth: 820,
-                overflow: "hidden",
               }}
-            >
-              {limparMarcacao(slide.corpo)}
-            </div>
+            />
           ) : null}
 
           <div
@@ -424,42 +432,40 @@ export function CartaoCard({ slide, template, indice, total, aparencia, arroba, 
         >
           Último card
         </div>
-        <div
-          style={{
+        <BlocoTexto
+          bloco="manchete"
+          texto={slide.titulo || "Salve este post"}
+          textoPuro={limparMarcacao(slide.titulo || "Salve este post")}
+          regra={ENCAIXE.cta.manchete}
+          renderizar={(t) => comDestaque(t, enfaseCta)}
+          estilo={{
             position: "absolute",
             left: 64,
             right: 64,
             top: BLEED_Y + 240,
             fontFamily: display,
             fontWeight: 800,
-            fontSize: 92,
-            lineHeight: 1.02,
             textTransform: "uppercase",
             color: textoCta,
-            maxHeight: 420,
-            overflow: "hidden",
           }}
-        >
-          {comDestaque(slide.titulo || "Salve este post", enfaseCta)}
-        </div>
+        />
         {slide.corpo ? (
-          <div
-            style={{
+          <BlocoTexto
+            bloco="corpo"
+            texto={slide.corpo}
+            textoPuro={limparMarcacao(slide.corpo)}
+            regra={ENCAIXE.cta.corpo}
+            renderizar={(t) => t}
+            estilo={{
               position: "absolute",
               left: 64,
               right: 64,
               top: BLEED_Y + 640,
-              maxHeight: 400,
-              overflow: "hidden",
               fontFamily: body,
-              fontSize: 40,
-              lineHeight: 1.35,
               color: textoCta,
               opacity: temImagem ? 0.94 : 1,
             }}
-          >
-            {limparMarcacao(slide.corpo)}
-          </div>
+          />
         ) : null}
         <div style={{ position: "absolute", left: 64, right: 64, bottom: BLEED_Y + 52 }}>
           {rodape(handle ? "Salve este post" : "Feito com IA", textoCta, 0.85)}
@@ -496,36 +502,34 @@ export function CartaoCard({ slide, template, indice, total, aparencia, arroba, 
           }}
         />
 
-        <div
-          style={{
+        <BlocoTexto
+          bloco="manchete"
+          texto={slide.titulo || "Título do card"}
+          textoPuro={limparMarcacao(slide.titulo || "Título do card")}
+          regra={{ ...ENCAIXE.conteudo.manchete, tetoPx: temImagem ? 380 : 320 }}
+          renderizar={(t) => comDestaque(t, palette.accent)}
+          estilo={{
             fontFamily: display,
             fontWeight: 800,
-            fontSize: 72,
-            lineHeight: 1.06,
             letterSpacing: -0.5,
             color: temImagem ? "#FFFFFF" : palette.text,
-            maxHeight: temImagem ? 380 : 320,
-            overflow: "hidden",
             flexShrink: 0,
           }}
-        >
-          {comDestaque(slide.titulo || "Título do card", palette.accent)}
-        </div>
+        />
 
-        <div
-          style={{
+        <BlocoTexto
+          bloco="corpo"
+          texto={slide.corpo || ""}
+          textoPuro={limparMarcacao(slide.corpo || "")}
+          regra={ENCAIXE.conteudo.corpo}
+          renderizar={(t) => t}
+          estilo={{
             fontFamily: body,
-            fontSize: 38,
-            lineHeight: 1.42,
             color: temImagem ? "#FFFFFF" : palette.text,
             opacity: temImagem ? 0.94 : 0.95,
-            overflow: "hidden",
-            flexShrink: 1,
-            minHeight: 0,
+            flexShrink: 0,
           }}
-        >
-          {limparMarcacao(slide.corpo)}
-        </div>
+        />
       </div>
 
       <div style={{ position: "absolute", left: 64, right: 64, bottom: BLEED_Y + 48 }}>

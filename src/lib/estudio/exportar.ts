@@ -18,10 +18,32 @@
  *
  * `document.fonts.ready` antes de rasterizar não é zelo: fonte ainda carregando
  * vira Arial no PNG, e o card que a pessoa aprovou na tela sai diferente.
+ *
+ * ## Espera o layout assentar, não só a fonte (W98)
+ *
+ * O encaixe do texto é MEDIDO (`bloco-texto.tsx`): o tamanho de fonte de cada
+ * bloco é decidido depois de medir o texto com a fonte real. `document.fonts.ready`
+ * resolve no microtask, antes do React aplicar o estado dessa medição — rasterizar
+ * ali pegava o card com o tamanho de partida, cortado, enquanto a tela já mostrava
+ * o reduzido. Dois frames depois do `fonts.ready` o layout está assentado: é o que
+ * faz o PNG sair igual ao que a pessoa viu. Custo: ~32 ms por card.
  */
 import { toCanvas } from "html-to-image";
 import JSZip from "jszip";
 import { EXPORT_H, EXPORT_W } from "@/lib/estudio/area-segura";
+
+/**
+ * Fonte carregada E layout assentado.
+ *
+ * `requestAnimationFrame` duas vezes: o primeiro frame aplica o estado medido no
+ * commit do React, o segundo garante que o navegador já pagou o layout. Um só
+ * frame funciona na maioria das vezes — "na maioria" não serve para o arquivo que
+ * a pessoa posta.
+ */
+async function prontoParaRasterizar() {
+  await document.fonts.ready;
+  await new Promise<void>((ok) => requestAnimationFrame(() => requestAnimationFrame(() => ok())));
+}
 
 async function cardParaBlob(node: HTMLElement): Promise<Blob | null> {
   try {
@@ -61,7 +83,7 @@ export function nomeBaseDoCarrossel(titulo: string): string {
 
 /** Um card só. */
 export async function baixarUmCard(node: HTMLElement, titulo: string, indice: number) {
-  await document.fonts.ready;
+  await prontoParaRasterizar();
   const blob = await cardParaBlob(node);
   if (!blob) return;
   baixar(blob, `${nomeBaseDoCarrossel(titulo)}-${String(indice + 1).padStart(2, "0")}.png`);
@@ -69,7 +91,7 @@ export async function baixarUmCard(node: HTMLElement, titulo: string, indice: nu
 
 /** Todos os cards num ZIP. */
 export async function baixarTodosOsCards(nodes: HTMLElement[], titulo: string) {
-  await document.fonts.ready;
+  await prontoParaRasterizar();
   const base = nomeBaseDoCarrossel(titulo);
   const zip = new JSZip();
   const blobs = await Promise.all(nodes.map((n) => cardParaBlob(n)));
