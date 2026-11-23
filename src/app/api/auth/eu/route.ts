@@ -1,7 +1,7 @@
 /**
  * `GET /api/auth/eu` — quem é o dono desta sessão.
  *
- * Substitui `/api/ac/me`, que perguntava ao AutoClinic. Agora a resposta sai do
+ * Substitui `/api/ac/me`, que perguntava à API antiga. Agora a resposta sai do
  * GoTrue do projeto novo: o route handler valida o token e devolve o mínimo que
  * a interface precisa (e-mail, nome, id). Papel/organização não existem mais
  * aqui — o carrossel não tem hierarquia, tem dono de projeto.

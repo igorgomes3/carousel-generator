@@ -177,7 +177,7 @@ export function Estudio() {
   /**
    * "Minhas pautas": as ideias que a própria pessoa salvou.
    *
-   * Substitui a pauta por notícia (Google News, via fila do AutoClinic), que
+   * Substitui a pauta por notícia (Google News, via fila de outro produto), que
    * enchia a tela de assunto sem gancho e não virava carrossel viral. Lê do
    * navegador no primeiro render do cliente e grava a cada mudança; sem rede,
    * sem tabela, sem migração.
@@ -370,7 +370,7 @@ export function Estudio() {
   }, [carrossel, salvamento, tema]);
 
   // "Meus projetos": os que ESTE navegador salvou (issue #13). Antes a seção
-  // lia a API do AutoClinic — carrossel do editor antigo, atrás de login que o
+  // lia a API antiga — carrossel do editor antigo, atrás de login que o
   // leigo não tem. Se a lista falhar, a seção simplesmente não aparece: o
   // estúdio continua funcionando, porque gerar e baixar é tudo client-side.
   useEffect(() => {

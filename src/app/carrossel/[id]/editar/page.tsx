@@ -11,8 +11,8 @@ import { redirect } from "next/navigation";
  *
  * O código do editor (`@/components/editor`, `DocumentProvider`) continua no
  * repositório de propósito: desligar a rota não é apagar o componente. Podar a
- * árvore morta é uma tarefa própria, com o histórico de versões que a API do
- * AutoClinic fornecia.
+ * árvore morta é uma tarefa própria, com o histórico de versões que a API
+ * antiga fornecia.
  */
 export default function PaginaDoEditorAntigo() {
   redirect("/?aviso=antigo");

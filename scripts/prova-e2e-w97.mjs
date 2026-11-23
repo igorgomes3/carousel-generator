@@ -238,7 +238,7 @@ await Promise.all([
 ]);
 await paginaOutro390.waitForTimeout(2500);
 await paginaOutro390.screenshot({ path: path.join(SHOTS, "5-meus-projetos-390.png") });
-await pagina390.screenshot({ path: path.join(SHOTS, "2b-login-390-pos.png") }).catch(() => {});
+await pagina390.waitForTimeout(2500);
 
 /* ------------------------------------------------ 5. prova de rede ---- */
 const violacoes = [];

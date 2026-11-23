@@ -74,7 +74,7 @@ export function SlidesEditor({}: SlidesEditorProps) {
         {/* Os painéis de pauta/plano são conteúdo, não chrome: ficam na coluna
             do palco, com largura de leitura, abaixo do slide.
             O painel "Sugestões para aprovar" saiu com a issue #8: ele listava
-            pauta vinda da fila do AutoClinic, que nascia de notícia. Pauta agora
+            pauta vinda da fila de notícias de outro produto. Pauta agora
             é o que a pessoa escreve (ou salva em "Minhas pautas", no estúdio). */}
         <div className="flex w-full flex-col items-center gap-3 px-3 pb-4 md:px-5">
           <AIPanel />

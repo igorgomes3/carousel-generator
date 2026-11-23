@@ -4,7 +4,7 @@
  * Menu da conta — quem está logado e como sair.
  *
  * O que existia antes (issue #19): o estúdio não mostrava **ninguém**. A pessoa
- * entrava com a conta do AutoClinic, trabalhava, e não tinha nem o próprio
+ * entrava com uma conta do sistema anterior, trabalhava, e não tinha nem o próprio
  * e-mail na tela nem uma forma de sair: fechar a aba era a única saída, e o
  * refresh token ficava no navegador por 30 dias. Num computador emprestado isso
  * é uma sessão de outra pessoa aberta.

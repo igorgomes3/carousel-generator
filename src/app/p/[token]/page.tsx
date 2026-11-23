@@ -2,7 +2,7 @@
  * Link público do carrossel: `/p/<token>`.
  *
  * Muda nesta versão (W97): o projeto vem do banco do **próprio carrossel**
- * (tabela `projetos`, coluna `token_publico`), não mais da API do AutoClinic.
+ * (tabela `projetos`, coluna `token_publico`), não mais da API antiga.
  * Usa `service_role` no servidor porque quem abre o link não tem conta — e é
  * exatamente por isso que o token é um UUID opaco: ele É a credencial. Token
  * inválido, de projeto apagado ou de outro formato cai em 404.

@@ -28,8 +28,8 @@ export interface MarcaConta {
 
 /**
  * A marca agora é do USUÁRIO, no Supabase do próprio carrossel (`/api/marca`).
- * Era `/api/ac/carrossel/marca?org=autoclinic` — dado da organização no
- * AutoClinic, que deixou de estar no caminho do carrossel (W97).
+ * Era uma rota de marca da organização em outro produto, que deixou de estar no
+ * caminho do carrossel (W97).
  */
 async function lerMarca(): Promise<MarcaConta> {
   const res = await fetch("/api/marca", { cache: "no-store" });

@@ -1,8 +1,8 @@
 /**
  * "Minhas pautas" — as ideias que o próprio usuário salvou.
  *
- * Por que existe: a fonte de pauta era notícia (Google News, via fila do
- * AutoClinic), e notícia não gera carrossel viral de engajamento — gera ruído. A
+ * Por que existe: a fonte de pauta era notícia (Google News, via fila de outro
+ * produto), e notícia não gera carrossel viral de engajamento — gera ruído. A
  * substituição mais simples para quem não é técnico é a que não pede conta nova
  * nem tela nova: o campo de tema livre que já existe, mais um atalho com as
  * pautas que a pessoa já escreveu e quer reaproveitar.

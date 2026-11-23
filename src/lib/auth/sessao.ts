@@ -16,7 +16,7 @@
  * produto de trabalho é pior que o risco residual.
  *
  * O auth é o **Supabase do próprio carrossel** (projeto dedicado, W97). O
- * AutoClinic saiu do caminho: `AUTOCLINIC_AUTH_URL` não é mais lido aqui.
+ * O sistema anterior saiu do caminho: a variável de auth antiga não é mais lida aqui.
  */
 const CHAVE_REFRESH = "ac_refresh";
 const COOKIE_SESSAO = "ac_sessao";
@@ -84,7 +84,7 @@ export async function entrar(email: string, senha: string): Promise<void> {
   await carregarUsuario();
 }
 
-function aplicarSessao(access: string, refresh: string) {
+export function aplicarSessao(access: string, refresh: string) {
   accessToken = access;
   localStorage.setItem(CHAVE_REFRESH, refresh);
   guardarCookie(COOKIE_SESSAO, "1", 30);

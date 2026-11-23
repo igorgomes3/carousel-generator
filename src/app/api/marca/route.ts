@@ -1,10 +1,9 @@
 /**
  * `GET|POST /api/marca` — a assinatura que sai no slide.
  *
- * Antes: `/api/ac/carrossel/marca?org=autoclinic` — dado da ORGANIZAÇÃO no
- * AutoClinic. Com o carrossel independente não existe mais organização no
- * caminho, então a marca virou dado do usuário, na tabela `perfis` do projeto
- * novo. Semântica preservada: nome vazio = não assina o slide.
+ * Antes: uma rota de marca da ORGANIZAÇÃO em outro produto. Com o carrossel
+ * independente não existe mais organização no caminho, então a marca virou dado
+ * do usuário, na tabela `perfis` do projeto novo. Semântica preservada: nome vazio = não assina o slide.
  *
  * Mesmas regras de @ da tela (`normalizarHandle` em `/configuracoes`): minúsculo,
  * sem espaço, um único @ no começo. O servidor valida de novo — a tela não é

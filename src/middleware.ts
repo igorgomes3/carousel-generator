@@ -17,9 +17,10 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 
-/** Rotas que não exigem sessão: login, link público e assets do Next. */
+/** Rotas que não exigem sessão: login, criação de conta, redefinição e assets. */
 const LIVRES = [
-  /^\/login/,
+  // /login, /cadastro, /esqueci-senha, /redefinir-senha (todas as portas de conta).
+  /^\/(login|cadastro|esqueci-senha|redefinir-senha)/,
   // Link público: o token é a credencial, e quem abre não tem conta.
   /^\/p\//,
   /^\/_next\//,

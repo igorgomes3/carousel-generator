@@ -4,7 +4,7 @@
  * Galeria pública de um carrossel — somente leitura.
  *
  * Por que existe: `/p/<token>` desenhava o documento do **editor antigo**
- * (`DocumentSchema`) lido do AutoClinic. O carrossel agora é independente e o
+ * (`DocumentSchema`) lido da API antiga. O carrossel agora é independente e o
  * que existe no banco novo é o contrato do estúdio (`ProjetoSalvo`), então a
  * página pública desenha os MESMOS cards que a pessoa aprovou — com o mesmo
  * `Cartao` do estúdio, e não uma segunda renderização que diverge.

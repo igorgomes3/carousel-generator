@@ -8,7 +8,7 @@
  * mexeu (data), e agir sem medo (abrir, renomear, apagar).
  *
  * **Uma fonte só.** Até 21/11 esta tela também listava os carrosséis do editor
- * antigo (API do AutoClinic). Em 22/11 o Igor decidiu começar do zero no sistema
+ * antigo (API do sistema anterior). Em 22/11 o Igor decidiu começar do zero no sistema
  * novo: os 2 carrosséis antigos foram apagados (dump em
  * `/root/backups/carrosseis-antigos-20261121/`) e nada mais aqui lê a API
  * antiga. O editor antigo também saiu do ar — `/carrossel/<id>` redireciona

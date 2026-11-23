@@ -2,8 +2,8 @@
  * O auth do carrossel, do lado do servidor.
  *
  * Antes deste arquivo o carrossel não tinha identidade própria: o login era o
- * GoTrue do AutoClinic (`AUTOCLINIC_AUTH_URL`) e os dados vinham da API do
- * AutoClinic (`/api/ac/*` → `:8097`). A decisão do Igor em 23/11/2026 foi cortar
+ * GoTrue de outro produto e os dados vinham da API dele (`/api/ac/*` → `:8097`).
+ * A decisão do Igor em 23/11/2026 foi cortar
  * os dois: projeto Supabase dedicado (`sjlcyghpogetolzuoziy`) e login
  * **obrigatório** antes de qualquer geração, porque geração de texto e de
  * imagem custa dinheiro e anônimo não paga.
@@ -41,7 +41,14 @@ export interface Sessao {
   token: string;
 }
 
-function urlBase(): string {
+/**
+ * URL base do projeto Supabase do carrossel (GoTrue e PostgREST vivem sob ela).
+ *
+ * Exportada porque os route handlers de auth precisam montar chamadas ao GoTrue
+ * (`/auth/v1/...`) e não devem duplicar leitura de env: um `.env` trocado passa a
+ * quebrar em um lugar só.
+ */
+export function urlSupabase(): string {
   const url = process.env.CARROSSEL_SUPABASE_URL?.trim();
   if (!url) {
     throw new Error(
@@ -71,7 +78,7 @@ function nomeDe(email: string, metadados: unknown): string {
 /** Valida um access token no GoTrue do projeto novo. `null` = não vale. */
 export async function usuarioDoToken(token: string): Promise<UsuarioCarrossel | null> {
   if (!token) return null;
-  const res = await fetch(`${urlBase()}/auth/v1/user`, {
+  const res = await fetch(`${urlSupabase()}/auth/v1/user`, {
     headers: { apikey: chaveAnon(), authorization: `Bearer ${token}` },
     cache: "no-store",
   }).catch(() => null);
@@ -190,7 +197,7 @@ async function restar<T>(
   init: RequestInit,
   cabecalhos: Record<string, string>,
 ): Promise<RespostaRest<T>> {
-  const res = await fetch(`${urlBase()}/rest/v1/${caminho.replace(/^\//, "")}`, {
+  const res = await fetch(`${urlSupabase()}/rest/v1/${caminho.replace(/^\//, "")}`, {
     ...init,
     headers: { ...cabecalhos, ...((init.headers as Record<string, string>) ?? {}) },
     cache: "no-store",

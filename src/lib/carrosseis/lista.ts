@@ -7,7 +7,7 @@
  * caro e frágil, provar em função pura é barato e direto. A tela é uma casca
  * fina em cima daqui.
  *
- * Fonte dos dados: `GET /api/carrossel/carrosseis` (API do AutoClinic). Os
+ * Fonte dos dados: `GET /api/carrossel/carrosseis` (API antiga). Os
  * campos marcados como opcionais ainda não são devolvidos pela API em
  * `cf717c1`; quando passarem a ser, a tela os exibe sem mudança de código
  * (decisão e divergência registradas em docs/design/fase-1-decisoes.md).

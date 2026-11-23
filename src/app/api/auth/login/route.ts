@@ -2,7 +2,7 @@
  * Login do carrossel — feito no servidor do próprio carrossel.
  *
  * Fala com o GoTrue do **projeto Supabase dedicado** (`CARROSSEL_SUPABASE_URL`),
- * não mais com o auth do AutoClinic. Duas razões para continuar proxeando em vez
+ * não mais com o auth de outro produto. Duas razões para continuar proxeando em vez
  * de o navegador chamar o GoTrue direto:
  *   - não depende de CORS do GoTrue nem expõe a URL do auth no bundle;
  *   - o access token pode ir para um cookie httpOnly, que é o que permite

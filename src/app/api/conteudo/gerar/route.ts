@@ -1,7 +1,7 @@
 /**
  * Geração de carrossel a partir de um briefing da fila de conteúdo.
  *
- * Rota interna: quem chama é a API do AutoClinic, no mesmo host, com o segredo
+ * Rota interna: quem chamava era a API de outro produto, no mesmo host, com o segredo
  * `CONTEUDO_INTERNO_TOKEN`. Não é rota de navegador, e por isso não usa sessão:
  * aceitar sessão aqui abriria a geração para qualquer pessoa logada consumir
  * crédito de IA sem passar pela fila.
@@ -44,10 +44,10 @@ export async function POST(request: NextRequest) {
   /**
    * Portão de custo (W97): a rota deixou de aceitar `x-interno-token`.
    *
-   * Antes quem chamava era a API do AutoClinic, com um segredo compartilhado —
+   * Antes quem chamava era a API de outro produto, com um segredo compartilhado —
    * ou seja, geração de conteúdo paga por automação, sem dono e sem limite. A
    * decisão do Igor em 23/11/2026 é que TODA geração de conteúdo exige uma
-   * pessoa logada. Consequência assumida: a fila de conteúdo do AutoClinic não
+   * pessoa logada. Consequência assumida: a fila de conteúdo daquele produto não
    * consegue mais gerar por aqui.
    */
   const portao = await exigirSessao(request);

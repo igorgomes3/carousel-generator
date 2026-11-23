@@ -11,10 +11,10 @@
  * Por isso o provider perdeu, de propósito:
  *
  *   - a leitura da **marca** da organização (`/api/ac/carrossel/marca`), que era
- *     dado do AutoClinic. Quem assina o card agora é o `arroba`/`estilo` do
+ *     dado do sistema anterior. Quem assina o card agora é o `arroba`/`estilo` do
  *     projeto do estúdio;
  *   - a leitura do projeto por id (`/api/ac/carrossel/carrosseis/<id>`) e o
- *     autosave (`useAutosaveProjeto`) — os dois falavam com a API do AutoClinic,
+ *     autosave (`useAutosaveProjeto`) — os dois falavam com a API antiga,
  *     que não está mais no caminho do carrossel.
  *
  * Carregar documento salvo nunca passa pelo schema rígido: `normalizarDocumento`
