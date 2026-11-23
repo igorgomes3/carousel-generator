@@ -98,7 +98,13 @@ export function SeletorDeFormato({
         (opcional) e o formato — cada um mostra como começa.
       </p>
 
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-2 pr-4">
+      {/*
+        Chips de nicho: `flex-wrap` e não `overflow-x: auto`. Rolagem horizontal
+        sem indicador esconde opção — no print do Igor o último chip ("Educa…")
+        morria na borda e ninguém sabia que havia mais três. Quebrando em linhas,
+        todas as opções existem na tela; custa duas linhas de altura.
+      */}
+      <div data-formato-chips className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => {
@@ -135,7 +141,12 @@ export function SeletorDeFormato({
         })}
       </div>
 
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+      {/*
+        Grid com `items-start`: cada card tem a altura do próprio conteúdo. Antes,
+        o padrão (`stretch`) esticava a linha inteira e "Lista numerada" ficava com
+        um vazio embaixo só porque o vizinho tinha badge quebrada em três linhas.
+      */}
+      <div data-formato-grid className="mt-2 grid items-start gap-2 sm:grid-cols-2">
         {visiveis.map(({ formato: f, mediana }) => {
           const ativo = f.id === formato;
           const ehSugerido = f.id === sugeridoId;
@@ -145,34 +156,54 @@ export function SeletorDeFormato({
               type="button"
               onClick={() => onFormato(ativo ? "" : f.id)}
               aria-pressed={ativo}
-              className="min-h-[44px] rounded-xl px-3 py-2.5 text-left"
+              data-formato-card
+              className="min-h-[44px] min-w-0 overflow-hidden rounded-xl px-3 py-2.5 text-left"
               style={{
                 backgroundColor: ativo ? "#FFF7ED" : "#FFFFFF",
                 border: ativo ? "2px solid #F4511E" : "1px solid #E7E5E4",
               }}
             >
-              <span className="flex items-baseline justify-between gap-2">
-                <span className="text-[14px] font-semibold" style={{ color: "#1C1917" }}>
-                  {f.nome}
-                </span>
-                {ehSugerido && !formato ? (
-                  <span
-                    className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                    style={{ backgroundColor: "#FFF1E9", color: "#C2410C" }}
-                  >
-                    Sugerido
-                  </span>
-                ) : (
-                  <span
-                    className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                    style={{ backgroundColor: "#F5F5F4", color: "#57534E" }}
-                    title="Desempenho medido no topcarousels.com (22/11/2026). Mediana da biblioteca curada, subconjunto — não é a amostra total."
-                  >
-                    {mediana}
-                  </span>
-                )}
+              {/*
+                Título e badge em COLUNA, nunca na mesma linha.
+                Na mesma linha flex, a badge (que não encolhe, porque é uma frase
+                de estatística) comia a largura do título: "Passo a passo" caía
+                para 43 px e quebrava em "Passo / a / passo", e a badge ainda saía
+                156 px para fora do card. Em coluna, cada um usa a largura inteira.
+              */}
+              <span
+                data-formato-titulo
+                className="block min-w-0 text-[14px] font-semibold [overflow-wrap:anywhere]"
+                style={{ color: "#1C1917" }}
+              >
+                {f.nome}
               </span>
-              <span className="mt-1 block text-[12px] leading-snug" style={{ color: "#57534E" }}>
+              {ehSugerido && !formato ? (
+                <span
+                  data-formato-badge
+                  className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.08em] [overflow-wrap:anywhere]"
+                  style={{ color: "#C2410C" }}
+                >
+                  Sugerido
+                </span>
+              ) : (
+                // Estatística é frase, não etiqueta: `whitespace-normal` +
+                // `overflow-wrap: anywhere` para quebrar dentro da largura do card.
+                // Clamp com reticências foi descartado aqui: o número que decide
+                // ("mediana 2,0×") fica no FIM da frase — cortar é perder o dado.
+                <span
+                  data-formato-badge
+                  className="mt-0.5 block text-[10px] leading-snug whitespace-normal [overflow-wrap:anywhere]"
+                  style={{ color: "#78716C" }}
+                  title="Desempenho medido no topcarousels.com (22/11/2026). Mediana da biblioteca curada, subconjunto — não é a amostra total."
+                >
+                  {mediana}
+                </span>
+              )}
+              <span
+                data-formato-exemplo
+                className="mt-1 block text-[12px] leading-snug [overflow-wrap:anywhere]"
+                style={{ color: "#57534E" }}
+              >
                 “{f.exemplo}”
               </span>
             </button>

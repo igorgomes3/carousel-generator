@@ -121,11 +121,19 @@ export default function RootLayout({
             Display, Space Grotesk). Vêm por <link> e não por `next/font`: o
             loader do Next 14.0.4 quebra no build com essas famílias
             ("Cannot read properties of null (reading '1')"), e o alvo também
-            carrega por stylesheet. Nome de família direto em `pilhaFonte()`. */}
+            carrega por stylesheet. Nome de família direto em `pilhaFonte()`.
+
+            `crossOrigin="anonymous"` não é enfeite: sem ele a folha do Google é
+            opaca para o JavaScript, o `html-to-image` não consegue ler as regras
+            `@font-face` e o PNG sai com fonte substituta — headline de 97 px
+            quebrava em 6 linhas no raster contra 4 na tela, e o teto de linhas
+            cortava o texto no arquivo exportado (W98). O Google manda
+            `access-control-allow-origin: *`, então o CORS libera a leitura. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
+          crossOrigin="anonymous"
           href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;700&family=Bebas+Neue&family=Playfair+Display:wght@700;800&family=Space+Grotesk:wght@500;700&display=swap"
         />
       </head>
