@@ -41,8 +41,36 @@
 import { readFile } from "node:fs/promises";
 
 const CREDS = process.env.CARROSSEL_CREDS ?? "/root/.ctxswap/contexts/carrossel/creds.json";
-const DRY = process.argv.includes("--dry-run");
+const DRY = !process.argv.includes("--aplicar");
 const SO_CONFERIR = process.argv.includes("--conferir");
+const INCLUIR_FIXTURES = process.argv.includes("--incluir-fixtures");
+
+/**
+ * O que NÃO vai para produção.
+ *
+ * A origem (`carrossel-ia`) é o projeto de teste: tudo que existe lá foi criado
+ * por prova, não por cliente. Duas assinaturas, e as duas apareceram de verdade:
+ *
+ *  - o tema carrega o carimbo das minhas provas de ponta a ponta (`Prova W97`);
+ *  - os dois primeiros vêm do store de teste em disco (`data/estudio`), que a
+ *    issue #13 usou para provar salvamento — um deles é literalmente o "Dia 1º,
+ *    agenda vazia" que o Igor citou como exemplo ruim.
+ *
+ * Sem `--incluir-fixtures` o script não escreve essas linhas nem com `--aplicar`:
+ * fixture não vira dado de produção, e amarrá-la ao usuário de QA é pior, porque
+ * depois ninguém sabe o que é real.
+ */
+const FIXTURES_CONHECIDAS = new Set([
+  "Dia 1º, agenda vazia",
+  "Suas próximas 20 clientes",
+]);
+
+function classificar(linha) {
+  const tema = String(linha.documento?.tema ?? "");
+  if (/prova w97|teste|fixture/i.test(tema)) return "fixture (carimbo de prova no tema)";
+  if (FIXTURES_CONHECIDAS.has(linha.nome)) return "fixture (store de teste do issue #13)";
+  return "real";
+}
 
 const env = JSON.parse(await readFile(CREDS, "utf8")).env ?? {};
 
@@ -151,6 +179,14 @@ async function main() {
   console.log(`origem: ${linhas.length} projeto(s), dono ${sessaoOrigem.usuario}`);
 
   for (const linha of linhas) {
+    const classe = classificar(linha);
+    const cards = linha.documento?.slides?.length ?? 0;
+
+    if (classe !== "real" && !INCLUIR_FIXTURES) {
+      console.log(`pulando ${linha.id} — ${classe} · ${linha.nome}`);
+      continue;
+    }
+
     const registro = {
       id: linha.id,
       auth_user_id: destino.usuario,
@@ -163,7 +199,7 @@ async function main() {
     };
 
     if (DRY) {
-      console.log(`[dry-run] ${linha.id} → ${destino.usuario} (${linha.documento?.slides?.length ?? 0} cards) ${linha.nome}`);
+      console.log(`[sem escrever] ${linha.id} (${classe}, ${cards} cards) ${linha.nome}`);
       continue;
     }
 

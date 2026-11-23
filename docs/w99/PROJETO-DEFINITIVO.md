@@ -31,6 +31,11 @@ Projeto anterior (`carrossel-ia`, `sjlcyghpogetolzuoziy`) **intacto** — é o r
 
 ## Migração dos projetos
 
+> **Superado (23/11/2026, decisão do Hermes):** os 6 projetos da origem são
+> fixture e **nenhum foi migrado** — produção fica com 0 projeto. O script agora
+> pula fixture por padrão. Leia `docs/w99/FIXTURES-E-LIMPEZA.md`; a seção abaixo
+> registra o que foi feito antes dessa decisão.
+
 `node scripts/migrar-projetos-supabase.mjs` — origem `carrossel-ia`, destino
 `carroseia-prod`, dono `2688bfd8-…` (QA do projeto novo).
 
