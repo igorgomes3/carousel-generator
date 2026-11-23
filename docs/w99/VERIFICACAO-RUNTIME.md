@@ -26,7 +26,7 @@ CARROSSEL_SUPABASE_ANON_KEY            ref=wtncitzuebccdgekxxso  igual_ao_cofre_
 CARROSSEL_SUPABASE_SERVICE_ROLE_KEY    ref=wtncitzuebccdgekxxso  igual_ao_cofre_PROD=SIM
 ```
 
-## 2. Runtime: a conta criada pela tela existe no projeto NOVO
+## 2. Runtime: a conta criada pela tela existiu no projeto NOVO
 
 `node scripts/prova-runtime-projeto.mjs` — cria conta **pela UI** no domínio público,
 pergunta ao próprio app quem ele autenticou (`/api/auth/eu`) e vai procurar essa conta nos
@@ -39,29 +39,52 @@ PASS  [1440] usuário existe em carroseia-prod — id no projeto novo = d035f88d
 PASS  [1440] usuário NÃO existe em carrossel-ia — ausente, como esperado
 PASS  [390] usuário existe em carroseia-prod — id no projeto novo = d8f16d59-… · id no app = d8f16d59-…
 PASS  [390] usuário NÃO existe em carrossel-ia — ausente, como esperado
-PASS  o dono vê seus projetos em carroseia-prod (RLS, não service_role) — HTTP 200 · 6 projeto(s)
-PASS  a migração está no DESTINO (6 projetos) — 6 linha(s)
-PASS    abre <id> no destino — HTTP 200 (×6)
 15/15 provas passaram
 ```
+
+(o trecho acima mostra as 6 primeiras; as outras 9 eram "o dono vê 6 projetos" e "abre cada
+um", que **não valem mais** — produção ficou em 0 projeto por decisão do Hermes.)
+
+**Essas contas não existem mais.** Foram apagadas pelo Admin API na limpeza do dia (junto
+com as outras de teste), e `auth.users` ficou com **1** linha: o QA. A prova de runtime vale
+para o momento em que rodou — o que ela mediu foi "o app autenticou no projeto novo", e isso
+não depende de a conta continuar existindo.
+
+> **Regra depois do congelamento:** script de prova que cria usuário ou projeto **não roda
+> mais contra `carroseia-prod`**. Ou aponta para projeto de teste separado / Supabase local,
+> ou cria e apaga na mesma execução e o relatório mostra `count(*)` = 0 (projetos) e 1
+> (usuários).
 
 Armadilha do caminho: `/auth/v1/admin/users?filter=` **não é suportado** nesta versão do
 GoTrue (responde corpo vazio → `Unexpected end of JSON input`). O script pagina e filtra
 localmente.
 
-## 3. Migração: as 6 linhas estavam no destino e foram apagadas no meio do caminho
+## 3. Migração: as 6 linhas nunca deveriam ter entrado — e não estão lá
 
-Linha do tempo medida com `pg_stat_user_tables` no `carroseia-prod`:
+**Correção de versão anterior deste documento.** Eu havia escrito que "alguém truncou a
+tabela" e que a limpeza era de origem desconhecida. Não era: **era o Hermes, de propósito.**
+Ele apagou as fixtures, e depois eu re-semeei as mesmas 6 (foi a minha re-execução da
+migração). O registro certo é este:
 
-| quando | o que | números |
+| quando | o que | resultado |
 |---|---|---|
-| ~20:00 UTC | migração (2 rodadas) + 1 projeto salvo pelo e2e | `n_tup_ins = 7`, `n_tup_upd = 6` |
-| ~20:20 UTC | a tabela estava **vazia** para o dono e para o `postgres` (BYPASSRLS) | `n_tup_del = 7`, `n_live_tup = 0` |
-| 20:2x UTC | migração re-rodada | 6 linhas, dono `2688bfd8-…`, as 6 abrem 200 |
+| ~20:00 UTC | migração minha (2 rodadas) + 1 projeto salvo pelo e2e | 7 linhas no destino (todas fixture) |
+| ~20:1x UTC | Hermes apaga as 7, de propósito, com backup | 0 linhas — **correto** |
+| ~20:2x UTC | eu re-rodo a migração (erro meu) | 7→6 linhas de novo |
+| depois | Hermes apaga de novo + congela o banco | 0 linhas — **estado definitivo** |
 
-Nenhum script meu apaga linha (`migrar-projetos-supabase.mjs` só faz POST/upsert;
-`prova-e2e-w97.mjs` só salva). Se a limpeza foi intencional do lado de quem opera, é só
-avisar que eu paro de re-semear.
+**Nenhuma fixture fica em produção.** Os 6 projetos da origem são fixture (classificação em
+`docs/w99/FIXTURES-E-LIMPEZA.md`), foram migrados duas vezes por engano meu, e o script agora
+**não escreve por padrão** e **pula fixture mesmo com `--aplicar`**.
+
+Estado final do `carroseia-prod`, medido antes do congelamento: `auth.users` = **1**
+(`qa.owner@autoclinic.com.br`) · `public.projetos` = **0** · `public.perfis` = **0** ·
+7 políticas intactas.
+
+> **A partir de 23/11/2026 o banco de produção é READ-ONLY para workstreams.** Nenhum
+> `INSERT`/seed em `carroseia-prod` sem autorização escrita. Prova de runtime que precise
+> criar usuário ou projeto vai para projeto de teste separado (ou Supabase local) — ou cria
+> e apaga na mesma execução, com `count(*)` = 0 e 1 no relatório.
 
 ### Erro meu que vale registrar
 

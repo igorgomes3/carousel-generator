@@ -35,6 +35,31 @@ const PROJETOS = {
   antigo: { rotulo: "carrossel-ia (rollback)", url: creds.CARROSSEL_SUPABASE_URL, chave: creds.CARROSSEL_SUPABASE_SERVICE_ROLE_KEY },
 };
 
+/**
+ * Guarda do congelamento (23/11/2026).
+ *
+ * Este script CRIA contas. Em produção o banco é read-only para workstreams, então
+ * ele se recusa a rodar contra o projeto definitivo sem `--permitir-prod`
+ * explícito — e, quando roda com a flag, apaga as contas que criou na mesma
+ * execução. Um script de prova não pode deixar resíduo em base de cliente.
+ */
+const REF_PROD = "wtncitzuebccdgekxxso";
+const PERMITIR_PROD = process.argv.includes("--permitir-prod");
+if (PROJETOS.novo.url?.includes(REF_PROD) && !PERMITIR_PROD) {
+  console.error(
+    [
+      "RECUSADO: este script cria usuários e o destino configurado é o projeto de PRODUÇÃO",
+      `(${REF_PROD}). O banco de produção está congelado para workstreams.`,
+      "",
+      "Opções:",
+      "  - rode contra um projeto de teste separado (CARROSSEL_CREDS apontando para ele);",
+      "  - ou, se for autorizado por escrito, repita com --permitir-prod:",
+      "    as contas criadas são apagadas na mesma execução.",
+    ].join("\n"),
+  );
+  process.exit(2);
+}
+
 const resultados = [];
 function ok(nome, condicao, detalhe = "") {
   resultados.push({ nome, passou: Boolean(condicao), detalhe });
@@ -140,6 +165,23 @@ for (const criado of criados) {
 await navegador.close();
 
 /**
+ * Limpeza: com `--permitir-prod` as contas criadas aqui são apagadas AGORA, pelo
+ * Admin API (nunca por SQL — deixaria órfão em `auth.identities`/`auth.sessions`).
+ * No fim, o script imprime a contagem que o relatório precisa citar.
+ */
+if (PERMITIR_PROD && criados.length) {
+  for (const criado of criados) {
+    const id = criado.idApp;
+    if (!id) continue;
+    const del = await fetch(`${PROJETOS.novo.url}/auth/v1/admin/users/${id}`, {
+      method: "DELETE",
+      headers: { apikey: PROJETOS.novo.chave, authorization: `Bearer ${PROJETOS.novo.chave}` },
+    });
+    ok(`limpeza: conta de prova ${criado.rotulo} apagada`, del.status === 200 || del.status === 204, `HTTP ${del.status}`);
+  }
+}
+
+/**
  * Item 3 do pedido: a migração está no DESTINO e as linhas abrem logadas com o
  * dono. Leio com o token do dono (RLS ligada), não com service_role — no projeto
  * novo `service_role` não tem GRANT, e o token do dono é o caminho real do app.
@@ -164,17 +206,14 @@ for (const [nome, p] of Object.entries(PROJETOS)) {
   const linhas = await res.json().catch(() => null);
   const quantidade = Array.isArray(linhas) ? linhas.length : 0;
   ok(
-    `o dono vê seus projetos em ${p.rotulo} (RLS, não service_role)`,
-    res.ok && quantidade > 0,
-    `HTTP ${res.status} · ${quantidade} projeto(s)`,
+    `o dono consegue consultar seus projetos em ${p.rotulo} (RLS, não service_role)`,
+    res.ok,
+    `HTTP ${res.status} · ${quantidade} projeto(s)${quantidade === 0 ? " (vazio é estado válido)" : ""}`,
   );
   if (nome === "novo") {
-    ok(
-      "a migração está no DESTINO (6 projetos)",
-      quantidade === 6,
-      `${quantidade} linha(s): ${(linhas ?? []).map((l) => l.nome).slice(0, 2).join(" | ")}…`,
-    );
-    // Abrir cada um pelo id, como a tela faz.
+    // Informativo, não critério: produção pode (e deve) estar vazia. Quem sabe o
+    // número esperado é quem opera, não o script.
+    console.log(`\n  destino tem ${quantidade} projeto(s): ${(linhas ?? []).map((l) => l.nome).join(" | ") || "(vazio)"}`);
     for (const linha of linhas ?? []) {
       const um = await fetch(`${p.url}/rest/v1/projetos?id=eq.${linha.id}&select=id,nome`, {
         headers: {
