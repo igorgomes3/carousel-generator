@@ -91,3 +91,25 @@ Se o documento do W95 disser que o login "funciona e só é feio", a evidência 
 - Fonte de interface do estúdio: `Inter` → **Space Grotesk** (a do alvo), Inter como secundária e JetBrains Mono para números.
 - Tokens: `--bg #FAF9F7`, `--ink #171412`, `--ink-2 #5B554D`, `--line #E7E5E2`, `--accent #FF5A1F`, `--accent-2 #C2410C`, raios 8/10/12/16/20, sombras na escala acima, `--t 180ms ease`.
 - Antes de qualquer polimento: consertar o deploy que perdeu o chunk de CSS — sem isso nenhuma tela nossa parece produto.
+
+## 9. Correção medida (W95, 23/11 — depois da seção 6)
+
+A conclusão "o processo que atende a 8099 está servindo a árvore do worktree `w90-formatos`"
+**não se sustenta** quando se olha o processo:
+
+| medida | valor |
+|---|---|
+| porta 8099 | `next-server` pid 1810732, `/proc/1810732/cwd` → `…/carousel-generator-eval` (**repo raiz**) |
+| início do processo | 22/11/2026 12:50:59 |
+| `.next` no disco | reconstruído 23/11 15:47 — **depois** de o processo subir |
+
+O que explica o sintoma é outro mecanismo, mais simples: **build em cima de servidor
+rodando**. O HTML vem do build que está em memória (pede `3b46309f67065f2f.css`), os
+estáticos vêm do disco novo (que só tem `21205cf413076ea0.css` e `c5a5bafa9c3e63df.css`), e
+o chunk antigo sobrevive apenas dentro do worktree. Logo: HTML de um build × assets de
+outro; CSS não aplica e a hidratação não chega. Confirmado por mim em `/login`: 42 nós, 0
+inputs, 0 stylesheets aplicadas, `Times New Roman`, print branco de 5.851 b. Correção =
+`systemctl restart carousel-generator` (não executado; deploy de outra workstream).
+
+Detalhe completo e a tabela "o que o CA disse × o que eu confirmei" em
+`docs/rea/CRAFT-ANYTHING-AUTH.md`.
