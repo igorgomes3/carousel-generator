@@ -155,17 +155,27 @@ export function MeusProjetos() {
               Tudo o que você salvou fica aqui. Abra para continuar de onde parou.
             </p>
           </div>
-          {/* Com projeto na lista, "Abrir" é o primário da tela e criar outro fica
-              secundário. Sem nada salvo, o card do estado vazio já é o caminho de
-              criação — dois CTAs iguais fazem o leigo escolher sem motivo. */}
+          {/* Com projeto na lista, o caminho de criação fica à direita: primeiro
+              "Post diário automático" (o que a maioria quer depois de configurar)
+              e depois o manual. Sem nada salvo, o card do estado vazio já é o
+              caminho de criação — dois CTAs iguais fazem o leigo escolher sem motivo. */}
           {estado === "pronto" && projetos.length > 0 ? (
-            <a
-              href="/"
-              className="min-h-[44px] rounded-xl px-4 py-3 text-[14px] font-semibold"
-              style={{ backgroundColor: "#FFFFFF", color: COR.tinta, border: `1px solid ${COR.borda}` }}
-            >
-              Criar novo carrossel
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href="/autopilot"
+                className="min-h-[44px] rounded-xl px-4 py-3 text-[14px] font-semibold text-white"
+                style={{ backgroundColor: COR.acao }}
+              >
+                Post diário automático
+              </a>
+              <a
+                href="/"
+                className="min-h-[44px] rounded-xl px-4 py-3 text-[14px] font-semibold"
+                style={{ backgroundColor: "#FFFFFF", color: COR.tinta, border: `1px solid ${COR.borda}` }}
+              >
+                Criar novo carrossel
+              </a>
+            </div>
           ) : null}
         </div>
 

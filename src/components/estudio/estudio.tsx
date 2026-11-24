@@ -58,6 +58,7 @@ import {
   salvarPautas,
 } from "@/lib/estudio/pautas-salvas";
 import { BlocoPublicacao } from "@/components/estudio/bloco-publicacao";
+import { imagemDeArquivo } from "@/lib/estudio/imagem-upload";
 import {
   CATEGORIAS,
   TEMPLATES,
@@ -538,6 +539,36 @@ export function Estudio() {
     [tema, quantidade, imagens, nicho, formato, zerarSalvamento, marcarSujo],
   );
 
+  /**
+   * Upload manual no editor de resultado (pedido de 24/11/2026): nem todo card
+   * precisa de imagem da IA. Mesmo caminho do passo 2 (`imagemDeArquivo`), e
+   * respeita "repetir capa" quando o arquivo entra na capa.
+   */
+  const enviarImagemDoSlide = useCallback(
+    (indice: number, imagem: string | null) => {
+      setImagens((atuais) => {
+        const proximas = [...atuais];
+        proximas[indice] = imagem;
+        if (repetirCapa && indice === 0) {
+          for (let i = 1; i < proximas.length; i += 1) proximas[i] = imagem;
+        }
+        return proximas;
+      });
+      setCarrossel((atual) =>
+        atual
+          ? {
+              ...atual,
+              slides: atual.slides.map((s, i) =>
+                i === indice || (repetirCapa && indice === 0) ? { ...s, imagem } : s,
+              ),
+            }
+          : atual,
+      );
+      marcarSujo();
+    },
+    [repetirCapa, marcarSujo],
+  );
+
   const gerarImagemDoSlide = useCallback(
     async (indice: number) => {
       if (!carrossel) return;
@@ -723,6 +754,7 @@ export function Estudio() {
             onBaixarTodos={() => void baixarTodos()}
             onBaixarUm={(node, i) => void baixarUmCard(node, carrossel.titulo, i)}
             onGerarImagem={(i) => void gerarImagemDoSlide(i)}
+            onImagem={enviarImagemDoSlide}
             onEditar={(i, campo, valor) => {
               setCarrossel((atual) =>
                 atual
@@ -1348,6 +1380,7 @@ function PassoPronto({
   onBaixarTodos,
   onBaixarUm,
   onGerarImagem,
+  onImagem,
   repetirCapa,
   onRepetirCapa,
   onEditar,
@@ -1376,6 +1409,8 @@ function PassoPronto({
   onBaixarTodos: () => void;
   onBaixarUm: (node: HTMLElement, i: number) => void;
   onGerarImagem: (i: number) => void;
+  /** Imagem escolhida do dispositivo (upload), por índice do card. */
+  onImagem: (i: number, imagem: string | null) => void;
   /** "Repetir a imagem da capa em todos os cards". */
   repetirCapa: boolean;
   onRepetirCapa: (ligada: boolean) => void;
@@ -1386,6 +1421,10 @@ function PassoPronto({
 }) {
   const faixaRef = useRef<HTMLDivElement>(null);
   const slideEmEdicao = editando !== null ? carrossel.slides[editando] : null;
+  // Upload de arquivo por card: um índice ocupado e uma frase de erro só para
+  // não poluir a faixa com um aviso por card.
+  const [enviandoArquivo, setEnviandoArquivo] = useState<number | null>(null);
+  const [erroUpload, setErroUpload] = useState<string | null>(null);
 
   /* ---- Estado derivado da curadoria (issue #12) ---------------------- */
 
@@ -1775,6 +1814,54 @@ function PassoPronto({
             >
               {gerandoImagem === i ? "Desenhando…" : slide.imagem ? "Trocar imagem por IA" : "Gerar imagem por IA"}
             </button>
+            {/*
+              Upload do dispositivo: nem sempre a foto vem da IA — quem já tem a
+              imagem do produto precisa usar a dela. Mesmo helper do passo 2
+              (validação + redução) para os dois caminhos não divergirem.
+            */}
+            <label
+              className="mt-1 block w-full cursor-pointer rounded-lg px-3 py-2 text-center text-[12px] font-semibold"
+              style={{ border: "1px solid #E7E5E4", backgroundColor: "#fff", color: "#1C1917" }}
+            >
+              {enviandoArquivo === i
+                ? "Preparando imagem…"
+                : slide.imagem
+                  ? "Trocar por arquivo"
+                  : "Enviar imagem do dispositivo"}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                aria-label={`Enviar imagem do dispositivo para o card ${i + 1}`}
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0] ?? null;
+                  e.target.value = ""; // permite reescolher o mesmo arquivo
+                  if (!arquivo) return;
+                  setEnviandoArquivo(i);
+                  setErroUpload(null);
+                  void imagemDeArquivo(arquivo).then((r) => {
+                    if (r.ok) onImagem(i, r.imagem);
+                    else setErroUpload(r.motivo);
+                    setEnviandoArquivo(null);
+                  });
+                }}
+              />
+            </label>
+            {slide.imagem ? (
+              <button
+                type="button"
+                onClick={() => onImagem(i, null)}
+                className="mt-1 w-full rounded-lg px-3 py-2 text-[12px] font-semibold"
+                style={{ border: "1px solid #E7E5E4", color: "#57534E", backgroundColor: "#fff" }}
+              >
+                Remover imagem
+              </button>
+            ) : null}
+            {erroUpload ? (
+              <p className="mt-1 text-[11px]" style={{ color: "#B91C1C" }}>
+                {erroUpload}
+              </p>
+            ) : null}
           </div>
         ))}
       </div>

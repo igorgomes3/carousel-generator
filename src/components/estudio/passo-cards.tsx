@@ -21,20 +21,17 @@
  * salvamento possível.
  */
 import { useCallback, useRef, useState } from "react";
-import imageCompression from "browser-image-compression";
 
 import {
   ACCEPT_IMAGEM,
   FORMATOS_LEGIVEIS,
   MAX_CARDS,
   MIN_CARDS,
-  RECUSA_APOS_REDUCAO,
   TAMANHO_MAX_MB,
-  TETO_REDUZIDO_BYTES,
   rotuloDoCard,
   alvoDaImagem,
-  validarArquivo,
 } from "@/lib/estudio/cards";
+import { imagemDeArquivo } from "@/lib/estudio/imagem-upload";
 
 /* ------------------------------------------------------------------ */
 /* Quantidade de cards                                                 */
@@ -118,31 +115,6 @@ export function SeletorDeCards({
 /* Foto por card                                                       */
 /* ------------------------------------------------------------------ */
 
-function paraDataUrl(arquivo: Blob): Promise<string> {
-  return new Promise((ok, falha) => {
-    const leitor = new FileReader();
-    leitor.onload = () => ok(String(leitor.result ?? ""));
-    leitor.onerror = () => falha(new Error("Não conseguimos ler o arquivo."));
-    leitor.readAsDataURL(arquivo);
-  });
-}
-
-/**
- * Reduz antes de guardar. `maxWidthOrHeight: 1600` porque o card tem 1080 de
- * largura e a imagem é fundo com recorte: 1600 dá margem para o corte sem
- * virar arquivo grande.
- */
-async function prepararImagem(arquivo: File): Promise<string> {
-  const reduzida = await imageCompression(arquivo, {
-    maxWidthOrHeight: 1600,
-    initialQuality: 0.82,
-    maxSizeMB: 1.5,
-    useWebWorker: false,
-  });
-  if (reduzida.size > TETO_REDUZIDO_BYTES) throw new Error(RECUSA_APOS_REDUCAO);
-  return paraDataUrl(reduzida);
-}
-
 export function FotosDosCards({
   imagens,
   onImagem,
@@ -172,32 +144,16 @@ export function FotosDosCards({
       if (!arquivo) return;
 
       setErro(null);
-      const validacao = validarArquivo({
-        nome: arquivo.name,
-        tipo: arquivo.type,
-        tamanho: arquivo.size,
-      });
-      if (!validacao.ok) {
-        setErro(`${rotuloDoCard(indice, total)}: ${validacao.motivo}`);
-        return;
-      }
-
       setPreparando(indice);
       onOcupado?.(true);
-      try {
-        const imagem = await prepararImagem(arquivo);
-        onImagem(indice, imagem);
-      } catch (e) {
-        const motivos = e instanceof Error ? e.message : "";
-        setErro(
-          `${rotuloDoCard(indice, total)}: ${
-            motivos && motivos !== "Não conseguimos ler o arquivo." ? motivos : RECUSA_APOS_REDUCAO
-          }`,
-        );
-      } finally {
-        setPreparando(null);
-        onOcupado?.(false);
+      const resultado = await imagemDeArquivo(arquivo);
+      if (resultado.ok) {
+        onImagem(indice, resultado.imagem);
+      } else {
+        setErro(`${rotuloDoCard(indice, total)}: ${resultado.motivo}`);
       }
+      setPreparando(null);
+      onOcupado?.(false);
     },
     [onImagem, onOcupado, total],
   );

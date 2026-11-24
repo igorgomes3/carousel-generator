@@ -98,8 +98,13 @@ export async function gerarDocumentoCompleto(
   tema: string,
   apiKey: string,
   slides = SLIDES_PADRAO,
-  /** Nicho e formato escolhidos na tela (ids de `lib/estudio/formatos`). */
-  escolha: { nicho?: string; formato?: string } = {},
+  /**
+   * Contexto do perfil (nicho/formato da tela, público e tom vindos da
+   * entrevista do autopilot). Sem público e tom, a etapa 6 escolhe hashtag pelo
+   * formato e erra o nicho — foi o que aconteceu no primeiro post automático
+   * (hashtag de clínica de estética num briefing de agência).
+   */
+  escolha: { nicho?: string; formato?: string; publico?: string; tom?: string } = {},
 ): Promise<DocumentoGerado | null> {
   const quantidade = Math.min(Math.max(slides, 5), 10);
 

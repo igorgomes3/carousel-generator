@@ -24,6 +24,9 @@ const DESTINOS = [
   // "Sinais" saiu junto com a pauta por notícia: a entrada do produto virou o
   // tema que a pessoa digita no estúdio (`/`).
   { href: "/", rotulo: "Carrosséis" },
+  // Autopilot ganhou entrada própria porque é outra tarefa: aqui a pessoa não
+  // desenha nada, só diz sobre o negócio e recebe o post do dia.
+  { href: "/autopilot", rotulo: "Post diário" },
   { href: "/configuracoes", rotulo: "Configurações" },
 ] as const;
 

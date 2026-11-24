@@ -92,6 +92,21 @@ export default function AutopilotPage() {
   const [pilares, setPilares] = useState("");
   const [instagram, setInstagram] = useState("");
 
+  /**
+   * Conversa: o jeito fácil de preencher o briefing. Uma chamada de LLM por
+   * mensagem (a rota devolve o briefing atualizado e já grava no perfil), então
+   * nada de polling nem de conversa infinita.
+   */
+  const [mensagens, setMensagens] = useState<{ papel: "usuario" | "agente"; texto: string }[]>([
+    {
+      papel: "agente",
+      texto:
+        "Me conta em duas frases: o que você vende e para quem. Eu organizo o resto e já deixo o post diário configurado.",
+    },
+  ]);
+  const [entrada, setEntrada] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
   const carregar = useCallback(async () => {
     setCarregando(true);
     const res = await fetch("/api/autopilot", { cache: "no-store" });
@@ -159,13 +174,57 @@ export default function AutopilotPage() {
       tipo: "ok",
       texto:
         ativo === false
-          ? "Autopilot pausado."
+          ? "Piloto automático pausado."
           : ativo === true
-            ? "Autopilot ativo. O post do dia é gerado de madrugada."
+            ? "Piloto automático ativo. O post do dia é gerado de madrugada."
             : "Entrevista salva.",
     });
     setSalvando(false);
     void carregar();
+  }
+
+  async function conversar() {
+    const texto = entrada.trim();
+    if (!texto || enviando) return;
+    const proximas = [...mensagens, { papel: "usuario" as const, texto }];
+    setMensagens(proximas);
+    setEntrada("");
+    setEnviando(true);
+    setAviso(null);
+
+    const res = await fetch("/api/autopilot/conversa", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mensagens: proximas }),
+    });
+    const dados = (await res.json().catch(() => ({}))) as {
+      resposta?: string;
+      briefing?: Briefing;
+      completo?: boolean;
+      erro?: string;
+    };
+
+    if (!res.ok || !dados.resposta) {
+      setAviso({ tipo: "erro", texto: dados.erro ?? "Não consegui responder agora." });
+      setEnviando(false);
+      return;
+    }
+
+    setMensagens((atual) => [...atual, { papel: "agente", texto: dados.resposta as string }]);
+    if (dados.briefing) {
+      const b = dados.briefing;
+      setNicho(b.nicho ?? "");
+      setPublico(b.publico ?? "");
+      setOferta(b.oferta ?? "");
+      setTom(b.tom ?? "");
+      setPilares((b.pilares ?? []).join(", "));
+      setInstagram(b.instagram ?? "");
+    }
+    if (dados.completo) {
+      setAviso({ tipo: "ok", texto: "Briefing completo. Confira abaixo e ative o piloto automático." });
+      void carregar();
+    }
+    setEnviando(false);
   }
 
   const completo = Boolean(nicho.trim() && publico.trim() && oferta.trim());
@@ -239,6 +298,67 @@ export default function AutopilotPage() {
           </p>
         ) : (
           <div className="mt-5 space-y-4">
+            {/*
+              Conversa primeiro, formulário depois. Quem chega de fora não sabe
+              preencher "nicho" e "público"; contar o negócio é natural e o agente
+              organiza. O formulário continua visível para conferir/ajustar — é o
+              que dá controle a quem já sabe o que quer.
+            */}
+            <section
+              aria-labelledby="conversa-titulo"
+              className="rounded-2xl bg-white p-4 sm:p-5"
+              style={{ border: `1px solid ${COR.linha}` }}
+            >
+              <h2 id="conversa-titulo" className="text-[15px] font-semibold" style={{ color: COR.tinta }}>
+                Conte do seu negócio
+              </h2>
+              <p className="mt-1 text-[13px]" style={{ color: COR.suave }}>
+                Conversa com o agente: ele pergunta o que falta e preenche o briefing abaixo.
+              </p>
+
+              <ol className="mt-3 flex flex-col gap-2" aria-live="polite">
+                {mensagens.map((m, i) => (
+                  <li
+                    key={i}
+                    className="max-w-[95%] rounded-xl px-3 py-2 text-[14px] leading-relaxed"
+                    style={
+                      m.papel === "agente"
+                        ? { backgroundColor: "#F5F4F1", color: COR.tinta }
+                        : { backgroundColor: "#1C1917", color: "#FFFFFF", marginLeft: "auto" }
+                    }
+                  >
+                    {m.texto}
+                  </li>
+                ))}
+              </ol>
+
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <textarea
+                  value={entrada}
+                  onChange={(e) => setEntrada(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void conversar();
+                    }
+                  }}
+                  rows={2}
+                  placeholder="Ex.: vendo mentoria de precificação para agências pequenas de social media"
+                  aria-label="Sua mensagem para o agente"
+                  className="min-h-[44px] flex-1 resize-y rounded-xl px-3 py-2 text-[14px]"
+                  style={{ border: `1px solid ${COR.linha}`, color: COR.tinta }}
+                />
+                <button
+                  type="button"
+                  onClick={() => void conversar()}
+                  disabled={enviando || !entrada.trim()}
+                  className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold disabled:opacity-60"
+                  style={{ backgroundColor: COR.acao, color: "#FFFFFF" }}
+                >
+                  {enviando ? "Pensando…" : "Enviar"}
+                </button>
+              </div>
+            </section>
             <section className="rounded-2xl bg-white p-4 sm:p-5" style={{ border: `1px solid ${COR.linha}` }}>
               <label className="block text-[12px] font-semibold uppercase tracking-[0.12em]" style={{ color: COR.fraco }}>
                 Instagram (opcional)
@@ -317,7 +437,7 @@ export default function AutopilotPage() {
                     : { backgroundColor: "#F5F4F1", color: COR.suave, border: `1px solid ${COR.linha}` }
                 }
               >
-                {ativo ? "Autopilot ativo" : "Autopilot pausado"}
+                {ativo ? "Piloto automático ativo" : "Piloto automático pausado"}
               </span>
               <button
                 type="button"
@@ -341,7 +461,7 @@ export default function AutopilotPage() {
                   className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold"
                   style={{ backgroundColor: "#FFFFFF", color: COR.erro, border: `1px solid ${COR.linha}` }}
                 >
-                  Pausar autopilot
+                  Pausar piloto
                 </button>
               ) : (
                 <button
@@ -351,7 +471,7 @@ export default function AutopilotPage() {
                   className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold disabled:opacity-60"
                   style={{ backgroundColor: "#C2410C", color: "#FFFFFF" }}
                 >
-                  Ativar autopilot
+                  Ativar piloto automático
                 </button>
               )}
 
@@ -362,7 +482,7 @@ export default function AutopilotPage() {
                     ? ativo
                       ? "Ativo: um post por dia."
                       : "Pronto para ativar."
-                    : "Salvo. Um administrador precisa liberar o autopilot (controle de custo)."}
+                    : "Salvo. Um administrador precisa liberar o piloto automático (controle de custo)."}
               </span>
             </div>
 
@@ -376,7 +496,7 @@ export default function AutopilotPage() {
 
             {perfil && perfil.postsSemAbrir >= 3 ? (
               <p className="rounded-xl px-3 py-2 text-[13px]" style={{ backgroundColor: "#FFFBEB", color: "#92400E" }}>
-                O autopilot pausou sozinho: {perfil.postsSemAbrir} posts seguidos sem você abrir. Abra
+                O piloto automático pausou sozinho: {perfil.postsSemAbrir} posts seguidos sem você abrir. Abra
                 qualquer post e ative de novo.
               </p>
             ) : null}

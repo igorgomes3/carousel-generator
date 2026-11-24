@@ -104,6 +104,39 @@ export function hashtagsDeReserva(formato?: Formato | null): string[] {
 }
 
 /**
+ * Hashtags derivadas do briefing do perfil.
+ *
+ * Existe porque a etapa 6 erra o ramo quando só recebe o tema: o primeiro post
+ * automático saiu com `#clinicaestetica` num perfil de agência. Aqui a tag vem
+ * do que a pessoa declarou (pilares e nicho), e entra na frente das do modelo.
+ */
+export function hashtagsDoBriefing(briefing: {
+  nicho?: string;
+  pilares?: string[];
+}): string[] {
+  const dePilar = (briefing.pilares ?? []).flatMap((p) => p.split(/[^\p{L}\p{N}]+/u));
+  const doNicho = (briefing.nicho ?? "").split(/[^\p{L}\p{N}]+/u);
+  const palavras = [...dePilar, ...doNicho]
+    .map((p) => p.trim().toLowerCase())
+    .filter((p) => p.length >= 4)
+    .filter((p) => !["para", "com", "sem", "sobre", "pelo", "pela", "mais", "como"].includes(p));
+
+  // Junta palavras vizinhas quando fizer sentido: "social media" vira
+  // `#socialmedia`, que é como as pessoas buscam de fato.
+  const juntas: string[] = [];
+  const originais = [...(briefing.pilares ?? []), briefing.nicho ?? ""];
+  for (const frase of originais) {
+    const partes = frase
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((p) => p.length >= 3);
+    if (partes.length === 2) juntas.push(partes.join(""));
+  }
+
+  return normalizarHashtags([...juntas, ...palavras]).slice(0, 6);
+}
+
+/**
  * Texto pronto para colar no Instagram: legenda, linha em branco, hashtags.
  *
  * As hashtags ficam no FIM e separadas — no meio da legenda elas quebram a

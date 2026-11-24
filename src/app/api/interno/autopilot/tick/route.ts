@@ -31,6 +31,7 @@ import { criarProjeto } from "@/lib/estudio/armazenamento";
 import { slidesDoDocumento } from "@/lib/estudio/do-documento";
 import {
   hashtagsDeReserva,
+  hashtagsDoBriefing,
   legendaDeReserva,
   normalizarHashtags,
   normalizarLegenda,
@@ -84,8 +85,8 @@ export async function POST(request: NextRequest) {
   }
 
   const gerado = await gerarDocumentoCompleto(pauta.tema, config.llmApiKey, SLIDES_DO_POST, {
-    nicho: undefined,
-    formato: undefined,
+    publico: `${perfil.briefing.publico} — oferta: ${perfil.briefing.oferta}`,
+    tom: perfil.briefing.tom || undefined,
   }).catch(() => null);
 
   if (!gerado) {
@@ -100,10 +101,13 @@ export async function POST(request: NextRequest) {
   const publicacao = gerado.estrategia.publicacao;
   const legenda = normalizarLegenda(publicacao?.legenda) || legendaDeReserva(slides);
   const hashtagsBrutas = normalizarHashtags(publicacao?.hashtags);
-  const hashtags =
+  const doModelo =
     hashtagsBrutas.length > 0
       ? hashtagsBrutas
       : hashtagsDeReserva(resolverFormato({ tema: pauta.tema, slides: SLIDES_DO_POST }));
+  // As do briefing entram PRIMEIRO: elas vêm do que a pessoa declarou sobre o
+  // próprio negócio, então valem mais que a sugestão do modelo sobre o tema.
+  const hashtags = normalizarHashtags([...hashtagsDoBriefing(perfil.briefing), ...doModelo]).slice(0, 12);
 
   const criado = await criarProjeto(
     null,

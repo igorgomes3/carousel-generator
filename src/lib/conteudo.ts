@@ -691,7 +691,12 @@ Regras:
 
 Responda só o JSON do schema.`,
     `Ângulo: ${JSON.stringify(ideia)}
-Estrutura: ${JSON.stringify(plano.slides.map((s) => s.ideia))}`,
+Estrutura: ${JSON.stringify(plano.slides.map((s) => s.ideia))}
+Perfil que publica: ${b.publico?.trim() || "(não informado)"}
+Tom de voz: ${b.tom?.trim() || "direto e prático"}
+Assunto do carrossel: ${b.tema}
+
+As hashtags precisam ser do universo do PERFIL acima — nunca de outro ramo.`,
     "publicacao",
   );
 }
