@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
     slides?: unknown;
     arroba?: unknown;
     estilo?: unknown;
+    legenda?: unknown;
+    hashtags?: unknown;
+    melhorHorario?: unknown;
   };
 
   try {
@@ -59,6 +62,9 @@ export async function POST(request: NextRequest) {
       slides: dados.slides,
       arroba: dados.arroba,
       estilo: dados.estilo,
+      legenda: dados.legenda,
+      hashtags: dados.hashtags,
+      melhorHorario: dados.melhorHorario,
     });
 
     if (!resultado.ok) {

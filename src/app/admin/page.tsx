@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { NavPrincipal } from "@/components/carrosseis/nav-principal";
+import { MenuConta } from "@/components/conta/menu-conta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { carregarUsuario, type UsuarioCarrossel } from "@/lib/auth/sessao";
@@ -49,8 +49,11 @@ const COR = {
    */
   fraco: "#6B6660",
   linha: "#E7E5E4",
-  fundo: "#FAF9F7",
+  /** Mesmo fundo de `/projetos` (`#F5F4F1`): o painel é a mesma aplicação. */
+  fundo: "#F5F4F1",
   cartao: "#FFFFFF",
+  /** Laranja da marca — só no selo do logo, não é cor de texto. */
+  laranja: "#F4511E",
   acento: "#C2410C",
   ok: "#15803D",
   erro: "#B91C1C",
@@ -167,36 +170,44 @@ export default function AdminPage() {
 
   if (negado) {
     return (
-      <main className="min-h-screen px-4 py-10" style={{ backgroundColor: COR.fundo }}>
-        <div className="mx-auto max-w-2xl rounded-2xl p-6" style={{ backgroundColor: COR.cartao, border: `1px solid ${COR.linha}` }}>
-          <h1 className="text-[20px] font-semibold" style={{ color: COR.tinta }}>
-            Área do administrador
-          </h1>
-          <p className="mt-2 text-[14px]" style={{ color: COR.suave }}>
-            Sua conta não administra este produto. Se isso está errado, o e-mail precisa entrar em{" "}
-            <code className="rounded px-1" style={{ backgroundColor: "#F5F5F4" }}>
-              CARROSSEL_ADMINS
-            </code>
-            .
-          </p>
-          <Link href="/projetos" className="mt-4 inline-block text-[14px] font-semibold" style={{ color: COR.acento }}>
-            Voltar para meus projetos
-          </Link>
+      <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
+        <CabecalhoAdmin usuario={usuario} />
+        <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
+          <div className="rounded-2xl bg-white p-6" style={{ border: `1px solid ${COR.linha}` }}>
+            <h1 className="text-[22px] font-bold" style={{ color: COR.tinta }}>
+              Área do administrador
+            </h1>
+            <p className="mt-2 max-w-[560px] text-[14px]" style={{ color: COR.suave }}>
+              Sua conta não administra este produto. Se isso está errado, o e-mail precisa entrar
+              em{" "}
+              <code className="rounded px-1" style={{ backgroundColor: "#F5F4F1" }}>
+                CARROSSEL_ADMINS
+              </code>
+              .
+            </p>
+            <Link
+              href="/projetos"
+              className="mt-4 inline-block text-[14px] font-semibold"
+              style={{ color: COR.acento }}
+            >
+              Voltar para meus projetos
+            </Link>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: COR.fundo }}>
-      <NavPrincipal usuario={usuario} />
+    <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
+      <CabecalhoAdmin usuario={usuario} />
 
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
         <header className="mb-6">
-          <h1 className="text-[24px] font-semibold tracking-tight" style={{ color: COR.tinta }}>
+          <h1 className="text-[26px] font-bold leading-tight sm:text-[30px]" style={{ color: COR.tinta }}>
             Chaves de IA
           </h1>
-          <p className="mt-1 text-[14px]" style={{ color: COR.suave }}>
+          <p className="mt-1 max-w-[560px] text-[14px]" style={{ color: COR.suave }}>
             O que estiver aqui é herdado por todos os usuários. Nenhum cliente configura chave.
           </p>
         </header>
@@ -220,7 +231,7 @@ export default function AdminPage() {
           </p>
         ) : (
           <div className="space-y-6">
-            <section className="rounded-2xl p-5" style={{ backgroundColor: COR.cartao, border: `1px solid ${COR.linha}` }}>
+            <section className="rounded-2xl bg-white p-4 sm:p-5" style={{ border: `1px solid ${COR.linha}` }}>
               <h2 className="text-[15px] font-semibold" style={{ color: COR.tinta }}>
                 Texto (LLM)
               </h2>
@@ -268,7 +279,7 @@ export default function AdminPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl p-5" style={{ backgroundColor: COR.cartao, border: `1px solid ${COR.linha}` }}>
+            <section className="rounded-2xl bg-white p-4 sm:p-5" style={{ border: `1px solid ${COR.linha}` }}>
               <h2 className="text-[15px] font-semibold" style={{ color: COR.tinta }}>
                 Imagem
               </h2>
@@ -326,7 +337,7 @@ export default function AdminPage() {
               <Button
                 onClick={salvar}
                 disabled={salvando || !alterou}
-                className="disabled:opacity-100"
+                className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] disabled:opacity-100"
                 style={
                   salvando || !alterou
                     ? {
@@ -342,8 +353,8 @@ export default function AdminPage() {
               >
                 {salvando ? "Salvando…" : "Salvar configuração"}
               </Button>
-              <Button
-                variant="outline"
+              <button
+                type="button"
                 onClick={() => {
                   void carregar();
                   setLlmApiKey("");
@@ -351,9 +362,11 @@ export default function AdminPage() {
                   router.refresh();
                 }}
                 disabled={salvando}
+                className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold disabled:opacity-60"
+                style={{ backgroundColor: "#FFFFFF", color: COR.tinta, border: `1px solid ${COR.linha}` }}
               >
                 Descartar mudanças
-              </Button>
+              </button>
               <span className="text-[12px]" style={{ color: COR.fraco }}>
                 {estado?.atualizadoEm
                   ? `Última alteração: ${new Date(estado.atualizadoEm).toLocaleString("pt-BR")}${estado.atualizadoPor ? ` por ${estado.atualizadoPor}` : ""}`
@@ -361,12 +374,59 @@ export default function AdminPage() {
               </span>
             </div>
 
-            <p className="text-[12px]" style={{ color: COR.fraco }}>
-              Administradores: {estado?.admins}
-            </p>
           </div>
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * Cabeçalho igual ao de "Meus projetos" — mesma barra, mesmo selo, mesmo menu.
+ *
+ * O painel nasceu com o `NavPrincipal` (barra do produto antigo) e por isso
+ * parecia outra aplicação ao lado de `/projetos`. Aqui repetimos a chrome da
+ * tela nova de propósito: quem entra em Admin sai do mesmo lugar de onde veio.
+ */
+function CabecalhoAdmin({ usuario }: { usuario: UsuarioCarrossel | null }) {
+  return (
+    <header
+      className="sticky top-0 z-20 border-b"
+      style={{ backgroundColor: "#FFFFFFEE", borderColor: COR.linha, backdropFilter: "blur(8px)" }}
+    >
+      <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between px-4 sm:px-6">
+        <a href="/" className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[15px] font-bold text-white"
+            style={{ backgroundColor: COR.laranja }}
+          >
+            C
+          </span>
+          <span className="hidden text-[16px] font-bold tracking-tight sm:inline" style={{ color: COR.tinta }}>
+            Carrossel<span style={{ color: COR.laranja }}>IA</span>
+          </span>
+        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href="/projetos"
+            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
+            style={{ color: COR.tinta, border: `1px solid ${COR.linha}`, backgroundColor: "#fff" }}
+          >
+            <span className="sm:hidden">Projetos</span>
+            <span className="hidden sm:inline">Meus projetos</span>
+          </a>
+          <a
+            href="/"
+            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
+            style={{ color: COR.tinta, border: `1px solid ${COR.linha}`, backgroundColor: "#fff" }}
+          >
+            <span className="sm:hidden">Estúdio</span>
+            <span className="hidden sm:inline">Ir ao estúdio</span>
+          </a>
+          <MenuConta />
+        </div>
+      </div>
+    </header>
   );
 }

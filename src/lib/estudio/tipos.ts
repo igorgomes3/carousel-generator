@@ -41,6 +41,14 @@ export interface CarrosselGerado {
    * decide, que é o visual de todo projeto salvo até aqui.
    */
   estilo?: EstiloEscolhido;
+  /**
+   * Publicação pronta (24/11/2026): a legenda que o criador cola no Instagram,
+   * as hashtags do nicho e a hora sugerida. Ausente em projeto salvo antes
+   * disto — a tela então não mostra o bloco, em vez de mostrar campo vazio.
+   */
+  legenda?: string;
+  hashtags?: string[];
+  melhorHorario?: string;
 }
 
 export function carrosselVazio(templateId: string): CarrosselGerado {

@@ -57,6 +57,7 @@ import {
   removerPauta,
   salvarPautas,
 } from "@/lib/estudio/pautas-salvas";
+import { BlocoPublicacao } from "@/components/estudio/bloco-publicacao";
 import {
   CATEGORIAS,
   TEMPLATES,
@@ -1493,6 +1494,15 @@ function PassoPronto({
         <p className="rounded-lg px-3 py-2 text-[13px]" style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}>
           {erro}
         </p>
+      ) : null}
+
+      {/* Legenda + hashtags: a peça só está pronta para publicar com o texto. */}
+      {carrossel.legenda || (carrossel.hashtags?.length ?? 0) > 0 ? (
+        <BlocoPublicacao
+          legenda={carrossel.legenda}
+          hashtags={carrossel.hashtags}
+          melhorHorario={carrossel.melhorHorario}
+        />
       ) : null}
 
       {/* ---- Marca e estilo (issue #12) ---------------------------------- */} 

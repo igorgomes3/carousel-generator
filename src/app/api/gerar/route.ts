@@ -13,9 +13,16 @@ import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
 import { exigirSessao } from "@/lib/auth/supabase-servidor";
 import { aplicarConfigIA } from "@/lib/ia/config";
 import { promptDeEmergencia, resolverFormato } from "@/lib/conteudo";
+import {
+  hashtagsDeReserva,
+  legendaDeReserva,
+  normalizarHashtags,
+  normalizarLegenda,
+} from "@/lib/estudio/publicacao";
 import { generateCarouselSlides } from "@/lib/langchain";
 import { templatePorId } from "@/lib/templates";
 import { ajustarQuantidade, limitarQuantidade } from "@/lib/estudio/cards";
+import { corpoSeFechar } from "@/lib/estudio/frase";
 import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 
 export const runtime = "nodejs";
@@ -116,7 +123,14 @@ export async function POST(request: NextRequest) {
     const { titulo, corpo } = lerSlide(slide);
     const tipo: SlideCarrossel["tipo"] =
       i === 0 ? "capa" : i === slidesOriginais!.length - 1 ? "cta" : "conteudo";
-    return { tipo, titulo, corpo, imagem: null };
+    return {
+      tipo,
+      titulo,
+      // Corpo de capa truncado pelo modelo ("O número final não é o") vira card
+      // errado. Na capa, corpo é opcional: sai limpo em vez de sair pela metade.
+      corpo: tipo === "capa" ? corpoSeFechar(corpo) : corpo,
+      imagem: null,
+    };
   });
 
   // A rota devolve EXATAMENTE o número pedido: o pipeline escreve quantos
@@ -132,6 +146,29 @@ export async function POST(request: NextRequest) {
     criadoEm: new Date().toISOString(),
   };
 
+  /**
+   * Publicação (24/11/2026): a legenda e as hashtags nascem da etapa 6 do
+   * pipeline (`estrategia.publicacao`) e vão JUNTO com o carrossel — o criador
+   * não deve escrever legenda depois de pedir o carrossel pronto.
+   *
+   * A etapa 6 é enriquecimento e pode falhar; aí entra a reserva montada a partir
+   * dos próprios cards e do vocabulário do formato. Reserva honesta é melhor que
+   * campo vazio num produto que promete post pronto.
+   */
+  const publicacao: {
+    legenda: string;
+    hashtags: string[];
+    melhorHorario: string;
+  } = {
+    legenda:
+      normalizarLegenda(gerado?.estrategia.publicacao?.legenda) || legendaDeReserva(slides),
+    hashtags:
+      normalizarHashtags(gerado?.estrategia.publicacao?.hashtags).length > 0
+        ? normalizarHashtags(gerado?.estrategia.publicacao?.hashtags)
+        : hashtagsDeReserva(resolverFormato({ tema, slides: quantidade, nicho: corpo?.nicho, formato: corpo?.formato })),
+    melhorHorario: (gerado?.estrategia.publicacao?.melhor_horario ?? "").trim(),
+  };
+
   // O formato vai na resposta para a tela poder dizer qual estrutura foi usada —
   // sem isso o usuário não sabe se a escolha dele foi respeitada.
   const formato =
@@ -139,5 +176,5 @@ export async function POST(request: NextRequest) {
     resolverFormato({ tema, slides: quantidade, nicho: corpo?.nicho, formato: corpo?.formato })?.nome ??
     "";
 
-  return NextResponse.json({ carrossel, formato });
+  return NextResponse.json({ carrossel: { ...carrossel, ...publicacao }, formato });
 }

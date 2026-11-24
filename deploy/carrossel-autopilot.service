@@ -1,0 +1,15 @@
+[Unit]
+Description=Carrossel — job diário do autopilot (uma pauta por chamada)
+After=network-online.target carousel-generator.service
+Wants=network-online.target carousel-generator.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/projects/carousel-generator-eval
+Environment=CAROUSEL_URL=http://127.0.0.1:8099
+ExecStart=/usr/bin/env bash /root/projects/carousel-generator-eval/scripts/autopilot-tick.sh
+# Timeout maior que 15 iterações × 5 min: o pipeline leva ~2 min por post.
+TimeoutStartSec=3600
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

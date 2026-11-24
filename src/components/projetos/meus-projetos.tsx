@@ -323,12 +323,12 @@ function SecaoDoEstudio({
     <section aria-labelledby="sec-estudio">
       <TituloDeSecao
         id="sec-estudio"
-        etiqueta="estúdio"
+        etiqueta="seus posts"
         contagem={estado === "pronto" ? projetos.length : undefined}
         unidade="projetos"
-        nota="Salvos aqui pelo estúdio. Você pode abrir, renomear e apagar."
+        nota="Manuais e automáticos no mesmo lugar. Você pode abrir, renomear e apagar."
       >
-        Projetos do estúdio
+        Seus projetos
       </TituloDeSecao>
 
       {estado === "carregando" && <Carregando rotulo="Carregando seus projetos do estúdio…" />}
@@ -401,16 +401,34 @@ function LinhaDoProjeto({
           />
         </div>
         <div className="min-w-0 flex-1">
-          <h3
-            className="text-[15px] font-semibold [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] sm:truncate sm:[display:block]"
-            style={{ color: COR.tinta }}
-          >
-            {projeto.nome}
-          </h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3
+              className="text-[15px] font-semibold [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] sm:truncate sm:[display:block]"
+              style={{ color: COR.tinta }}
+            >
+              {projeto.nome}
+            </h3>
+            {/*
+              Origem visível: quem tem autopilot ligado precisa reconhecer num
+              relance o post do dia. Sem badge, a lista é uma pilha indistinta e
+              o criador abre o projeto errado.
+            */}
+            {projeto.origem === "autopilot" ? (
+              <span
+                className="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                style={{ backgroundColor: "#FFF7ED", color: COR.acao, border: "1px solid #FED7AA" }}
+              >
+                automático
+              </span>
+            ) : null}
+          </div>
           {/* Uma linha só: "3 cards · Salvo às 14:32" responde quantidade e
               quando mexi. Duas linhas diziam a mesma hora duas vezes. */}
           <p className="mt-0.5 truncate text-[13px] tabular-nums" style={{ color: COR.textoSecundario }}>
-            {contagemDeCards(projeto.slides)} · {quandoSalvo(projeto.salvoEm)}
+            {contagemDeCards(projeto.slides)} ·{" "}
+            {projeto.origem === "autopilot" && projeto.dataReferencia
+              ? `Post de ${projeto.dataReferencia.split("-").reverse().join("/")}`
+              : quandoSalvo(projeto.salvoEm)}
           </p>
         </div>
       </div>

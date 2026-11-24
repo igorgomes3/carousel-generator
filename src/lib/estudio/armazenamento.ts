@@ -42,6 +42,7 @@ import {
   type ResumoProjeto,
 } from "@/lib/estudio/projetos";
 import { normalizarArroba } from "@/lib/estudio/arroba";
+import { normalizarHashtags, normalizarLegenda } from "@/lib/estudio/publicacao";
 import { estiloVazio, normalizarEstilo, type EstiloEscolhido } from "@/lib/estudio/estilo";
 import type { SlideCarrossel } from "@/lib/estudio/tipos";
 import { comoServico, comoUsuario, type Sessao } from "@/lib/auth/supabase-servidor";
@@ -88,6 +89,11 @@ function linhaParaProjeto(linha: LinhaProjeto): ProjetoSalvo {
     versao: Number.isFinite(doc.versao) ? Number(doc.versao) : 1,
     ...(doc.arroba ? { arroba: doc.arroba } : {}),
     ...(doc.estilo ? { estilo: doc.estilo } : {}),
+    ...(doc.legenda ? { legenda: doc.legenda } : {}),
+    ...(Array.isArray(doc.hashtags) && doc.hashtags.length > 0 ? { hashtags: doc.hashtags } : {}),
+    ...(doc.melhorHorario ? { melhorHorario: doc.melhorHorario } : {}),
+    ...(doc.origem === "autopilot" ? { origem: "autopilot" as const } : {}),
+    ...(doc.dataReferencia ? { dataReferencia: doc.dataReferencia } : {}),
   };
 }
 
@@ -107,6 +113,8 @@ function resumoDe(projeto: ProjetoSalvo): ResumoProjeto {
     atualizadoEm: projeto.atualizadoEm,
     salvoEm: projeto.salvoEm,
     capa,
+    ...(projeto.origem === "autopilot" ? { origem: "autopilot" as const } : {}),
+    ...(projeto.dataReferencia ? { dataReferencia: projeto.dataReferencia } : {}),
   };
 }
 
@@ -283,6 +291,10 @@ export interface DadosNovoProjeto {
   arroba?: unknown;
   /** Fundo/destaque/fonte escolhidos (issue #12). */
   estilo?: unknown;
+  /** Legenda/hashtags/horário gerados junto com o carrossel (24/11/2026). */
+  legenda?: unknown;
+  hashtags?: unknown;
+  melhorHorario?: unknown;
 }
 
 /**
@@ -301,10 +313,25 @@ export type ResultadoCriacao =
   | { ok: true; projeto: ProjetoSalvo }
   | { ok: false; motivo: string };
 
+export interface OpcoesCriacao {
+  /**
+   * Cron do autopilot: grava em nome do usuário com `service_role`, porque não
+   * existe token de sessão no job da madrugada. RLS é do banco; aqui quem assina
+   * é o servidor.
+   */
+  paraUsuario?: string;
+  origem?: "manual" | "autopilot";
+  /** Dia de referência do post automático (`YYYY-MM-DD`, fuso de São Paulo). */
+  dataReferencia?: string;
+}
+
 export async function criarProjeto(
-  sessao: Sessao,
+  sessao: Sessao | null,
   dados: DadosNovoProjeto,
+  opcoes: OpcoesCriacao = {},
 ): Promise<ResultadoCriacao> {
+  const donoId = opcoes.paraUsuario ?? sessao?.usuario.id;
+  if (!donoId) return { ok: false, motivo: "Sem dono para o projeto." };
   const slides = normalizarSlides(dados.slides);
   if (!slides) return { ok: false, motivo: "O carrossel chegou vazio ou com cards demais." };
 
@@ -321,6 +348,13 @@ export async function criarProjeto(
   const slidesGravados = await materializarImagens(id, slides, versao);
   const arroba = normalizarArroba(dados.arroba);
   const estilo = estiloParaGravar(dados.estilo);
+  // Publicação: normalizada aqui, não confiada ao cliente. Legenda vazia fica de
+  // fora do documento em vez de gravar string vazia (o bloco da tela some
+  // sozinho quando não há legenda, e "vazio" precisa ser o mesmo estado).
+  const legenda = normalizarLegenda(dados.legenda);
+  const hashtags = normalizarHashtags(dados.hashtags);
+  const melhorHorario =
+    typeof dados.melhorHorario === "string" ? dados.melhorHorario.trim().slice(0, 200) : "";
 
   const projeto: ProjetoSalvo = {
     id,
@@ -334,18 +368,34 @@ export async function criarProjeto(
     versao,
     ...(arroba ? { arroba } : {}),
     ...(estilo ? { estilo } : {}),
+    ...(legenda ? { legenda } : {}),
+    ...(hashtags.length > 0 ? { hashtags } : {}),
+    ...(melhorHorario ? { melhorHorario } : {}),
+    ...(opcoes.origem === "autopilot"
+      ? { origem: "autopilot" as const, ...(opcoes.dataReferencia ? { dataReferencia: opcoes.dataReferencia } : {}) }
+      : {}),
   };
 
-  const { ok, dados: criado, erro } = await comoUsuario<LinhaProjeto[]>(sessao, "projetos", {
-    method: "POST",
-    headers: { prefer: "return=representation" },
-    body: JSON.stringify({
-      id,
-      auth_user_id: sessao.usuario.id,
-      nome: projeto.nome,
-      documento: projeto,
-    }),
-  });
+  const linha = {
+    id,
+    auth_user_id: donoId,
+    nome: projeto.nome,
+    documento: projeto,
+    origem: opcoes.origem ?? "manual",
+    data_referencia: opcoes.dataReferencia ?? null,
+  };
+
+  const { ok, dados: criado, erro } = opcoes.paraUsuario
+    ? await comoServico<LinhaProjeto[]>("projetos", {
+        method: "POST",
+        headers: { prefer: "return=representation" },
+        body: JSON.stringify(linha),
+      })
+    : await comoUsuario<LinhaProjeto[]>(sessao as Sessao, "projetos", {
+        method: "POST",
+        headers: { prefer: "return=representation" },
+        body: JSON.stringify(linha),
+      });
 
   if (!ok || !criado || criado.length === 0) {
     console.error("[projetos] falha ao criar:", erro);
@@ -362,6 +412,9 @@ export interface DadosAlteracao {
   slides?: unknown;
   arroba?: unknown;
   estilo?: unknown;
+  legenda?: unknown;
+  hashtags?: unknown;
+  melhorHorario?: unknown;
 }
 
 /**
@@ -416,6 +469,13 @@ export async function salvarProjeto(
     versao,
     arroba: dados.arroba !== undefined ? (arrobaRecebida ?? undefined) : atual.arroba,
     estilo: dados.estilo !== undefined ? estiloRecebido : atual.estilo,
+    // Mesma semântica do @: ausente mantém, vazio apaga.
+    legenda: dados.legenda !== undefined ? normalizarLegenda(dados.legenda) || undefined : atual.legenda,
+    hashtags: dados.hashtags !== undefined ? normalizarHashtags(dados.hashtags) : atual.hashtags,
+    melhorHorario:
+      dados.melhorHorario !== undefined
+        ? String(dados.melhorHorario).trim().slice(0, 200) || undefined
+        : atual.melhorHorario,
   };
 
   const { ok, dados: salvo, erro } = await comoUsuario<LinhaProjeto[]>(

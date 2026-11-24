@@ -1,0 +1,15 @@
+[Unit]
+Description=Carrossel — dispara o autopilot todos os dias (05:00 em São Paulo)
+
+[Timer]
+# 05:00 em America/Sao_Paulo = 08:00 UTC. O horário do post é o do criador, não
+# o do servidor: gerar antes disso entrega "post de ontem" na lista.
+OnCalendar=*-*-* 08:00:00 UTC
+# Se a VPS estava desligada na hora, roda assim que voltar — mas nunca em
+# duplicidade: o índice único do banco garante um post por dia.
+Persistent=true
+RandomizedDelaySec=120
+Unit=carrossel-autopilot.service
+
+[Install]
+WantedBy=timers.target

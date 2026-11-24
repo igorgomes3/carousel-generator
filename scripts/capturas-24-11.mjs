@@ -59,6 +59,11 @@ try {
       const titulo = await admin.locator("h1").first().textContent().catch(() => null);
       console.log("admin h1:", titulo);
       await admin.screenshot({ path: "screenshots/24-11/admin-1440.png", fullPage: true });
+    } else {
+      const admin = await ctx.newPage();
+      await admin.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
+      await admin.waitForTimeout(800);
+      await admin.screenshot({ path: "screenshots/24-11/admin-390.png", fullPage: true });
     }
 
     await ctx.close();

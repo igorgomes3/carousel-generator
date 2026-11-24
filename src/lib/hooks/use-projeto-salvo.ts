@@ -58,6 +58,12 @@ export function useProjetoSalvo(): UseProjetoSalvo {
            */
           arroba: carrossel.arroba ?? null,
           estilo: carrossel.estilo ?? {},
+          // Publicação (24/11/2026): legenda e hashtags são parte da peça, não
+          // anotação de tela — sem isto, reabrir o projeto perderia o texto que
+          // o criador já ia colar no Instagram.
+          legenda: carrossel.legenda ?? "",
+          hashtags: carrossel.hashtags ?? [],
+          melhorHorario: carrossel.melhorHorario ?? "",
         };
 
         const res = await fetch(projetoId ? `/api/projetos/${projetoId}` : "/api/projetos", {

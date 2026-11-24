@@ -29,6 +29,9 @@ const LIVRES = [
   /^\/api\/auth\//,
   // Proxy de imagem pública da exportação: sem credencial, sem custo.
   /^\/api\/proxy/,
+  // Cron interno do autopilot. Não é público: quem chama precisa do segredo
+  // `x-cron-secret`, validado na própria rota (aqui só evitaria 401 de sessão).
+  /^\/api\/interno\//,
 ];
 
 /** Rotas de API: 401 JSON em vez de redirect. */

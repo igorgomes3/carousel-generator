@@ -14,6 +14,7 @@
  * de layout em nenhum tamanho.
  */
 import { Cartao } from "@/components/estudio/cartao";
+import { BlocoPublicacao } from "@/components/estudio/bloco-publicacao";
 import useWindowDimensions from "@/lib/hooks/use-window-dimensions";
 import type { ProjetoSalvo } from "@/lib/estudio/projetos";
 import { templatePorId } from "@/lib/templates";
@@ -56,6 +57,17 @@ export function GaleriaPublica({ projeto }: { projeto: ProjetoSalvo }) {
       <p className="text-[12px] text-muted-foreground">
         {projeto.slides.length} card{projeto.slides.length === 1 ? "" : "s"} · somente leitura
       </p>
+
+      {/* Quem abre o link também precisa da legenda: é o texto que acompanha o
+          post. `compacto` porque aqui ninguém edita. */}
+      <div className="w-full px-4">
+        <BlocoPublicacao
+          legenda={projeto.legenda}
+          hashtags={projeto.hashtags}
+          melhorHorario={projeto.melhorHorario}
+          compacto
+        />
+      </div>
     </div>
   );
 }

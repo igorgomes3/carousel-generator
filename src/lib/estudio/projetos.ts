@@ -34,6 +34,16 @@ export interface ProjetoSalvo {
   arroba?: string;
   /** Curadoria de fundo/destaque/fonte por id (issue #12). Ids, nunca hex. */
   estilo?: EstiloEscolhido;
+  /** Legenda pronta para colar no Instagram (24/11/2026). */
+  legenda?: string;
+  /** Hashtags do nicho, já com `#`. */
+  hashtags?: string[];
+  /** Janela sugerida + motivo ("ter 19h — pico do nicho"). */
+  melhorHorario?: string;
+  /** `manual` (estúdio) ou `autopilot` (post diário). Ausente = manual. */
+  origem?: "manual" | "autopilot";
+  /** Dia a que o post automático se refere (`YYYY-MM-DD`). */
+  dataReferencia?: string;
 }
 
 /**
@@ -50,6 +60,10 @@ export interface ResumoProjeto {
   atualizadoEm: string;
   salvoEm: string;
   capa: SlideCarrossel;
+  /** `autopilot` = post gerado pelo job diário. */
+  origem?: "manual" | "autopilot";
+  /** Dia do post automático (`YYYY-MM-DD`). */
+  dataReferencia?: string;
 }
 
 export const NOME_SEM_TITULO = "Carrossel sem título";
