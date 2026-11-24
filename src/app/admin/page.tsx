@@ -42,7 +42,12 @@ interface Estado {
 const COR = {
   tinta: "#1C1917",
   suave: "#57534E",
-  fraco: "#A8A29E",
+  /**
+   * `#A8A29E` (o "cinza fraco" do produto) dá ~2,4:1 sobre branco — reprova em
+   * texto pequeno e foi lido como "ilegível" na revisão visual. `#6B6660` fica
+   * em ~5,4:1 e continua claramente secundário em relação à tinta.
+   */
+  fraco: "#6B6660",
   linha: "#E7E5E4",
   fundo: "#FAF9F7",
   cartao: "#FFFFFF",
@@ -314,17 +319,25 @@ export default function AdminPage() {
             <div className="flex flex-wrap items-center gap-3">
               {/*
                 Botão com cor própria: o `primary` do tema é lavanda clara e o
-                rótulo ficava quase invisível no estado normal — na primeira
-                abertura ele já aparece desabilitado (nada alterado), e botão
-                ilegível na única ação da tela lê como "quebrado".
+                rótulo ficava quase invisível. `disabled:opacity-100` porque o
+                Button do tema aplica opacity-50 no desabilitado e o cinza sobre
+                cinza virava texto ilegível na única ação da tela.
               */}
               <Button
                 onClick={salvar}
                 disabled={salvando || !alterou}
+                className="disabled:opacity-100"
                 style={
                   salvando || !alterou
-                    ? { backgroundColor: "#E7E5E4", color: "#57534E", border: "1px solid #D6D3D1" }
-                    : { backgroundColor: "#1C1917", color: "#FFFFFF" }
+                    ? {
+                        backgroundColor: "#E7E5E4",
+                        color: "#44403C",
+                        border: "1px solid #D6D3D1",
+                        // Inline porque o `disabled:opacity-50` do Button vence a
+                        // classe utilitária: sem isto o rótulo fica ~50% e some.
+                        opacity: 1,
+                      }
+                    : { backgroundColor: "#1C1917", color: "#FFFFFF", opacity: 1 }
                 }
               >
                 {salvando ? "Salvando…" : "Salvar configuração"}
