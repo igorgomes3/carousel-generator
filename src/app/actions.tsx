@@ -1,5 +1,6 @@
 "use server";
 import { messageRateLimit } from "@/lib/rate-limit";
+import { aplicarConfigIA } from "@/lib/ia/config";
 
 import { generateCarouselSlides } from "@/lib/langchain";
 import {
@@ -26,7 +27,10 @@ export async function generateCarouselSlidesAction(
   userPrompt: string,
   opcoes?: { slides?: number; usarPlanejamento?: boolean },
 ): Promise<ResultadoGeracao | null> {
-  if (!process.env.OPENAI_API_KEY) {
+  // Chave e modelo vêm do painel do administrador (com ambiente como herança).
+  // Antes era `process.env.OPENAI_API_KEY` direto: trocar a chave exigia shell.
+  const config = await aplicarConfigIA();
+  if (!config.llmApiKey) {
     return null;
   }
 
@@ -53,7 +57,7 @@ export async function generateCarouselSlidesAction(
     if (estrategia) {
       const slides = await generateCarouselSlides(
         userPrompt,
-        process.env.OPENAI_API_KEY,
+        config.llmApiKey,
         promptDeCopy({ tema: userPrompt, slides: numSlides }, estrategia),
       );
 
@@ -71,7 +75,7 @@ export async function generateCarouselSlidesAction(
   // Caminho antigo: uma chamada só. Mantido para quando o planejamento falha.
   const slides = await generateCarouselSlides(
     userPrompt,
-    process.env.OPENAI_API_KEY,
+    config.llmApiKey,
   );
   if (!slides) return null;
 

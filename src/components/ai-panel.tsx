@@ -1,31 +1,27 @@
 import { TypographyH3 } from "@/components/typography";
 import { Sparkles } from "lucide-react";
-import { NoApiKeysText } from "./no-api-keys-text";
-import { useKeysContext } from "@/lib/providers/keys-context";
 import { AIInputForm } from "@/components/ai-input-form";
-import { AITextAreaForm } from "@/components/ai-textarea-form";
 
+/**
+ * Painel de geração do editor legado.
+ *
+ * Aqui havia um portão de "informe SUA chave da OpenAI" (`NoApiKeysText` +
+ * `BringYourKeysDialog`, com a chave guardada no navegador). Saiu por decisão do
+ * produto: a chave é do DONO, definida uma vez no painel do administrador
+ * (`/admin`) e herdada por todos os usuários. Pedir a chave a cada cliente num
+ * SaaS é transferir para ele uma configuração que ele não tem como fazer.
+ */
 export function AIPanel() {
-  // const { apiKey } = useKeysContext();
-  const apiKey = true; // TODO: Re-enable local keys
   return (
-    <div className="flex flex-col gap-2 w-full items-center">
+    <div className="flex w-full flex-col items-center gap-2">
       <TypographyH3 className="flex flex-row items-center gap-2">
-        <Sparkles className="w-6 h-6" /> Gerar com IA
+        <Sparkles className="h-6 w-6" /> Gerar com IA
       </TypographyH3>
-      <p className="text-xs text-muted-foreground text-center max-w-sm">
+      <p className="max-w-sm text-center text-xs text-muted-foreground">
         Seis etapas antes de desenhar: ângulo, esqueleto, copy, direção visual, montagem e
         publicação. O plano aparece abaixo para você conferir.
       </p>
-      {apiKey ? (
-        <>
-          <AIInputForm />
-          {/* // TODO: Improve article to carousel conversion */}
-          {/* <AITextAreaForm /> */}
-        </>
-      ) : (
-        <NoApiKeysText />
-      )}
+      <AIInputForm />
     </div>
   );
 }

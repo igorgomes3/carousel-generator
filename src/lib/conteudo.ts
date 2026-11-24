@@ -272,7 +272,17 @@ function cliente(): OpenAI {
   });
 }
 
-const MODELO = process.env.OPENAI_MODEL || "gpt-4o-mini";
+/**
+ * Nome do modelo lido a cada chamada, não no import.
+ *
+ * Era `const MODELO = process.env.OPENAI_MODEL` no topo: o valor congelava no
+ * primeiro import e trocar o modelo pelo painel do administrador não valia nada
+ * até reiniciar o processo. Configuração de produto não pode depender de ordem
+ * de import.
+ */
+function modeloDeTexto(): string {
+  return process.env.OPENAI_MODEL || "gpt-4o-mini";
+}
 
 /**
  * Chamada de texto estruturado. Devolve null em vez de lançar: uma etapa que
@@ -288,7 +298,7 @@ async function etapa<T>(
   nome: string,
 ): Promise<T | null> {
   const completion = await cliente().chat.completions.create({
-    model: MODELO,
+    model: modeloDeTexto(),
     // 0 nas etapas analíticas: queremos a resposta mais provável, não a mais
     // criativa. A criatividade fica concentrada na etapa de copy.
     temperature: 0.2,

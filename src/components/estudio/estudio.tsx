@@ -125,6 +125,13 @@ export function Estudio() {
   );
   const [editando, setEditando] = useState<number | null>(null);
   const [gerandoImagem, setGerandoImagem] = useState<number | null>(null);
+  /**
+   * "Repetir a capa em todos os cards". Quando ligado, a imagem da capa é a
+   * imagem de TODOS os slides — capa gerada uma vez, carrossel inteiro no mesmo
+   * visual. Desligado, cada card volta a ter a sua (ou nenhuma, que então sai em
+   * cor sólida).
+   */
+  const [repetirCapa, setRepetirCapa] = useState(false);
   const [baixando, setBaixando] = useState(false);
   const [lista, setLista] = useState<ProjetoDaLista[] | null>(null);
 
@@ -401,13 +408,48 @@ export function Estudio() {
     setImagens((atuais) => redimensionarImagens(atuais, total));
   }, []);
 
-  const definirImagem = useCallback((indice: number, imagem: string | null) => {
-    setImagens((atuais) => {
-      const proximas = [...atuais];
-      proximas[indice] = imagem;
-      return proximas;
-    });
-  }, []);
+  const definirImagem = useCallback(
+    (indice: number, imagem: string | null) => {
+      setImagens((atuais) => {
+        const proximas = [...atuais];
+        proximas[indice] = imagem;
+        // Capa manda quando o modo "repetir" está ligado: subir/trocar a imagem
+        // do primeiro card atualiza o carrossel inteiro, sem clique extra.
+        if (repetirCapa && indice === 0) {
+          for (let i = 1; i < proximas.length; i += 1) proximas[i] = imagem;
+        }
+        return proximas;
+      });
+    },
+    [repetirCapa],
+  );
+
+  /**
+   * Liga/desliga a repetição da capa e aplica na hora.
+   *
+   * Ligar copia a capa atual para os demais; desligar LIMPA os demais em vez de
+   * deixar a cópia órfã — sem isso, desligar não teria efeito visível nenhum e a
+   * pessoa acharia que o botão não funciona.
+   */
+  const alternarRepetirCapa = useCallback(
+    (ligada: boolean) => {
+      setRepetirCapa(ligada);
+      const capa = imagens[0] ?? null;
+      setImagens((atuais) => atuais.map((valor, i) => (i === 0 ? valor : ligada ? capa : null)));
+      setCarrossel((atual) =>
+        atual
+          ? {
+              ...atual,
+              slides: atual.slides.map((s, i) =>
+                i === 0 ? s : { ...s, imagem: ligada ? capa : null },
+              ),
+            }
+          : atual,
+      );
+      marcarSujo();
+    },
+    [imagens, marcarSujo],
+  );
 
   const gerarCarrossel = useCallback(
     async (templateEscolhido: TemplateCarrossel) => {
@@ -507,7 +549,14 @@ export function Estudio() {
         );
         setCarrossel((atual) =>
           atual
-            ? { ...atual, slides: atual.slides.map((s, i) => (i === indice ? { ...s, imagem } : s)) }
+            ? {
+                ...atual,
+                slides: atual.slides.map((s, i) =>
+                  // Com "repetir capa" ligado, a imagem nasce na capa e vale para
+                  // todos — gerar uma vez já resolve o carrossel inteiro.
+                  i === indice || (repetirCapa && indice === 0) ? { ...s, imagem } : s,
+                ),
+              }
             : atual,
         );
         marcarSujo();
@@ -517,7 +566,7 @@ export function Estudio() {
         setGerandoImagem(null);
       }
     },
-    [carrossel, template.styleText, tema, marcarSujo],
+    [carrossel, template.styleText, tema, marcarSujo, repetirCapa],
   );
 
   const baixarTodos = useCallback(async () => {
@@ -686,6 +735,8 @@ export function Estudio() {
             }}
             onNovo={recomecar}
             logado={logado}
+            repetirCapa={repetirCapa}
+            onRepetirCapa={alternarRepetirCapa}
           />
         )}
       </div>
@@ -1296,6 +1347,8 @@ function PassoPronto({
   onBaixarTodos,
   onBaixarUm,
   onGerarImagem,
+  repetirCapa,
+  onRepetirCapa,
   onEditar,
   onNovo,
   logado,
@@ -1322,6 +1375,9 @@ function PassoPronto({
   onBaixarTodos: () => void;
   onBaixarUm: (node: HTMLElement, i: number) => void;
   onGerarImagem: (i: number) => void;
+  /** "Repetir a imagem da capa em todos os cards". */
+  repetirCapa: boolean;
+  onRepetirCapa: (ligada: boolean) => void;
   onEditar: (i: number, campo: keyof SlideCarrossel, valor: string) => void;
   onNovo: () => void;
   /** Sessão válida (W97): imagem por IA também é geração paga. */
@@ -1628,6 +1684,33 @@ function PassoPronto({
           </p>
         )}
       </section>
+
+      {/*
+        Repetir a capa: uma imagem gerada, carrossel inteiro no mesmo visual.
+        Fica ACIMA da faixa porque a decisão é sobre todos os cards, não sobre
+        um — botão dentro do card sugeriria "só este".
+      */}
+      <label
+        className="flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3"
+        style={{ border: "1px solid #E7E5E4" }}
+      >
+        <input
+          type="checkbox"
+          checked={repetirCapa}
+          onChange={(e) => onRepetirCapa(e.target.checked)}
+          disabled={!logado}
+          className="mt-0.5 size-4 shrink-0"
+          style={{ accentColor: "#F4511E" }}
+        />
+        <span className="min-w-0">
+          <span className="block text-[13px] font-semibold" style={{ color: "#1C1917" }}>
+            Usar a imagem da capa em todos os cards
+          </span>
+          <span className="block text-[12px]" style={{ color: "#57534E" }}>
+            Gere a capa uma vez: os demais cards herdam a mesma imagem. Cards sem imagem saem em cor sólida.
+          </span>
+        </span>
+      </label>
 
       <div
         ref={faixaRef}

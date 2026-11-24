@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
 import { exigirSessao } from "@/lib/auth/supabase-servidor";
+import { aplicarConfigIA } from "@/lib/ia/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,11 +62,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Briefing ausente ou sem ângulo" }, { status: 400 });
   }
 
-  const chave = process.env.OPENAI_API_KEY;
+  // Chave do painel do administrador, com ambiente como herança. Esta rota é
+  // chamada pela API do AutoClinic (servidor -> servidor), mas quem paga a IA é
+  // o dono do carrossel em qualquer caso.
+  const config = await aplicarConfigIA();
+  const chave = config.llmApiKey;
   if (!chave) {
     return NextResponse.json(
-      { erro: "OPENAI_API_KEY não configurada neste serviço" },
-      { status: 500 },
+      { erro: "A geração de texto está sem chave de IA. Defina no painel do administrador." },
+      { status: 503 },
     );
   }
 

@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
 import { exigirSessao } from "@/lib/auth/supabase-servidor";
+import { aplicarConfigIA } from "@/lib/ia/config";
 import { promptDeEmergencia, resolverFormato } from "@/lib/conteudo";
 import { generateCarouselSlides } from "@/lib/langchain";
 import { templatePorId } from "@/lib/templates";
@@ -59,11 +60,18 @@ export async function POST(request: NextRequest) {
   // regra é a mesma do seletor da tela — um lugar só (`lib/estudio/cards`).
   const quantidade = limitarQuantidade(corpo?.slides);
 
-  const chave = process.env.OPENAI_API_KEY;
+  // Chave vem do painel do administrador (tabela `config_ia`), com o ambiente
+  // como herança. `aplicarConfigIA` também projeta base/modelo no ambiente,
+  // porque o pipeline de 6 etapas lê de lá.
+  const config = await aplicarConfigIA();
+  const chave = config.llmApiKey;
   if (!chave) {
     return NextResponse.json(
-      { erro: "A geração de texto não está configurada neste serviço." },
-      { status: 500 },
+      {
+        erro: "A geração de texto está sem chave de IA. Peça ao administrador para definir no painel.",
+        codigo: "sem_chave_ia",
+      },
+      { status: 503 },
     );
   }
 

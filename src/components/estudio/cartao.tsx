@@ -73,10 +73,12 @@ const VEU_CAPA =
 const VEU_TEXTO =
   "linear-gradient(to top, rgba(0,0,0,.9) 0%, rgba(0,0,0,.66) 46%, rgba(0,0,0,.34) 100%)";
 
-/** Fundo sem foto: dois halos da paleta. Retângulo preto vazio é o que não queremos. */
-function gradienteDaPaleta(palette: PaletteTemplate) {
-  return `radial-gradient(120% 90% at 78% 12%, ${palette.accent}55 0%, transparent 62%), radial-gradient(90% 70% at 10% 95%, ${palette.muted}22 0%, transparent 60%)`;
-}
+/** Fundo sem foto: cor sólida da paleta (o `backgroundColor` do card).
+ *
+ * Era um par de halos translúcidos (`accent55`, `muted22`) por cima da cor. O
+ * dono do produto pediu sólido — o gradiente fazia o card parecer "imagem que
+ * não carregou" e empatava com os cards que têm foto.
+ */
 
 interface Props {
   slide: SlideCarrossel;
@@ -218,7 +220,9 @@ export function CartaoCard({ slide, template, indice, total, aparencia, arroba, 
         <div style={{ position: "absolute", inset: 0, background: veu }} />
       </>
     ) : (
-      <div style={{ position: "absolute", inset: 0, background: gradienteDaPaleta(palette) }} />
+      // Sem imagem: nada por cima da cor de fundo do card. Sólido, por decisão
+      // do produto (ver comentário acima).
+      null
     );
 
   const base = {

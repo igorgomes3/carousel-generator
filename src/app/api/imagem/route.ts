@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
 import { exigirSessao } from "@/lib/auth/supabase-servidor";
+import { configEfetiva } from "@/lib/ia/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,15 +51,17 @@ function limpar() {
 }
 
 async function gerar(jobId: string, prompt: string, tamanho: string) {
-  const chave = process.env.OPENAI_API_KEY;
-  const base = (process.env.OPENAI_BASE_URL ?? "http://127.0.0.1:20128/v1").replace(/\/$/, "");
-  const modelo = process.env.IMAGEM_MODEL ?? "cx/gpt-image-2.5";
+  // Chave, base e modelo do painel do administrador; ambiente como herança.
+  const config = await configEfetiva();
+  const chave = config.imagemApiKey;
+  const base = config.imagemBaseUrl;
+  const modelo = config.imagemModel;
 
   const job = store.get(jobId);
   if (!job) return;
   if (!chave) {
     job.estado = "erro";
-    job.erro = "Geração de imagem não configurada neste serviço.";
+    job.erro = "A geração de imagem está sem chave. Peça ao administrador para definir no painel.";
     return;
   }
 
