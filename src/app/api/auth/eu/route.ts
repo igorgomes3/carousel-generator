@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { sessaoDoPedido } from "@/lib/auth/supabase-servidor";
+import { ehAdmin } from "@/lib/auth/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,9 @@ export async function GET(request: NextRequest) {
         id: sessao.usuario.id,
         email: sessao.usuario.email,
         nome: sessao.usuario.nome,
+        // O painel /admin só existe para quem está em CARROSSEL_ADMINS. A tela
+        // usa isto para mostrar o link; a autoridade continua sendo o 403 da API.
+        admin: ehAdmin(sessao.usuario.email),
       },
     },
     { headers: { "cache-control": "no-store" } },

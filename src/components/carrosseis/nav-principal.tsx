@@ -15,6 +15,7 @@
  */
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { sair, type UsuarioCarrossel } from "@/lib/auth/sessao";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,26 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioCarrossel | null }) 
   const caminho = usePathname() ?? "/";
   const router = useRouter();
 
+  /**
+   * "Sou admin?" é pergunta do SERVIDOR (`CARROSSEL_ADMINS`), então perguntar ao
+   * `/api/auth/eu` em vez de adivinhar pelo e-mail na tela. Enquanto não responde,
+   * o link não aparece — melhor sumir por 200 ms do que aparecer para quem não
+   * pode entrar.
+   */
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    fetch("/api/auth/eu", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { usuario?: { admin?: boolean } } | null) => {
+        if (vivo) setAdmin(Boolean(d?.usuario?.admin));
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [caminho]);
+
   function aoSair() {
     sair();
     // `replace` e não `push`: voltar pelo botão do navegador não pode reabrir a
@@ -78,7 +99,7 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioCarrossel | null }) 
       </Link>
 
       <nav aria-label="Principal" className="flex min-w-0 items-center gap-1">
-        {DESTINOS.map((destino) => {
+        {[...DESTINOS, ...(admin ? [{ href: "/admin", rotulo: "Admin" } as const] : [])].map((destino) => {
           const ativo = destino.href === "/" ? caminho === "/" : caminho.startsWith(destino.href);
           return (
             <Link

@@ -312,7 +312,21 @@ export default function AdminPage() {
             </section>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={salvar} disabled={salvando || !alterou}>
+              {/*
+                Botão com cor própria: o `primary` do tema é lavanda clara e o
+                rótulo ficava quase invisível no estado normal — na primeira
+                abertura ele já aparece desabilitado (nada alterado), e botão
+                ilegível na única ação da tela lê como "quebrado".
+              */}
+              <Button
+                onClick={salvar}
+                disabled={salvando || !alterou}
+                style={
+                  salvando || !alterou
+                    ? { backgroundColor: "#E7E5E4", color: "#57534E", border: "1px solid #D6D3D1" }
+                    : { backgroundColor: "#1C1917", color: "#FFFFFF" }
+                }
+              >
                 {salvando ? "Salvando…" : "Salvar configuração"}
               </Button>
               <Button
