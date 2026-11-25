@@ -17,10 +17,20 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  ROTA_MANUTENCAO,
+  manutencaoNesteHost,
+  rotaLiberadaNaManutencao,
+} from "@/lib/manutencao";
+
 /** Rotas que não exigem sessão: login, criação de conta, redefinição e assets. */
 const LIVRES = [
   // /login, /cadastro, /esqueci-senha, /redefinir-senha (todas as portas de conta).
   /^\/(login|cadastro|esqueci-senha|redefinir-senha)/,
+  // Página de manutenção: precisa abrir SEM sessão — é o que substitui o login
+  // quando o modo manutenção está ligado (senão vira laço: /login → /manutencao
+  // → /login?de=/manutencao).
+  /^\/manutencao/,
   // Link público: o token é a credencial, e quem abre não tem conta.
   /^\/p\//,
   /^\/_next\//,
@@ -41,6 +51,29 @@ function ehApi(pathname: string): boolean {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  /**
+   * Modo manutenção (25/11/2026): fecha a porta do host configurado e manda para
+   * `/manutencao`. Vem ANTES de tudo — inclusive antes das rotas "livres" — senão
+   * `/login` continuaria aberto, que é exatamente o que se quer desligar.
+   *
+   * Escopo por host (`MANUTENCAO_HOSTS`): o domínio antigo/rollback segue no ar.
+   * APIs respondem 503 JSON (cliente que faz `fetch` não deve receber HTML).
+   */
+  const hostDoPedido =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  if (manutencaoNesteHost(hostDoPedido) && !rotaLiberadaNaManutencao(pathname)) {
+    if (ehApi(pathname)) {
+      return NextResponse.json(
+        { erro: "Estamos em manutenção. Voltamos em breve.", codigo: "manutencao" },
+        { status: 503 },
+      );
+    }
+    const destino = request.nextUrl.clone();
+    destino.pathname = ROTA_MANUTENCAO;
+    destino.search = "";
+    return NextResponse.redirect(destino, 307);
+  }
 
   // `/?projeto=<id>` → `/carrossel/<id>` (§1.4, critério 3).
   //

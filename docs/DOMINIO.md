@@ -37,3 +37,21 @@ host precisa liberar `docker_gwbridge` na porta 8099 (`/etc/iptables/rules.v4`).
 - `NEXT_PUBLIC_APP_URL=https://app.contentx.com.br` (exige rebuild — é embutido no bundle).
 - Supabase Auth: `site_url` e `uri_allow_list` passaram a incluir `app.contentx.com.br`
   (os endereços antigos ficaram na lista para não quebrar link já enviado).
+
+## Modo manutenção
+
+Fecha a entrada do produto e manda para `/manutencao` (página pública, sem login).
+
+```bash
+scripts/manutencao.sh on      # fecha + rebuild + restart
+scripts/manutencao.sh off     # reabre
+scripts/manutencao.sh status  # mostra o estado e testa as URLs
+```
+
+- Escopo por host: `MANUTENCAO_HOSTS` (padrão `app.contentx.com.br`). O domínio
+  antigo/rollback continua servindo.
+- O que segue no ar durante a manutenção: a própria `/manutencao`, assets,
+  `/_next/*` e os links públicos `/p/<token>`.
+- APIs respondem **503 JSON** (`codigo: manutencao`) em vez de HTML.
+- Ligar/desligar exige **rebuild**: o middleware lê o valor em tempo de build
+  (runtime edge). É o preço de não consultar o banco a cada requisição.
