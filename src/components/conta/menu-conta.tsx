@@ -41,9 +41,9 @@ const COR = {
   secundario: "#57534E",
   fraco: "#A8A29E",
   borda: "#E7E5E4",
-  laranja: "#F4511E",
-  /** Laranja de ação: branco sobre #F4511E reprova AA; sobre #C2410C dá 5,18:1. */
-  acao: "#C2410C",
+  laranja: "#0E7490",
+  /** Laranja de ação: branco sobre #0E7490 reprova AA; sobre #0E7490 dá 5,18:1. */
+  acao: "#0E7490",
   perigo: "#B91C1C",
 };
 
@@ -226,7 +226,7 @@ export function MenuConta({ usuario: usuarioInicial }: MenuContaProps = {}) {
         <p
           role="status"
           className="fixed bottom-4 left-1/2 z-40 w-[min(92vw,420px)] -translate-x-1/2 rounded-xl px-3 py-2 text-[13px] shadow-lg"
-          style={{ backgroundColor: "#FFFBEB", color: "#92400E", border: "1px solid #FCD34D" }}
+          style={{ backgroundColor: "#FFFBEB", color: "#0E7490", border: "1px solid #A5F3FC" }}
         >
           {aviso}
         </p>

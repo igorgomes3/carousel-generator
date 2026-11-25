@@ -71,7 +71,7 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Carrossel</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">CONTENTX</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Entre na sua conta para criar e salvar seus carrosséis.
           </p>

@@ -1,5 +1,5 @@
 /**
- * Templates — os 30 do CarrosseIA, extraídos do bundle público (REA).
+ * Templates — os 30 do o produto de referência, extraídos do bundle público (REA).
  *
  * Fonte: material inline de carrosseia.com.br/app (`const TEMPLATES=[...]`), lido
  * em 21/11/2026. Cada objeto aqui é o mesmo do alvo nos campos que o produto usa
@@ -49,7 +49,7 @@ export const TEMPLATES: TemplateCarrossel[] = [
       bg: "#FFFFFF",
       text: "#101114",
       muted: "#6B7280",
-      accent: "#FF5A1F",
+      accent: "#0891B2",
     },
     fontDisplay: "Montserrat",
     fontBody: "Inter",

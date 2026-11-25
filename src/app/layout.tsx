@@ -97,8 +97,8 @@ export const metadata: Metadata = {
   ...(process.env.NEXT_PUBLIC_APP_URL && {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL),
   }),
-  title: "Carousel Generator",
-  description: "An open source carousel maker for LinkedIn",
+  title: "CONTENTX",
+  description: "Gerador de carrossel para Instagram com piloto automático de post diário",
 };
 
 export default function RootLayout({

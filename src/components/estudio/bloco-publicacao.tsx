@@ -25,7 +25,7 @@ const COR = {
   suave: "#57534E",
   fraco: "#6B6660",
   borda: "#E7E5E4",
-  acao: "#C2410C",
+  acao: "#0E7490",
   ok: "#166534",
 };
 

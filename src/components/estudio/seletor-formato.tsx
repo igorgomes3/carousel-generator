@@ -159,8 +159,8 @@ export function SeletorDeFormato({
               data-formato-card
               className="min-h-[44px] min-w-0 overflow-hidden rounded-xl px-3 py-2.5 text-left"
               style={{
-                backgroundColor: ativo ? "#FFF7ED" : "#FFFFFF",
-                border: ativo ? "2px solid #F4511E" : "1px solid #E7E5E4",
+                backgroundColor: ativo ? "#ECFEFF" : "#FFFFFF",
+                border: ativo ? "2px solid #0E7490" : "1px solid #E7E5E4",
               }}
             >
               {/*
@@ -181,7 +181,7 @@ export function SeletorDeFormato({
                 <span
                   data-formato-badge
                   className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.08em] [overflow-wrap:anywhere]"
-                  style={{ color: "#C2410C" }}
+                  style={{ color: "#0E7490" }}
                 >
                   Sugerido
                 </span>
@@ -221,7 +221,7 @@ export function SeletorDeFormato({
         type="button"
         onClick={() => setExpandido((v) => !v)}
         className="mt-2 min-h-[44px] text-[13px] font-semibold"
-        style={{ color: "#C2410C" }}
+        style={{ color: "#0E7490" }}
       >
         {expandido
           ? "Ver menos formatos"

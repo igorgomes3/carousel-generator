@@ -4,7 +4,7 @@
  * ## Por que dois retângulos e não um
  *
  * O Instagram aceita 4:5 (1080×1350) no feed e no perfil, e é o formato que a
- * grade corta. O alvo (CarrosseIA) desenha em 3:4 (1080×1440) porque sobra
+ * grade corta. O alvo (o produto de referência) desenha em 3:4 (1080×1440) porque sobra
  * altura: a foto respira em cima e embaixo. Os dois juntos dão o desenho certo:
  *
  *   - **arte** = 1080×1440 — o que a pessoa vê e compõe no editor;

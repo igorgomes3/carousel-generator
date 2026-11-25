@@ -121,7 +121,7 @@ function InspetorConteudo() {
       </SecaoInspetor>
 
       {/* O seletor de "Tema" (paleta daisyUI) saiu do produto: a cor vem do
-          template escolhido no estúdio, como no CarrosseIA. Escolher paleta solta
+          template escolhido no estúdio, como no o produto de referência. Escolher paleta solta
           era exatamente o ruído que o CEO mandou remover. */}
 
       <SecaoInspetor titulo="Tipografia">

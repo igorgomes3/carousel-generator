@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Estúdio — o clone do `/app` do CarrosseIA.
+ * Estúdio — o clone do `/app` do o produto de referência.
  *
  * Estrutura: um wizard de 3 paradas numa página só (template → tema → resultado).
  * Nenhum painel de operador, nenhuma aba lateral, nenhum seletor de tema.
@@ -693,7 +693,7 @@ export function Estudio() {
           <div className="mx-auto flex max-w-[560px] flex-col items-center gap-3 py-20 text-center">
             <div
               className="grid h-12 w-12 animate-pulse place-items-center rounded-full text-xl"
-              style={{ backgroundColor: "#FFF1E9", color: "#C2410C" }}
+              style={{ backgroundColor: "#ECFEFF", color: "#0E7490" }}
               aria-hidden="true"
             >
               🗂️
@@ -842,12 +842,12 @@ function Topo({ passo, onRecomecar }: { passo: Passo; onRecomecar: () => void })
         <div className="flex items-center gap-2">
           <span
             className="grid h-8 w-8 place-items-center rounded-lg text-[15px] font-bold text-white"
-            style={{ backgroundColor: "#F4511E" }}
+            style={{ backgroundColor: "#0E7490" }}
           >
-            C
+            X
           </span>
           <span className="text-[16px] font-bold tracking-tight" style={{ color: "#1C1917" }}>
-            Carrossel<span style={{ color: "#F4511E" }}>IA</span>
+            CONTENT<span style={{ color: "#0E7490" }}>X</span>
           </span>
         </div>
         <div className="flex items-center gap-2 text-[13px] sm:gap-3">
@@ -951,7 +951,7 @@ function PassoIdeia({
   return (
     <div className="flex flex-col gap-8">
       <section className="rounded-2xl bg-white p-5 sm:p-7" style={{ boxShadow: "0 10px 30px rgba(0,0,0,.06)" }}>
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#B45309" }}>
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#0E7490" }}>
           Criação rápida com IA
         </p>
         <h1 className="mt-2 text-[26px] font-bold leading-tight sm:text-[32px]" style={{ color: "#1C1917" }}>
@@ -989,7 +989,7 @@ function PassoIdeia({
             }
             className="rounded-xl px-5 py-3 text-[15px] font-semibold text-white disabled:cursor-not-allowed"
             style={{
-              backgroundColor: tema.trim().length < 3 || !logado ? "#E7E5E4" : "#F4511E",
+              backgroundColor: tema.trim().length < 3 || !logado ? "#E7E5E4" : "#0E7490",
               color: tema.trim().length < 3 || !logado ? "#57534E" : "#FFFFFF",
             }}
           >
@@ -997,7 +997,7 @@ function PassoIdeia({
           </button>
         </div>
         {!logado ? (
-          <p className="mt-2 text-[12px]" style={{ color: "#92400E" }}>
+          <p className="mt-2 text-[12px]" style={{ color: "#0E7490" }}>
             Geração de texto e imagem é paga por uso, então só funciona com uma conta.{" "}
             <Link href="/login?de=/" className="font-semibold underline">
               Entrar
@@ -1020,7 +1020,7 @@ function PassoIdeia({
                 type="button"
                 onClick={onSalvarPauta}
                 className="min-h-[44px] rounded-lg px-3 text-[13px] font-semibold"
-                style={{ color: "#C2410C", backgroundColor: "#FFF7ED", border: "1px solid #FED7AA" }}
+                style={{ color: "#0E7490", backgroundColor: "#ECFEFF", border: "1px solid #A5F3FC" }}
               >
                 + Guardar esta ideia
               </button>
@@ -1114,7 +1114,7 @@ function PassoIdeia({
               onClick={() => onEscolherTemplate(t.id)}
               className="group flex flex-col gap-2 rounded-2xl bg-white p-2 text-left transition hover:-translate-y-0.5"
               style={{
-                border: t.id === templateId ? "2px solid #F4511E" : "1px solid #E7E5E4",
+                border: t.id === templateId ? "2px solid #0E7490" : "1px solid #E7E5E4",
                 boxShadow: "0 2px 10px rgba(0,0,0,.04)",
               }}
             >
@@ -1138,7 +1138,7 @@ function PassoIdeia({
                 </span>
                 <span
                   className="rounded-md px-2 py-0.5 text-[11px] font-semibold"
-                  style={{ backgroundColor: "#FFF1E9", color: "#C2410C" }}
+                  style={{ backgroundColor: "#ECFEFF", color: "#0E7490" }}
                 >
                   Usar
                 </span>
@@ -1154,7 +1154,7 @@ function PassoIdeia({
             <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#57534E" }}>
               Meus projetos
             </h2>
-            <a href="/projetos" className="text-[12px] font-semibold underline-offset-4 hover:underline" style={{ color: "#C2410C" }}>
+            <a href="/projetos" className="text-[12px] font-semibold underline-offset-4 hover:underline" style={{ color: "#0E7490" }}>
               Ver todos e renomear
             </a>
           </div>
@@ -1302,11 +1302,11 @@ function PassoTema({
             logado ? undefined : "A geração usa IA paga — entre na sua conta para liberar."
           }
           className="mt-4 min-h-[44px] w-full rounded-xl px-5 py-3.5 text-[15px] font-semibold text-white disabled:opacity-40"
-          style={{ backgroundColor: "#F4511E" }}
+          style={{ backgroundColor: "#0E7490" }}
         >
           {preparandoFoto ? "Preparando a foto…" : `✨ Gerar ${quantidade} cards`}
         </button>
-        <p className="mt-2 text-center text-[12px]" style={{ color: logado ? "#78716C" : "#92400E" }}>
+        <p className="mt-2 text-center text-[12px]" style={{ color: logado ? "#78716C" : "#0E7490" }}>
           {!logado ? (
             <>
               Entre na sua conta para gerar: cada carrossel consome IA paga.{" "}
@@ -1345,7 +1345,7 @@ function PassoGerando({ fase, template }: { fase: number; template: TemplateCarr
     <div className="mx-auto flex max-w-[560px] flex-col items-center gap-6 py-16 text-center">
       <div
         className="grid h-14 w-14 animate-pulse place-items-center rounded-full text-2xl"
-        style={{ backgroundColor: "#F4511E", color: "#fff" }}
+        style={{ backgroundColor: "#0E7490", color: "#fff" }}
       >
         ✨
       </div>
@@ -1492,7 +1492,7 @@ function PassoPronto({
             : "";
 
   const corSalvamento =
-    salvamento === "erro" ? "#B91C1C" : salvamento === "sujo" ? "#B45309" : "#57534E";
+    salvamento === "erro" ? "#B91C1C" : salvamento === "sujo" ? "#0E7490" : "#57534E";
 
   return (
     <div className="flex flex-col gap-5">
@@ -1532,7 +1532,7 @@ function PassoPronto({
             onClick={onBaixarTodos}
             disabled={baixando}
             className="rounded-xl px-4 py-2.5 text-[14px] font-semibold text-white disabled:opacity-50"
-            style={{ backgroundColor: "#F4511E" }}
+            style={{ backgroundColor: "#0E7490" }}
           >
             {baixando ? "Gerando arquivos…" : "Baixar todos (.zip)"}
           </button>
@@ -1589,7 +1589,7 @@ function PassoPronto({
               checked={guia}
               onChange={(e) => onGuia(e.target.checked)}
               className="h-4 w-4"
-              style={{ accentColor: "#F4511E" }}
+              style={{ accentColor: "#0E7490" }}
             />
             Área segura 4:5
           </label>
@@ -1769,7 +1769,7 @@ function PassoPronto({
           onChange={(e) => onRepetirCapa(e.target.checked)}
           disabled={!logado}
           className="mt-0.5 size-4 shrink-0"
-          style={{ accentColor: "#F4511E" }}
+          style={{ accentColor: "#0E7490" }}
         />
         <span className="min-w-0">
           <span className="block text-[13px] font-semibold" style={{ color: "#1C1917" }}>
@@ -1830,7 +1830,7 @@ function PassoPronto({
                   : "A imagem por IA é paga por geração — entre na sua conta para liberar."
               }
               className="mt-2 w-full rounded-lg px-3 py-2 text-[12px] font-semibold disabled:opacity-50"
-              style={{ backgroundColor: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA" }}
+              style={{ backgroundColor: "#ECFEFF", color: "#0E7490", border: "1px solid #A5F3FC" }}
             >
               {gerandoImagem === i ? "Desenhando…" : slide.imagem ? "Trocar imagem por IA" : "Gerar imagem por IA"}
             </button>

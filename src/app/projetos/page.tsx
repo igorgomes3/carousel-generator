@@ -16,7 +16,7 @@ import { MeusProjetos } from "@/components/projetos/meus-projetos";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Meus projetos — Carrossel",
+  title: "Meus projetos — CONTENTX",
   description: "Os carrosséis que você salvou: abrir, renomear e apagar.",
 };
 

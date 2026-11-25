@@ -19,7 +19,7 @@ const COR = {
   linha: "#E7E5E4",
   ok: "#166534",
   erro: "#B91C1C",
-  acao: "#C2410C",
+  acao: "#0E7490",
 };
 
 interface Estado {

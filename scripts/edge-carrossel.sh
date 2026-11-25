@@ -21,7 +21,11 @@ set -euo pipefail
 SERVICO="carrossel_edge"
 DOMINIO="carrossel.149-56-214-54.sslip.io"
 REDE="network_swarm_public"
-DESTINO="100.87.192.48:8099"
+# 172.18.0.1 é o docker_gwbridge (host visto de dentro do overlay). O IP do
+# Tailscale (100.87.192.48) deixou de ser alcançável a partir dos containers em
+# 25/11/2026 e o domínio ficou carregando para sempre — a INPUT do host também
+# precisou liberar docker_gwbridge:8099 (ver /etc/iptables/rules.v4).
+DESTINO="172.18.0.1:8099"
 IMAGEM="alpine/socat:latest"
 PRIORIDADE="100"
 

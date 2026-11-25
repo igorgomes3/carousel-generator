@@ -54,8 +54,8 @@ const COR = {
   fundo: "#F5F4F1",
   cartao: "#FFFFFF",
   /** Laranja da marca — só no selo do logo, não é cor de texto. */
-  laranja: "#F4511E",
-  acento: "#C2410C",
+  laranja: "#0E7490",
+  acento: "#0E7490",
   ok: "#15803D",
   erro: "#B91C1C",
 };
@@ -404,10 +404,10 @@ function CabecalhoAdmin({ usuario }: { usuario: UsuarioCarrossel | null }) {
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[15px] font-bold text-white"
             style={{ backgroundColor: COR.laranja }}
           >
-            C
+            X
           </span>
           <span className="hidden text-[16px] font-bold tracking-tight sm:inline" style={{ color: COR.tinta }}>
-            Carrossel<span style={{ color: COR.laranja }}>IA</span>
+            CONTENT<span style={{ color: COR.laranja }}>X</span>
           </span>
         </a>
         <div className="flex shrink-0 items-center gap-2">

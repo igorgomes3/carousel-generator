@@ -61,7 +61,7 @@ export function MainNav({ handleDownloadPngs, isExporting, className }: MainNavP
             <path d="M9.4 15.2V8.8l5.2 6.4V8.8" />
           </svg>
         </span>
-        <span className="hidden sm:inline">Carrossel</span>
+        <span className="hidden sm:inline">CONTENTX</span>
       </Link>
 
       <div className="flex min-w-0 items-center gap-1.5 text-meta text-muted-foreground">

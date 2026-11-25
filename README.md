@@ -1,98 +1,84 @@
-# Carousel Generator
+# CONTENTX
 
-**Carousel Generator** is an open-source carousel generator tool that allows you to easily create and customize carousels for your LinkedIn.
+Gerador de carrossel para Instagram com agente que publica um post por dia.
 
-🔗 [Website](https://carouselgenerator.vercel.app)
+O CONTENTX pega um tema (ou a descrição do seu negócio) e devolve um carrossel pronto: 3 a 10 cards em 1080×1350, legenda, hashtags, horário sugerido e PNG/ZIP para baixar. O **piloto automático** usa uma entrevista curta sobre o perfil e gera um carrossel novo por dia, sem o criador precisar abrir nada.
 
-## AI Demo
+> Produto próprio, com autenticação, banco, painel administrativo e piloto automático próprios. O código nasceu de um clone funcional de outra ferramenta e hoje é outro produto.
 
-https://github.com/FranciscoMoretti/carousel-generator/assets/16997807/50cb033d-84d5-4214-93aa-45c6f524d0b1
+## O que ele faz
 
-## Features
+- **Estúdio em 4 passos**: template → quantidade de cards → roteiro → imagens. Uma decisão por tela.
+- **Geração em 6 etapas**: ideia → plano → copy → direção visual → montagem → publicação (legenda/hashtags/horário).
+- **CTA obrigatório no último card**, escolhido de um catálogo (pergunta, palavra-chave na DM, seguir, salvar, compartilhar) e garantido em código.
+- **Imagem**: capa por IA (`gpt-image-2.5` via 9Router) **ou** upload do dispositivo. Opção de repetir a capa em todos os cards; card sem foto sai em cor sólida.
+- **Piloto automático**: entrevista de 4 respostas (ou conversa com o agente), 5 arquétipos de pauta em rotação, histórico de temas para não repetir, e freio de custo (pausa após 3 posts seguidos sem abertura).
+- **Contas**: login próprio (Supabase), cadastro com ou sem convite (o admin decide), chave de IA global herdada por todos **ou** chave própria por usuário.
+- **Painel admin**: chaves de LLM e imagem, política de entrada, criação de conta e convites de uso único.
+- **Salvamento automático** e link público read-only por projeto (`/p/<token>`).
 
-Carousel Generator comes packed with a variety of features to help you create stunning carousels effortlessly:
+## Stack
 
-- 🪄 Generate carousels with AI
-- ✍️ Forms powered by [react-hook-form](https://react-hook-form.com/)
-- 🎨 Sleek UI components from [Shadcn/ui](https://ui.shadcn.com/)
-- ✅ Input validation using [ZOD](https://zod.dev/)
-- 🌐 Responsive layout for various screen sizes
-- 🔄 Automatic updates on changes
-- 🍥 Icons from [Lucide Dev](https://lucide.dev/)
-- 🆎 Titles auto-balance (no orphan words)
-- 💾 Data persists with browser refresh
-- ⚙️ Configure the carousel with various settings
-- ➕ Add, remove, or reorder slides with ease
-- 🖼️ Different types of slides, including Intro, Content, and Outro
-- 📤 Export and Import settings
-- 📥 Export and import slide content
-- 😃 Support for emojis to spark joy with your carousels
-- 📝 Select fonts for titles and content to match your style
+- Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui
+- Supabase (Postgres + GoTrue) por produto: RLS por `auth.uid()`
+- 9Router como hub de modelos (texto e imagem)
+- Export PNG/ZIP no navegador (`html-to-image` + `jszip`)
+- systemd + Traefik no servidor próprio; cron do autopilot às 05:00 (America/Sao_Paulo)
 
-## Usage
+## Rodar local
 
-1. Visit [carouselgenerator.vercel.app](https://carouselgenerator.vercel.app) to access the Carousel Generator tool.
+```bash
+pnpm install
+cp .env.example .env.local   # preencha as chaves
+pnpm dev                     # http://localhost:3000
+```
 
-2. Customize your carousel settings and add/edit slides as needed.
+Variáveis principais (`.env.example` tem a lista completa):
 
-3. Download your carousel to post on social media
+| Variável | Para quê |
+|---|---|
+| `CARROSSEL_SUPABASE_URL` / `_ANON_KEY` / `_SERVICE_ROLE_KEY` | banco e auth do produto |
+| `OPENAI_BASE_URL` / `OPENAI_MODEL` / `OPENAI_API_KEY` | LLM de texto (herança quando o painel está vazio) |
+| `IMAGEM_MODEL` | modelo de imagem (padrão `cx/gpt-image-2.5`) |
+| `CARROSSEL_ADMINS` | e-mails com acesso ao `/admin` |
+| `AUTOPILOT_CRON_SECRET` | segredo do endpoint interno do cron |
+| `NEXT_PUBLIC_APP_URL` | URL pública usada em metadata e links |
 
-## Installation
+## Banco
 
-To get started with Carousel Generator, follow these simple installation steps:
+Migrations em `supabase/migrations/` (aplicar na ordem):
 
-1. Create your environment file
+- `projetos` + `perfis` — carrosséis salvos e marca do usuário, RLS por dono
+- `config_ia` — chaves do administrador (linha única, só `service_role`)
+- `config_produto` — cadastro aberto / exigir convite
+- `convites` — código de uso único com expiração
+- `chaves_usuario` — chave opcional por usuário (sobrepõe a global)
+- `perfis_automacao` — briefing do autopilot, histórico de temas, freio de inatividade
+- Atenção: **tabela nova não concede `SELECT` ao `service_role` por padrão** — conceda explicitamente, senão o link público `/p/<token>` responde 404.
 
-   ```bash
-   cp .env.example .env
-   ```
+## Deploy (servidor atual)
 
-2. Install the required dependencies using `pnpm`:
+```bash
+git pull --ff-only
+pnpm build
+systemctl restart carousel-generator     # next start -p 8099
+```
 
-   ```bash
-   pnpm i
-   ```
+O domínio é servido por Traefik → socat → `172.18.0.1:8099`. Se o site "carregar para sempre" enquanto `curl http://127.0.0.1:8099/login` responde 200, o problema é a rota container → host (firewall/`docker_gwbridge`), não o build.
 
-   or
+Cron do autopilot: `deploy/carrossel-autopilot.timer` (05:00 em São Paulo) chama `scripts/autopilot-tick.sh`, que consome `POST /api/interno/autopilot/tick` uma pauta por vez.
 
-   ```bash
-   npm install
-   ```
+## Custo
 
-3. Create the environment variables file:
+Cada capa gerada custa **≈ US$ 0,05** (tabela e premissas em [`docs/CUSTO-IMAGEM.md`](docs/CUSTO-IMAGEM.md)). O autopilot gera só texto; a capa é on-demand justamente para não queimar cota com post que ninguém abriu.
 
-   ```bash
-   cp .env.example .env.local
-   ```
+## Testes
 
-   and update the values in the `.env.local` file.
+```bash
+pnpm test:lib        # regras de conteúdo, encaixe de texto, publicação, CTA
+pnpm test:visual     # Playwright (render dos cards, conta, responsivo)
+```
 
-   To get an OpenaI API key, use [your OpenAI API key](https://platform.openai.com/account/api-keys)
+## Licença
 
-   Rate limiting is optional. To enable it, you'll need [Vercel KV credentials](https://vercel.com/docs/storage/vercel-kv/quickstart#quickstart)
-
-   NOTE: Remember to include these environment variables on your server if you are deploying this application.
-
-4. Start the development server:
-
-   ```bash
-   pnpm dev
-   ```
-
-   or
-
-   ```bash
-   npm run dev
-   ```
-
-Now you're all set to start using Carousel Generator!
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-Happy carousel generating! If you have any questions or need assistance, feel free to [open an issue](https://github.com/FranciscoMoretti/carousel-generator/issues) on GitHub.
-
-🚀 Thank you for using Carousel Generator!
+MIT — ver [`LICENSE`](LICENSE).

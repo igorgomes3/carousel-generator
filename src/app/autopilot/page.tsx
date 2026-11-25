@@ -25,8 +25,8 @@ const COR = {
   fraco: "#6B6660",
   linha: "#E7E5E4",
   fundo: "#F5F4F1",
-  laranja: "#F4511E",
-  acao: "#C2410C",
+  laranja: "#0E7490",
+  acao: "#0E7490",
   ok: "#166534",
   erro: "#B91C1C",
 };
@@ -243,10 +243,10 @@ export default function AutopilotPage() {
               className="grid h-8 w-8 place-items-center rounded-lg text-[15px] font-bold text-white"
               style={{ backgroundColor: COR.laranja }}
             >
-              C
+              X
             </span>
             <span className="hidden text-[16px] font-bold tracking-tight sm:inline" style={{ color: COR.tinta }}>
-              Carrossel<span style={{ color: COR.laranja }}>IA</span>
+              CONTENT<span style={{ color: COR.laranja }}>X</span>
             </span>
           </a>
           <div className="flex items-center gap-2">
@@ -469,7 +469,7 @@ export default function AutopilotPage() {
                   onClick={() => void salvar(true)}
                   disabled={salvando || !completo || !perfil?.liberado}
                   className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold disabled:opacity-60"
-                  style={{ backgroundColor: "#C2410C", color: "#FFFFFF" }}
+                  style={{ backgroundColor: "#0E7490", color: "#FFFFFF" }}
                 >
                   Ativar piloto automático
                 </button>

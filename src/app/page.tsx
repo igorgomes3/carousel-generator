@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Estudio } from "@/components/estudio/estudio";
 
 /**
- * `/` — o estúdio: a home do produto virou o wizard do CarrosseIA.
+ * `/` — o estúdio: a home do produto virou o wizard do o produto de referência.
  *
  * A lista com abas, filtros de fonte e cara de painel de operador saiu daqui; o
  * histórico aparece enxuto dentro do estúdio ("Meus carrosséis"). O que a raiz

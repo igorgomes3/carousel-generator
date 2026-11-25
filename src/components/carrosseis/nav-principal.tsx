@@ -94,11 +94,11 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioCarrossel | null }) 
         // ícone, que é `aria-hidden`. Sem este rótulo o link fica sem nome
         // acessível — axe reprova em `link-name`, e teclado/voz chegam num
         // controle anônimo.
-        aria-label="Carrossel"
+        aria-label="CONTENTX"
         className="flex size-11 shrink-0 items-center justify-center gap-2 rounded-sm text-body font-semibold tracking-[-0.01em] md:size-auto md:justify-start"
       >
         <Marca />
-        <span className="hidden sm:inline">Carrossel</span>
+        <span className="hidden sm:inline">CONTENTX</span>
       </Link>
 
       <nav aria-label="Principal" className="flex min-w-0 items-center gap-1">

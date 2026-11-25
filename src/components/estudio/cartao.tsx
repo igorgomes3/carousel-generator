@@ -600,7 +600,7 @@ export function Cartao({
             letterSpacing: 0.4,
             textTransform: "uppercase",
             lineHeight: 1.2,
-            color: "#C2410C",
+            color: "#0E7490",
             backgroundColor: "rgba(255,255,255,.94)",
             border: "1px solid rgba(244,81,30,.45)",
             borderRadius: 6,

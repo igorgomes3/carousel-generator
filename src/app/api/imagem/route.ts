@@ -1,7 +1,7 @@
 /**
  * Geração de imagem do estúdio — capa e cenas dos cards.
  *
- * Espelha o `/api/art` do CarrosseIA de propósito: `POST` devolve `jobId` e o
+ * Espelha o `/api/art` do o produto de referência de propósito: `POST` devolve `jobId` e o
  * cliente faz poll em `GET ?job=`. Geração de imagem leva dezenas de segundos;
  * segurar a resposta HTTP até o fim estoura timeout do proxy e trava a tela.
  *

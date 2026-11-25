@@ -84,7 +84,7 @@ export function SeletorDeCards({
           aria-live="polite"
           data-quantidade-cards={quantidade}
           className="min-w-[104px] rounded-xl px-4 py-2.5 text-center text-[20px] font-bold tabular-nums"
-          style={{ backgroundColor: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA" }}
+          style={{ backgroundColor: "#ECFEFF", color: "#0E7490", border: "1px solid #A5F3FC" }}
         >
           {quantidade} {quantidade === 1 ? "card" : "cards"}
         </output>
@@ -227,7 +227,7 @@ export function FotosDosCards({
                 {ocupado ? (
                   <div
                     className="absolute inset-0 grid place-items-center text-[12px] font-semibold"
-                    style={{ backgroundColor: "#FFFFFFD9", color: "#C2410C" }}
+                    style={{ backgroundColor: "#FFFFFFD9", color: "#0E7490" }}
                   >
                     Preparando…
                   </div>
@@ -256,7 +256,7 @@ export function FotosDosCards({
                   disabled={desabilitado || ocupado}
                   aria-label={ariaLabel}
                   className="min-h-[44px] w-full rounded-lg px-2 text-[12px] font-semibold disabled:opacity-40"
-                  style={{ backgroundColor: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA" }}
+                  style={{ backgroundColor: "#ECFEFF", color: "#0E7490", border: "1px solid #A5F3FC" }}
                 >
                   {temFoto ? "Trocar" : "+ Foto"}
                 </button>

@@ -3,7 +3,7 @@
  *
  * Por que não reusar o documento do editor (`DocumentSchema`): aquele formato é
  * o do motor antigo (slides com elementos soltos, tema, paleta editável). O
- * CarrosseIA trabalha com card + texto + imagem de capa, e é isso que a tela de
+ * o produto de referência trabalha com card + texto + imagem de capa, e é isso que a tela de
  * resultado precisa desenhar. Manter os dois separados evita que o editor denso
  * volte pela porta dos fundos: o estúdio fala só este contrato.
  */

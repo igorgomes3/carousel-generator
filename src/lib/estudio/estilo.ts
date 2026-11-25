@@ -100,7 +100,7 @@ export const FUNDOS: FundoEstudio[] = [
  * dos três ele precisa gritar contra o fundo, não conversar com ele.
  */
 export const DESTAQUES: DestaqueEstudio[] = [
-  { id: "laranja", nome: "Laranja", cor: "#F4511E" },
+  { id: "laranja", nome: "Laranja", cor: "#0E7490" },
   { id: "vermelho", nome: "Vermelho", cor: "#E5342B" },
   { id: "terracota", nome: "Terracota", cor: "#C8452B" },
   { id: "ouro", nome: "Ouro", cor: "#D9A521" },

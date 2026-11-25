@@ -31,13 +31,13 @@ const COR = {
   textoSecundario: "#57534E",
   fraco: "#A8A29E",
   borda: "#E7E5E4",
-  laranja: "#F4511E",
+  laranja: "#0E7490",
   /**
-   * Laranja de AÇÃO, mais escuro que o da marca. Medido: branco sobre #F4511E
-   * dá 3,48:1 (reprova AA para texto pequeno); sobre #C2410C dá 5,18:1. O selo
-   * do logo continua #F4511E porque é marca, não texto de leitura.
+   * Laranja de AÇÃO, mais escuro que o da marca. Medido: branco sobre #0E7490
+   * dá 3,48:1 (reprova AA para texto pequeno); sobre #0E7490 dá 5,18:1. O selo
+   * do logo continua #0E7490 porque é marca, não texto de leitura.
    */
-  acao: "#C2410C",
+  acao: "#0E7490",
   fundo: "#F5F4F1",
   perigo: "#B91C1C",
   perigoBorda: "#FCA5A5",
@@ -236,7 +236,7 @@ function Cabecalho() {
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[15px] font-bold text-white"
             style={{ backgroundColor: COR.laranja }}
           >
-            C
+            X
           </span>
           {/* Em 390 px o wordmark + "Ir ao estúdio" + o menu da conta estouravam
               a barra e cortavam o avatar. Abaixo de `sm` fica só o selo "C". */}
@@ -244,7 +244,7 @@ function Cabecalho() {
             className="hidden text-[16px] font-bold tracking-tight sm:inline"
             style={{ color: COR.tinta }}
           >
-            Carrossel<span style={{ color: COR.laranja }}>IA</span>
+            CONTENT<span style={{ color: COR.laranja }}>X</span>
           </span>
         </a>
         <div className="flex shrink-0 items-center gap-2">
@@ -293,7 +293,7 @@ function TituloDeSecao({
         </h2>
         <span
           className="rounded-md px-2 py-0.5 text-[11px] font-semibold"
-          style={{ backgroundColor: "#FFF1E9", color: "#9A3412" }}
+          style={{ backgroundColor: "#ECFEFF", color: "#0E7490" }}
         >
           {etiqueta}
         </span>
@@ -426,7 +426,7 @@ function LinhaDoProjeto({
             {projeto.origem === "autopilot" ? (
               <span
                 className="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold"
-                style={{ backgroundColor: "#FFF7ED", color: COR.acao, border: "1px solid #FED7AA" }}
+                style={{ backgroundColor: "#ECFEFF", color: COR.acao, border: "1px solid #A5F3FC" }}
               >
                 automático
               </span>
@@ -554,7 +554,7 @@ function Vazio() {
       <div
         aria-hidden="true"
         className="mx-auto grid h-14 w-14 place-items-center rounded-2xl text-[24px]"
-        style={{ backgroundColor: "#FFF1E9" }}
+        style={{ backgroundColor: "#ECFEFF" }}
       >
         🗂️
       </div>
