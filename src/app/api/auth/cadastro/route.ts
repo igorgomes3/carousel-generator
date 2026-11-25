@@ -13,11 +13,28 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { COOKIE_MARCADOR, COOKIE_TOKEN, chaveAnon, urlSupabase } from "@/lib/auth/supabase-servidor";
+import { lerConfigProduto } from "@/lib/produto/config";
+import { consumirConvite, conviteDisponivel } from "@/lib/produto/convites";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * `GET /api/auth/cadastro` — a porta está aberta?
+ *
+ * Público de propósito: a tela de cadastro precisa saber, ANTES de a pessoa
+ * digitar a senha, se o cadastro está fechado ou exige convite. Não devolve nada
+ * sensível — só os dois interruptores.
+ */
+export async function GET() {
+  const cfg = await lerConfigProduto();
+  return NextResponse.json(
+    { cadastroAberto: cfg.cadastroAberto, exigirConvite: cfg.exigirConvite },
+    { headers: { "cache-control": "no-store" } },
+  );
+}
+
 export async function POST(request: NextRequest) {
-  let corpo: { email?: string; senha?: string };
+  let corpo: { email?: string; senha?: string; codigo?: string };
   try {
     corpo = await request.json();
   } catch {
@@ -34,6 +51,45 @@ export async function POST(request: NextRequest) {
   }
   if (senha.length < 6) {
     return NextResponse.json({ erro: "A senha precisa ter 6 caracteres ou mais." }, { status: 400 });
+  }
+
+  /**
+   * Porta de entrada (25/11/2026): o administrador pode FECHAR o cadastro e/ou
+   * exigir convite. Sem esta checagem a tela fecharia e a API continuaria
+   * criando conta — o tipo de porta que só existe na UI.
+   *
+   * `cadastro_aberto = false` sem código é recusa direta; com código válido,
+   * vira exceção legítima (é assim que o admin convida alguém com a porta
+   * fechada).
+   */
+  const cfg = await lerConfigProduto();
+  const codigo = (corpo.codigo ?? "").trim().toUpperCase();
+  const exigeCodigo = cfg.exigirConvite || !cfg.cadastroAberto;
+
+  if (!cfg.cadastroAberto && !codigo) {
+    return NextResponse.json(
+      {
+        erro: "O cadastro está fechado. Peça um convite a quem administra o Carrossel.",
+        codigo: "cadastro_fechado",
+      },
+      { status: 403 },
+    );
+  }
+
+  if (exigeCodigo) {
+    if (!codigo) {
+      return NextResponse.json(
+        { erro: "Este cadastro exige um código de convite.", codigo: "convite_obrigatorio" },
+        { status: 403 },
+      );
+    }
+    const disponivel = await conviteDisponivel(codigo);
+    if (!disponivel) {
+      return NextResponse.json(
+        { erro: "Código de convite inválido, usado ou expirado.", codigo: "convite_invalido" },
+        { status: 403 },
+      );
+    }
   }
 
   let res: Response;
@@ -55,6 +111,7 @@ export async function POST(request: NextRequest) {
     access_token?: string;
     refresh_token?: string;
     expires_in?: number;
+    user?: { id?: string };
     msg?: string;
     message?: string;
     error_code?: string;
@@ -86,6 +143,13 @@ export async function POST(request: NextRequest) {
       { erro: "Não foi possível criar a conta agora. Tente de novo em instantes." },
       { status: 502 },
     );
+  }
+
+  // Conta criada: consome o convite para ele não servir duas vezes. Vale nos
+  // dois caminhos (com sessão imediata ou aguardando confirmação de e-mail).
+  if (codigo) {
+    const novoId = dados.user?.id;
+    if (novoId) await consumirConvite(codigo, novoId);
   }
 
   if (!dados.access_token || !dados.refresh_token) {

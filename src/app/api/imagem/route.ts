@@ -21,7 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
 import { exigirSessao } from "@/lib/auth/supabase-servidor";
-import { configEfetiva } from "@/lib/ia/config";
+import { configParaUsuario } from "@/lib/ia/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,12 +50,17 @@ function limpar() {
   });
 }
 
-async function gerar(jobId: string, prompt: string, tamanho: string) {
-  // Chave, base e modelo do painel do administrador; ambiente como herança.
-  const config = await configEfetiva();
-  const chave = config.imagemApiKey;
-  const base = config.imagemBaseUrl;
-  const modelo = config.imagemModel;
+async function gerar(
+  jobId: string,
+  prompt: string,
+  tamanho: string,
+  cfg: { chave: string; base: string; modelo: string },
+) {
+  // Chave/base/modelo resolvidos pelo CHAMADOR: a do usuário quando existir,
+  // senão a global do painel. Ver `configParaUsuario`.
+  const chave = cfg.chave;
+  const base = cfg.base.replace(/\/$/, "");
+  const modelo = cfg.modelo;
 
   const job = store.get(jobId);
   if (!job) return;
@@ -136,9 +141,27 @@ export async function POST(request: NextRequest) {
 
   limpar();
   const jobId = randomUUID();
+
+  // Resolve a configuração JÁ aqui, antes de responder: o job roda depois do
+  // return, e sem isso o `process.env` poderia ter mudado por outra requisição.
+  const config = await configParaUsuario(portao.sessao.usuario.id);
+  if (!config.imagemApiKey) {
+    return NextResponse.json(
+      {
+        erro: "A geração de imagem está sem chave. Defina a sua nas configurações ou peça ao administrador.",
+        codigo: "sem_chave_imagem",
+      },
+      { status: 503 },
+    );
+  }
+
   store.set(jobId, { estado: "pending", criadoEm: Date.now() });
 
-  void gerar(jobId, prompt, corpo?.tamanho ?? "1088x1360");
+  void gerar(jobId, prompt, corpo?.tamanho ?? "1088x1360", {
+    chave: config.imagemApiKey,
+    base: config.imagemBaseUrl,
+    modelo: config.imagemModel,
+  });
 
   return NextResponse.json({ jobId });
 }

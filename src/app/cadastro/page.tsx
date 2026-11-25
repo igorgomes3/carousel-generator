@@ -15,7 +15,7 @@
  *     vez de fingir um login;
  *   - limite de envio de e-mail do provedor → 429, com a frase certa.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -32,6 +32,36 @@ export default function CadastroPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
+  const [codigo, setCodigo] = useState("");
+  /**
+   * Estado da porta de entrada (25/11/2026). Vem do servidor porque a regra é do
+   * admin: cadastro pode estar fechado ou exigir convite. `null` = ainda
+   * carregando; nesse meio-tempo o formulário aparece normal e a API decide.
+   */
+  const [porta, setPorta] = useState<{ cadastroAberto: boolean; exigirConvite: boolean } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let vivo = true;
+    fetch("/api/auth/cadastro", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { cadastroAberto?: boolean; exigirConvite?: boolean } | null) => {
+        if (vivo && d) {
+          setPorta({
+            cadastroAberto: d.cadastroAberto ?? true,
+            exigirConvite: d.exigirConvite ?? false,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  const pedeCodigo = Boolean(porta && (porta.exigirConvite || !porta.cadastroAberto));
+  const fechadoSemConvite = Boolean(porta && !porta.cadastroAberto && !porta.exigirConvite);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -55,7 +85,7 @@ export default function CadastroPage() {
       const res = await fetch("/api/auth/cadastro", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ email, senha, codigo }),
       });
       const dados = (await res.json().catch(() => ({}))) as {
         erro?: string;
@@ -154,7 +184,31 @@ export default function CadastroPage() {
             </p>
           )}
 
-          <Button type="submit" className="w-full" disabled={enviando}>
+          {pedeCodigo ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="codigo">Código do convite</Label>
+              <Input
+                id="codigo"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                placeholder="ABCD-1234"
+                autoComplete="off"
+                spellCheck={false}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                O cadastro está com convite. O código vem de quem administra o Carrossel.
+              </p>
+            </div>
+          ) : null}
+
+          {fechadoSemConvite ? (
+            <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+              O cadastro está fechado. Peça um convite a quem administra o Carrossel para criar sua conta.
+            </p>
+          ) : null}
+
+          <Button type="submit" className="w-full" disabled={enviando || fechadoSemConvite}>
             {enviando ? "Criando conta…" : "Criar conta e entrar"}
           </Button>
 

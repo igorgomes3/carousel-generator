@@ -16,6 +16,7 @@ import { designAutomatico } from "@/lib/design-automatico";
 import { lintCarrossel } from "@/lib/lint-carrossel";
 import { planejarConteudo, promptDeCopy, resolverFormato, type ResultadoConteudo } from "@/lib/conteudo";
 import { generateCarouselSlides } from "@/lib/langchain";
+import { instrucaoCta } from "@/lib/estudio/cta";
 
 /**
  * Força o gancho escolhido na capa do carrossel.
@@ -114,7 +115,11 @@ export async function gerarDocumentoCompleto(
   if (!estrategia) return null;
 
   const briefing = { tema, slides: quantidade, ...escolha };
-  const prompt = promptDeCopy(briefing, estrategia);
+  // O CTA entra no prompt porque o modelo escreve melhor quando sabe o fecho; e
+  // o código garante depois (`aplicarCtaNoUltimoSlide`), porque prompt é pedido.
+  const prompt = `${promptDeCopy(briefing, estrategia)}
+
+${instrucaoCta(tema)}`;
 
   let copy = await tentar(() => generateCarouselSlides(tema, apiKey, prompt));
   if (!copy) return null;

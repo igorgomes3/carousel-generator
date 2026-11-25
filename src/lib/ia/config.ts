@@ -15,6 +15,7 @@
  * aqui. O que fica proibido é ler a tabela em cada chamada: daí o cache curto.
  */
 import { comoServico } from "@/lib/auth/supabase-servidor";
+import { lerChavesPorId } from "@/lib/ia/chaves-usuario";
 
 /** Base padrão do hub de modelos (9Router) quando nada estiver configurado. */
 const BASE_PADRAO = "http://127.0.0.1:20128/v1";
@@ -136,22 +137,41 @@ export async function gravarConfigIA(
   return ok ? { ok: true } : { ok: false, erro: erro ?? "não foi possível salvar" };
 }
 
-/** Configuração efetiva: banco primeiro, ambiente como herança. */
+/**
+ * Cópia do ambiente ORIGINAL, congelada no import.
+ *
+ * Por que existe: `aplicarConfigIA()` escreve `OPENAI_*` no `process.env` para o
+ * pipeline de texto. Como imagem e texto compartilhavam os mesmos fallbacks, uma
+ * geração de TEXTO reescrevia a base do provedor de IMAGEM: em 25/11/2026 o
+ * usuário trocou a LLM para `api.vorc.app` no painel e a capa passou a mandar a
+ * chave do 9Router para o vorc — `401 Invalid token`, sem relação óbvia com o que
+ * ele mudou. Snapshot corta essa contaminação na raiz.
+ */
+const AMBIENTE_ORIGINAL = {
+  openaiKey: process.env.OPENAI_API_KEY ?? "",
+  openaiBase: process.env.OPENAI_BASE_URL ?? "",
+  openaiModel: process.env.OPENAI_MODEL ?? "",
+  imagemKey: process.env.IMAGEM_API_KEY ?? "",
+  imagemBase: process.env.IMAGEM_BASE_URL ?? "",
+  imagemModel: process.env.IMAGEM_MODEL ?? "",
+};
+
+/** Configuração efetiva: banco primeiro, ambiente (congelado) como herança. */
 export async function configEfetiva(): Promise<ConfigResolvida> {
   const cfg = await lerConfigIA();
   return {
-    llmBaseUrl: (cfg.llmBaseUrl || process.env.OPENAI_BASE_URL || BASE_PADRAO).replace(/\/$/, ""),
-    llmModel: cfg.llmModel || process.env.OPENAI_MODEL || MODELO_TEXTO_PADRAO,
-    llmApiKey: cfg.llmApiKey || process.env.OPENAI_API_KEY || "",
+    llmBaseUrl: (cfg.llmBaseUrl || AMBIENTE_ORIGINAL.openaiBase || BASE_PADRAO).replace(/\/$/, ""),
+    llmModel: cfg.llmModel || AMBIENTE_ORIGINAL.openaiModel || MODELO_TEXTO_PADRAO,
+    llmApiKey: cfg.llmApiKey || AMBIENTE_ORIGINAL.openaiKey || "",
     imagemBaseUrl: (
       cfg.imagemBaseUrl ||
-      process.env.IMAGEM_BASE_URL ||
-      process.env.OPENAI_BASE_URL ||
+      AMBIENTE_ORIGINAL.imagemBase ||
+      AMBIENTE_ORIGINAL.openaiBase ||
       BASE_PADRAO
     ).replace(/\/$/, ""),
-    imagemModel: cfg.imagemModel || process.env.IMAGEM_MODEL || MODELO_IMAGEM_PADRAO,
+    imagemModel: cfg.imagemModel || AMBIENTE_ORIGINAL.imagemModel || MODELO_IMAGEM_PADRAO,
     imagemApiKey:
-      cfg.imagemApiKey || process.env.IMAGEM_API_KEY || process.env.OPENAI_API_KEY || "",
+      cfg.imagemApiKey || AMBIENTE_ORIGINAL.imagemKey || AMBIENTE_ORIGINAL.openaiKey || "",
   };
 }
 
@@ -163,6 +183,35 @@ export async function configEfetiva(): Promise<ConfigResolvida> {
  */
 export async function aplicarConfigIA(): Promise<ConfigResolvida> {
   const cfg = await configEfetiva();
+  process.env.OPENAI_API_KEY = cfg.llmApiKey;
+  process.env.OPENAI_BASE_URL = cfg.llmBaseUrl;
+  process.env.OPENAI_MODEL = cfg.llmModel;
+  process.env.IMAGEM_MODEL = cfg.imagemModel;
+  return cfg;
+}
+
+/**
+ * Configuração EFETIVA PARA UM USUÁRIO: chave do usuário sobrepõe a global.
+ *
+ * Pedido de 25/11/2026: quem quer custear o próprio consumo define a chave na
+ * conta; quem não define herda a do administrador. Campo vazio no perfil não é
+ * "sem chave" — é "herda".
+ */
+export async function configParaUsuario(userId: string): Promise<ConfigResolvida> {
+  const [global, doUsuario] = await Promise.all([configEfetiva(), lerChavesPorId(userId)]);
+  return {
+    llmBaseUrl: (doUsuario.llmBaseUrl || global.llmBaseUrl).replace(/\/$/, ""),
+    llmModel: doUsuario.llmModel || global.llmModel,
+    llmApiKey: doUsuario.llmApiKey || global.llmApiKey,
+    imagemBaseUrl: (doUsuario.imagemBaseUrl || global.imagemBaseUrl).replace(/\/$/, ""),
+    imagemModel: doUsuario.imagemModel || global.imagemModel,
+    imagemApiKey: doUsuario.imagemApiKey || global.imagemApiKey,
+  };
+}
+
+/** Mesma coisa, mas projetando no ambiente (o pipeline de texto lê de lá). */
+export async function aplicarConfigParaUsuario(userId: string): Promise<ConfigResolvida> {
+  const cfg = await configParaUsuario(userId);
   process.env.OPENAI_API_KEY = cfg.llmApiKey;
   process.env.OPENAI_BASE_URL = cfg.llmBaseUrl;
   process.env.OPENAI_MODEL = cfg.llmModel;

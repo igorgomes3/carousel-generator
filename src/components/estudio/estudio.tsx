@@ -378,6 +378,26 @@ export function Estudio() {
     }
   }, [carrossel, salvamento, tema]);
 
+  /**
+   * Salvamento automático (25/11/2026).
+   *
+   * Cada alteração deixa o estado "sujo" e o botão Salvar é o único caminho —
+   * quem esquece perde o trabalho. Aqui, 2,5 s depois da última mudança, o
+   * projeto é salvo sozinho. Só na tela de resultado (`passo === "pronto"`,
+   * logado): durante geração/abertura o estado ainda está sendo montado e salvar
+   * gravaria carrossel pela metade.
+   *
+   * O `setTimeout` reinicia a cada mudança — digitar não gera 20 salvamentos.
+   */
+  useEffect(() => {
+    if (!logado || passo !== "pronto") return;
+    if (!carrossel || salvamento.estado !== "sujo") return;
+    const relogio = setTimeout(() => {
+      void salvarProjeto();
+    }, 2500);
+    return () => clearTimeout(relogio);
+  }, [carrossel, salvamento.estado, logado, passo, salvarProjeto]);
+
   // "Meus projetos": os que ESTE navegador salvou (issue #13). Antes a seção
   // lia a API antiga — carrossel do editor antigo, atrás de login que o
   // leigo não tem. Se a lista falhar, a seção simplesmente não aparece: o

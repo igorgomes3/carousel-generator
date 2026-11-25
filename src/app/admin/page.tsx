@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { MenuConta } from "@/components/conta/menu-conta";
+import { PainelEntrada } from "@/components/admin/painel-entrada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { carregarUsuario, type UsuarioCarrossel } from "@/lib/auth/sessao";
@@ -231,6 +232,8 @@ export default function AdminPage() {
           </p>
         ) : (
           <div className="space-y-6">
+            <PainelEntrada />
+
             <section className="rounded-2xl bg-white p-4 sm:p-5" style={{ border: `1px solid ${COR.linha}` }}>
               <h2 className="text-[15px] font-semibold" style={{ color: COR.tinta }}>
                 Texto (LLM)

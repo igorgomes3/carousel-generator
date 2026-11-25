@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gerarDocumentoCompleto } from "@/lib/gerar-documento";
 import { exigirSessao } from "@/lib/auth/supabase-servidor";
-import { aplicarConfigIA } from "@/lib/ia/config";
+import { aplicarConfigParaUsuario } from "@/lib/ia/config";
 import { promptDeEmergencia, resolverFormato } from "@/lib/conteudo";
 import {
   hashtagsDeReserva,
@@ -23,6 +23,7 @@ import { generateCarouselSlides } from "@/lib/langchain";
 import { templatePorId } from "@/lib/templates";
 import { ajustarQuantidade, limitarQuantidade } from "@/lib/estudio/cards";
 import { corpoSeFechar } from "@/lib/estudio/frase";
+import { aplicarCtaNoUltimoSlide, type TipoCta } from "@/lib/estudio/cta";
 import type { CarrosselGerado, SlideCarrossel } from "@/lib/estudio/tipos";
 
 export const runtime = "nodejs";
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
   if (!portao.ok) return portao.resposta;
 
   const corpo = (await request.json().catch(() => null)) as
-    | { tema?: string; templateId?: string; slides?: number; nicho?: string; formato?: string }
+    | { tema?: string; templateId?: string; slides?: number; nicho?: string; formato?: string; cta?: TipoCta }
     | null;
 
   const tema = (corpo?.tema ?? "").trim();
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
   // Chave vem do painel do administrador (tabela `config_ia`), com o ambiente
   // como herança. `aplicarConfigIA` também projeta base/modelo no ambiente,
   // porque o pipeline de 6 etapas lê de lá.
-  const config = await aplicarConfigIA();
+  const config = await aplicarConfigParaUsuario(portao.sessao.usuario.id);
   const chave = config.llmApiKey;
   if (!chave) {
     return NextResponse.json(
@@ -135,7 +136,11 @@ export async function POST(request: NextRequest) {
 
   // A rota devolve EXATAMENTE o número pedido: o pipeline escreve quantos
   // slides o modelo quiser, e o seletor do passo 2 promete um número.
-  const slides = ajustarQuantidade(brutos, quantidade);
+  /**
+   * CTA obrigatório no último card (25/11/2026): o prompt pede, o código garante.
+   * Aplicado antes de publicar a resposta para o card final nunca ser "resumo".
+   */
+  const slides = aplicarCtaNoUltimoSlide(ajustarQuantidade(brutos, quantidade), tema, corpo?.cta);
 
   const carrossel: CarrosselGerado = {
     id: crypto.randomUUID(),

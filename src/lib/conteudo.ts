@@ -121,7 +121,14 @@ export const IdeiaSchema = z.object({
   // formatação — então o valor é normalizado: procura a palavra-chave dentro
   // do que veio, e cai num default razoável se não achar.
   tom: z
+    /**
+     * `.default("direto")` antes do `.transform`: o modelo às vezes OMITE o campo
+     * (medido no autopilot de 25/11/2026 05:02, provider vorc.app, "Required" em
+     * `tom`), e a etapa inteira abortava por um campo de estilo. Sem tom, o
+     * carrossel sai direto — que é o padrão do produto.
+     */
     .string()
+    .default("direto")
     .transform((v): Tom => {
       const s = v.toLowerCase();
       if (s.includes("provoc")) return "provocativo";

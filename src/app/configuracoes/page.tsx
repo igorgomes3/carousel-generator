@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { garantirSessao, usuarioAtual, type UsuarioCarrossel } from "@/lib/auth/sessao";
 import { Button } from "@/components/ui/button";
 import { NavPrincipal } from "@/components/carrosseis/nav-principal";
+import { ChavesIA } from "@/components/conta/chaves-ia";
 import { Input } from "@/components/ui/input";
 
 /** Espelha `Marca` em `src/app/api/marca/route.ts`. */
@@ -259,6 +260,11 @@ export default function ConfiguracoesPage() {
             </form>
           )}
         </section>
+
+        {/* Chaves de IA do próprio usuário: sobrepõem a global do painel. */}
+        <div className="mt-6">
+          <ChavesIA />
+        </div>
       </div>
     </main>
   );
