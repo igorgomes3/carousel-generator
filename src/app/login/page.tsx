@@ -35,8 +35,24 @@ export default function LoginPage() {
    */
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
+    const busca = window.location.search.replace(/^\?/, "");
+    const doHash = new URLSearchParams(hash);
+    const daBusca = new URLSearchParams(busca);
+
+    /**
+     * Link do e-mail recusado pelo provedor (expirado ou já consumido — clientes
+     * como o Gmail abrem o link antes da pessoa, e o token é de uso único).
+     * Antes isso caía no formulário de login sem explicação: a pessoa achava que
+     * o sistema estava quebrado. Agora vai para "esqueci a senha" com o motivo.
+     */
+    const erro = doHash.get("error_code") ?? daBusca.get("error_code") ?? doHash.get("error");
+    if (erro) {
+      router.replace("/esqueci-senha?expirado=1");
+      return;
+    }
+
     if (!hash) return;
-    const tipo = new URLSearchParams(hash).get("type");
+    const tipo = doHash.get("type");
     if (tipo === "recovery") router.replace(`/redefinir-senha#${hash}`);
   }, [router]);
   // `de` vem da URL: só caminho interno (ver `destinoSeguro`). Sem isso, um link

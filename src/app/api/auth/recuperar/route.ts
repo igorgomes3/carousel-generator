@@ -22,13 +22,43 @@ import { chaveAnon, urlSupabase } from "@/lib/auth/supabase-servidor";
 
 export const dynamic = "force-dynamic";
 
-/** Endereço base do app, para o link do e-mail voltar para cá. */
+/**
+ * Endereço base para o link do e-mail.
+ *
+ * Ordem: `NEXT_PUBLIC_APP_URL` (fonte única do domínio do produto) primeiro; só
+ * caímos no host do pedido quando ele não existe. Antes a ordem era o contrário e
+ * o `x-forwarded-proto` ausente virava `http://…` — o `redirect_to` saía fora da
+ * lista permitida do GoTrue, o link caía no `site_url` (raiz) e a pessoa aterrissava
+ * no login em vez de `/redefinir-senha` (bug relatado em 27/11/2026).
+ *
+ * `https` é forçado fora de localhost: o produto é servido por TLS e um link
+ * `http://` nunca está na allowlist.
+ */
 function origem(request: NextRequest): string {
   const doEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const proto = request.headers.get("x-forwarded-proto") ?? request.nextUrl.protocol.replace(":", "");
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (host) return `${proto}://${host}`;
-  return doEnv ? doEnv.replace(/\/$/, "") : request.nextUrl.origin;
+  const host =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    request.nextUrl.host;
+
+  const ehLocal = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+  const protocolo = ehLocal
+    ? (request.headers.get("x-forwarded-proto") ?? "http")
+    : "https";
+  const doPedido = host ? `${protocolo}://${host}` : "";
+
+  // Se o host do pedido for o mesmo do APP_URL, o APP_URL manda (evita
+  // divergência de porta/protocolo em proxy).
+  if (doEnv) {
+    const alvo = doEnv.replace(/\/$/, "");
+    try {
+      if (new URL(alvo).host === host) return alvo;
+    } catch {
+      /* APP_URL inválida: segue com o host do pedido */
+    }
+    if (!doPedido) return alvo;
+  }
+  return doPedido || request.nextUrl.origin;
 }
 
 export async function POST(request: NextRequest) {

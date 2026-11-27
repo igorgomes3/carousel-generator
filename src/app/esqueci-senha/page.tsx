@@ -12,7 +12,8 @@
  * hora**; o BFF devolve 429 quando estoura e aqui vira frase de gente em vez de
  * "erro 429".
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -20,10 +21,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function EsqueciSenhaPage() {
+  const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  /**
+   * `?expirado=1` chega quando o link do e-mail foi recusado (expirado ou já
+   * aberto antes — o token é de uso único e alguns clientes de e-mail abrem o
+   * link sozinhos). A pessoa precisa entender o que houve e pedir outro.
+   */
+  useEffect(() => {
+    if (params.get("expirado") === "1") {
+      setErro(
+        "Esse link de redefinição expirou ou já foi usado. Peça um novo abaixo — ele vale uma vez só.",
+      );
+    }
+  }, [params]);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
