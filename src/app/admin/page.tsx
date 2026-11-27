@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { MenuConta } from "@/components/conta/menu-conta";
+import { TopoApp } from "@/components/carrosseis/topo-app";
 import { PainelEntrada } from "@/components/admin/painel-entrada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,7 +73,6 @@ function Rotulo({ children }: { children: React.ReactNode }) {
 
 export default function AdminPage() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState<UsuarioCarrossel | null>(null);
   const [estado, setEstado] = useState<Estado | null>(null);
   const [negado, setNegado] = useState(false);
   const [carregando, setCarregando] = useState(true);
@@ -114,7 +113,6 @@ export default function AdminPage() {
   useEffect(() => {
     let vivo = true;
     carregarUsuario().then((u) => {
-      if (vivo) setUsuario(u);
     });
     carregar();
     return () => {
@@ -172,7 +170,7 @@ export default function AdminPage() {
   if (negado) {
     return (
       <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
-        <CabecalhoAdmin usuario={usuario} />
+        <TopoApp ativo="admin" />
         <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
           <div className="rounded-2xl bg-white p-6" style={{ border: `1px solid ${COR.linha}` }}>
             <h1 className="text-[22px] font-bold" style={{ color: COR.tinta }}>
@@ -201,7 +199,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
-      <CabecalhoAdmin usuario={usuario} />
+      <TopoApp ativo="admin" />
 
       <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
         <header className="mb-6">
@@ -384,52 +382,3 @@ export default function AdminPage() {
   );
 }
 
-/**
- * Cabeçalho igual ao de "Meus projetos" — mesma barra, mesmo selo, mesmo menu.
- *
- * O painel nasceu com o `NavPrincipal` (barra do produto antigo) e por isso
- * parecia outra aplicação ao lado de `/projetos`. Aqui repetimos a chrome da
- * tela nova de propósito: quem entra em Admin sai do mesmo lugar de onde veio.
- */
-function CabecalhoAdmin({ usuario }: { usuario: UsuarioCarrossel | null }) {
-  return (
-    <header
-      className="sticky top-0 z-20 border-b"
-      style={{ backgroundColor: "#FFFFFFEE", borderColor: COR.linha, backdropFilter: "blur(8px)" }}
-    >
-      <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between px-4 sm:px-6">
-        <a href="/" className="flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[15px] font-bold text-white"
-            style={{ backgroundColor: COR.laranja }}
-          >
-            X
-          </span>
-          <span className="hidden text-[16px] font-bold tracking-tight sm:inline" style={{ color: COR.tinta }}>
-            CONTENT<span style={{ color: COR.laranja }}>X</span>
-          </span>
-        </a>
-        <div className="flex shrink-0 items-center gap-2">
-          <a
-            href="/projetos"
-            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
-            style={{ color: COR.tinta, border: `1px solid ${COR.linha}`, backgroundColor: "#fff" }}
-          >
-            <span className="sm:hidden">Projetos</span>
-            <span className="hidden sm:inline">Meus projetos</span>
-          </a>
-          <a
-            href="/"
-            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
-            style={{ color: COR.tinta, border: `1px solid ${COR.linha}`, backgroundColor: "#fff" }}
-          >
-            <span className="sm:hidden">Estúdio</span>
-            <span className="hidden sm:inline">Ir ao estúdio</span>
-          </a>
-          <MenuConta />
-        </div>
-      </div>
-    </header>
-  );
-}

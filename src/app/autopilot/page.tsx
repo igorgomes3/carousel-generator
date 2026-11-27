@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
-import { MenuConta } from "@/components/conta/menu-conta";
+import { TopoApp } from "@/components/carrosseis/topo-app";
 import { carregarUsuario, type UsuarioCarrossel } from "@/lib/auth/sessao";
 
 const COR = {
@@ -78,7 +78,6 @@ const PERGUNTAS: { campo: keyof Briefing; titulo: string; ajuda: string; exemplo
 ];
 
 export default function AutopilotPage() {
-  const [usuario, setUsuario] = useState<UsuarioCarrossel | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [podeLiberar, setPodeLiberar] = useState(false);
   const [carregando, setCarregando] = useState(true);
@@ -135,7 +134,6 @@ export default function AutopilotPage() {
   useEffect(() => {
     let vivo = true;
     carregarUsuario().then((u) => {
-      if (vivo) setUsuario(u);
     });
     void carregar();
     return () => {
@@ -232,43 +230,7 @@ export default function AutopilotPage() {
 
   return (
     <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
-      <header
-        className="sticky top-0 z-20 border-b"
-        style={{ backgroundColor: "#FFFFFFEE", borderColor: COR.linha, backdropFilter: "blur(8px)" }}
-      >
-        <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between px-4 sm:px-6">
-          <a href="/" className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="grid h-8 w-8 place-items-center rounded-lg text-[15px] font-bold text-white"
-              style={{ backgroundColor: COR.laranja }}
-            >
-              X
-            </span>
-            <span className="hidden text-[16px] font-bold tracking-tight sm:inline" style={{ color: COR.tinta }}>
-              CONTENT<span style={{ color: COR.laranja }}>X</span>
-            </span>
-          </a>
-          <div className="flex items-center gap-2">
-            <a
-              href="/projetos"
-              className="rounded-lg px-3 py-2 text-[13px] font-semibold"
-              style={{ color: COR.tinta, border: `1px solid ${COR.linha}`, backgroundColor: "#fff" }}
-            >
-              Meus projetos
-            </a>
-            <a
-              href="/"
-              className="rounded-lg px-3 py-2 text-[13px] font-semibold"
-              style={{ color: COR.tinta, border: `1px solid ${COR.linha}`, backgroundColor: "#fff" }}
-            >
-              <span className="sm:hidden">Estúdio</span>
-              <span className="hidden sm:inline">Ir ao estúdio</span>
-            </a>
-            <MenuConta />
-          </div>
-        </div>
-      </header>
+      <TopoApp />
 
       <div className="mx-auto w-full max-w-[860px] px-4 pb-24 pt-6 sm:px-6">
         <h1 className="text-[26px] font-bold leading-tight sm:text-[30px]" style={{ color: COR.tinta }}>

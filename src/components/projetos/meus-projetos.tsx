@@ -20,7 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 import { Cartao } from "@/components/estudio/cartao";
-import { MenuConta } from "@/components/conta/menu-conta";
+import { TopoApp } from "@/components/carrosseis/topo-app";
 import { templatePorId } from "@/lib/templates";
 import { contagemDeCards, quandoSalvo, type ResumoProjeto } from "@/lib/estudio/projetos";
 
@@ -143,7 +143,7 @@ export function MeusProjetos() {
 
   return (
     <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
-      <Cabecalho />
+      <TopoApp ativo="projetos" />
 
       <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -219,51 +219,6 @@ export function MeusProjetos() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Chrome                                                              */
-/* ------------------------------------------------------------------ */
-
-function Cabecalho() {
-  return (
-    <header
-      className="sticky top-0 z-20 border-b"
-      style={{ backgroundColor: "#FFFFFFEE", borderColor: COR.borda, backdropFilter: "blur(8px)" }}
-    >
-      <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between px-4 sm:px-6">
-        <a href="/" className="flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[15px] font-bold text-white"
-            style={{ backgroundColor: COR.laranja }}
-          >
-            X
-          </span>
-          {/* Em 390 px o wordmark + "Ir ao estúdio" + o menu da conta estouravam
-              a barra e cortavam o avatar. Abaixo de `sm` fica só o selo "C". */}
-          <span
-            className="hidden text-[16px] font-bold tracking-tight sm:inline"
-            style={{ color: COR.tinta }}
-          >
-            CONTENT<span style={{ color: COR.laranja }}>X</span>
-          </span>
-        </a>
-        <div className="flex shrink-0 items-center gap-2">
-          <a
-            href="/"
-            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
-            style={{ color: COR.tinta, border: `1px solid ${COR.borda}`, backgroundColor: "#fff" }}
-          >
-            <span className="sm:hidden">Estúdio</span>
-            <span className="hidden sm:inline">Ir ao estúdio</span>
-          </a>
-          {/* Mesmo menu do estúdio: a identidade e o "Sair" não podem existir
-              numa tela e faltar na outra (issue #19). */}
-          <MenuConta />
-        </div>
-      </div>
-    </header>
-  );
-}
 
 function TituloDeSecao({
   id,
