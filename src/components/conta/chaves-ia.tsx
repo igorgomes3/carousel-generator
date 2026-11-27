@@ -13,10 +13,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 const COR = {
-  tinta: "#1C1917",
-  suave: "#57534E",
+  tinta: "#0B1220",
+  suave: "#475467",
   fraco: "#6B6660",
-  linha: "#E7E5E4",
+  borda: "#E2E8F0",
   ok: "#166534",
   erro: "#B91C1C",
   acao: "#0E7490",
@@ -120,7 +120,7 @@ export function ChavesIA() {
   }
 
   return (
-    <section className="rounded-2xl bg-white p-4 sm:p-5" style={{ border: `1px solid ${COR.linha}` }}>
+    <section className="rounded-2xl bg-white p-4 sm:p-5" style={{ border: `1px solid ${COR.borda}`, color: COR.tinta, ["--tw-ring-color" as string]: COR.acao }}>
       <h2 className="text-[15px] font-semibold" style={{ color: COR.tinta }}>
         Minhas chaves de IA
       </h2>
@@ -141,38 +141,52 @@ export function ChavesIA() {
         </p>
       ) : null}
 
+      <p className="mt-3 text-[12px]" style={{ color: COR.fraco }}>
+        Campo em branco usa o padrão do administrador. O texto cinza dentro do campo mostra o
+        valor em uso hoje, não algo que você digitou.
+      </p>
+
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <h3 className="text-[14px] font-semibold" style={{ color: COR.tinta }}>
             Texto
           </h3>
-          <p className="text-[12px]" style={{ color: COR.fraco }}>
+          <p className="text-[13px]" style={{ color: COR.suave }}>
             Em uso: {textoOrigem(estado?.origem.llmApiKey ?? "nenhuma")}
             {estado?.efetiva.llmApiKeyMascara ? ` · ${estado.efetiva.llmApiKeyMascara}` : ""}
           </p>
+          <label className="grid gap-1">
+            <span className="text-[12px] font-medium" style={{ color: COR.suave }}>URL base</span>
           <input
             value={llmBaseUrl}
             onChange={(e) => setLlmBaseUrl(e.target.value)}
             placeholder={estado?.efetiva.llmBaseUrl ?? "https://api.exemplo.com/v1"}
-            className="h-10 rounded-lg px-3 text-[13px]"
-            style={{ border: `1px solid ${COR.linha}` }}
+            className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+            style={{ border: `1px solid ${COR.borda}`, color: COR.tinta, ["--tw-ring-color" as string]: COR.acao }}
           />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[12px] font-medium" style={{ color: COR.suave }}>Modelo</span>
           <input
             value={llmModel}
             onChange={(e) => setLlmModel(e.target.value)}
             placeholder={estado?.efetiva.llmModel ?? "modelo"}
-            className="h-10 rounded-lg px-3 text-[13px]"
-            style={{ border: `1px solid ${COR.linha}` }}
+            className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+            style={{ border: `1px solid ${COR.borda}`, color: COR.tinta, ["--tw-ring-color" as string]: COR.acao }}
           />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[12px] font-medium" style={{ color: COR.suave }}>Chave de API</span>
           <input
             type="password"
             value={llmApiKey}
             onChange={(e) => setLlmApiKey(e.target.value)}
             placeholder={estado?.minhas.llmApiKeyMascara ?? "cole sua chave de texto"}
-            className="h-10 rounded-lg px-3 text-[13px]"
-            style={{ border: `1px solid ${COR.linha}` }}
+            className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+            style={{ border: `1px solid ${COR.borda}`, color: COR.tinta, ["--tw-ring-color" as string]: COR.acao }}
             autoComplete="new-password"
           />
+          </label>
           {estado?.minhas.llmApiKeyMascara ? (
             <button
               type="button"
@@ -190,33 +204,42 @@ export function ChavesIA() {
           <h3 className="text-[14px] font-semibold" style={{ color: COR.tinta }}>
             Imagem
           </h3>
-          <p className="text-[12px]" style={{ color: COR.fraco }}>
+          <p className="text-[13px]" style={{ color: COR.suave }}>
             Em uso: {textoOrigem(estado?.origem.imagemApiKey ?? "nenhuma")}
             {estado?.efetiva.imagemApiKeyMascara ? ` · ${estado.efetiva.imagemApiKeyMascara}` : ""}
           </p>
+          <label className="grid gap-1">
+            <span className="text-[12px] font-medium" style={{ color: COR.suave }}>URL base</span>
           <input
             value={imagemBaseUrl}
             onChange={(e) => setImagemBaseUrl(e.target.value)}
             placeholder={estado?.efetiva.imagemBaseUrl ?? "https://api.exemplo.com/v1"}
-            className="h-10 rounded-lg px-3 text-[13px]"
-            style={{ border: `1px solid ${COR.linha}` }}
+            className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+            style={{ border: `1px solid ${COR.borda}`, color: COR.tinta, ["--tw-ring-color" as string]: COR.acao }}
           />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[12px] font-medium" style={{ color: COR.suave }}>Modelo</span>
           <input
             value={imagemModel}
             onChange={(e) => setImagemModel(e.target.value)}
             placeholder={estado?.efetiva.imagemModel ?? "modelo de imagem"}
-            className="h-10 rounded-lg px-3 text-[13px]"
-            style={{ border: `1px solid ${COR.linha}` }}
+            className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+            style={{ border: `1px solid ${COR.borda}`, color: COR.tinta, ["--tw-ring-color" as string]: COR.acao }}
           />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[12px] font-medium" style={{ color: COR.suave }}>Chave de API</span>
           <input
             type="password"
             value={imagemApiKey}
             onChange={(e) => setImagemApiKey(e.target.value)}
             placeholder={estado?.minhas.imagemApiKeyMascara ?? "cole sua chave de imagem"}
-            className="h-10 rounded-lg px-3 text-[13px]"
-            style={{ border: `1px solid ${COR.linha}` }}
+            className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+            style={{ border: `1px solid ${COR.borda}`, color: COR.tinta, ["--tw-ring-color" as string]: COR.acao }}
             autoComplete="new-password"
           />
+          </label>
           {estado?.minhas.imagemApiKeyMascara ? (
             <button
               type="button"
@@ -235,8 +258,8 @@ export function ChavesIA() {
         type="button"
         onClick={() => void salvar()}
         disabled={ocupado}
-        className="mt-4 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
-        style={{ backgroundColor: "#1C1917" }}
+        className="mt-4 min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold text-white transition active:translate-y-px disabled:opacity-60"
+        style={{ backgroundColor: COR.acao }}
       >
         {ocupado ? "Salvando…" : "Salvar minhas chaves"}
       </button>

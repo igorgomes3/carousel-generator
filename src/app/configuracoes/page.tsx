@@ -1,24 +1,40 @@
 "use client";
 
 /**
- * Configurações › Marca — direção A (Neutro denso).
+ * `/configuracoes` — a conta do usuário: assinatura do slide e chaves de IA.
  *
- * Existe por uma razão só: o nome e o @ que saem no slide são dado da
- * ORGANIZAÇÃO, não constante do editor. Antes eles vinham de `defaultValues`
- * ("My name" / "@name") e iam parar na peça entregue ao cliente.
+ * Redesenho de 27/11/2026: esta era a única tela fora da linguagem nova do
+ * produto (fundo, barra, tipografia e cartões vinham do painel antigo). Agora usa
+ * a mesma chrome de `/projetos`, `/admin` e `/autopilot`: barra fixa com o selo
+ * CONTENTX, container de 1100 px, título 26/30 px e cartões de 16 px de raio.
  *
- * Regras do campo @ (as mesmas que a API aplica, e a API é quem manda):
- * minúsculo, sem espaço, um único @ no começo. Validar também aqui é só para o
- * erro aparecer antes do round-trip, não para substituir a validação do servidor.
+ * Duas decisões de conteúdo:
+ * - a assinatura é do USUÁRIO, não de "organização" (não existe organização no
+ *   carrossel desde a separação do banco) — a cópia antiga mentia sobre isso;
+ * - quem preenche vê na hora como a assinatura sai no rodapé do card, porque
+ *   "Nome no slide" sem prévia é campo que a pessoa preenche no escuro.
+ *
+ * Regras do campo @ (as mesmas da API, e a API é quem manda): minúsculo, sem
+ * espaço, um único @ no começo. Validar aqui só antecipa o erro.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { garantirSessao, usuarioAtual, type UsuarioCarrossel } from "@/lib/auth/sessao";
-import { Button } from "@/components/ui/button";
-import { NavPrincipal } from "@/components/carrosseis/nav-principal";
+import { MenuConta } from "@/components/conta/menu-conta";
 import { ChavesIA } from "@/components/conta/chaves-ia";
-import { Input } from "@/components/ui/input";
+import { garantirSessao, usuarioAtual, type UsuarioCarrossel } from "@/lib/auth/sessao";
+
+const COR = {
+  tinta: "#0B1220",
+  suave: "#475467",
+  fraco: "#6B6660",
+  borda: "#E2E8F0",
+  acao: "#0E7490",
+  acaoSuave: "#ECFEFF",
+  ok: "#166534",
+  erro: "#B42318",
+  fundo: "#F5F7F9",
+};
 
 /** Espelha `Marca` em `src/app/api/marca/route.ts`. */
 export interface MarcaConta {
@@ -27,11 +43,6 @@ export interface MarcaConta {
   avatar_url: string | null;
 }
 
-/**
- * A marca agora é do USUÁRIO, no Supabase do próprio carrossel (`/api/marca`).
- * Era uma rota de marca da organização em outro produto, que deixou de estar no
- * caminho do carrossel (W97).
- */
 async function lerMarca(): Promise<MarcaConta> {
   const res = await fetch("/api/marca", { cache: "no-store" });
   const dados = (await res.json().catch(() => ({}))) as { marca?: MarcaConta; erro?: string };
@@ -54,10 +65,7 @@ async function gravarMarca(corpo: {
   return dados.marca;
 }
 
-/**
- * Mesma regra da API (`normalizarHandle` em `apps/api/src/carrossel.ts`):
- * devolve o valor pronto para gravar ou o motivo da recusa.
- */
+/** Mesma regra da API: devolve o valor pronto para gravar ou o motivo da recusa. */
 function normalizarHandle(bruto: string): { ok: true; valor: string } | { ok: false; erro: string } {
   const limpo = bruto.trim().toLowerCase();
   if (!limpo) return { ok: true, valor: "" };
@@ -77,17 +85,13 @@ type Estado = "ocioso" | "salvando" | "salvo" | "erro";
 
 export default function ConfiguracoesPage() {
   const router = useRouter();
+  const [usuario, setUsuario] = useState<UsuarioCarrossel | null>(null);
   const [nome, setNome] = useState("");
   const [handle, setHandle] = useState("");
   const [avatar, setAvatar] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [estado, setEstado] = useState<Estado>("ocioso");
   const [erro, setErro] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
-  // A barra mostrava e-mail nenhum porque esta tela passava `usuario={null}` de
-  // propósito ("a tela é da fase 3"). Com o menu da conta (issue #19), quem está
-  // logado passa a ser visível em todas as telas do produto.
-  const [usuario, setUsuario] = useState<UsuarioCarrossel | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -115,10 +119,17 @@ export default function ConfiguracoesPage() {
     };
   }, [router]);
 
+  /** Prévia da assinatura no mesmo formato do rodapé do card. */
+  const assinatura = useMemo(() => {
+    const nomeLimpo = nome.trim();
+    const normalizado = normalizarHandle(handle);
+    const arroba = normalizado.ok ? normalizado.valor : handle.trim();
+    if (!nomeLimpo && !arroba) return "";
+    return [nomeLimpo, arroba].filter(Boolean).join(" · ");
+  }, [nome, handle]);
+
   async function salvar(marcaNome: string | null) {
     setErro(null);
-    setAviso(null);
-
     const normalizado = normalizarHandle(handle);
     if (!normalizado.ok) {
       setErro(normalizado.erro);
@@ -143,129 +154,232 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  const ocupado = estado === "salvando";
+
+  const campoEstilo = (invalido = false) =>
+    ({
+      border: `1px solid ${invalido ? COR.erro : COR.borda}`,
+      color: COR.tinta,
+      // anel de foco na cor da marca, como nos outros formulários do produto
+      ["--tw-ring-color" as string]: COR.acao,
+    }) as const;
+
   return (
-    <main className="min-h-screen bg-background">
-      {/* Só a navegação muda nesta tela na fase 1: a barra própria apontava
-          para /projetos e dizia "Galeria", rota e vocabulário que deixaram de
-          existir. O conteúdo da tela é o da fase 3. */}
-      <NavPrincipal usuario={usuario} />
+    <main className="min-h-screen w-full" style={{ backgroundColor: COR.fundo }}>
+      <Cabecalho usuario={usuario} />
 
-      <div className="mx-auto max-w-[680px] px-4 py-6">
-        <h1 className="text-title font-semibold tracking-[-0.01em]">Configurações</h1>
-        <p className="mt-1 text-body text-muted-foreground">
-          A marca é da organização: todo carrossel novo nasce com este nome e este @. Carrossel
-          antigo continua mostrando a marca de quem o criou.
-        </p>
-
-        <section className="mt-6 rounded-lg border border-border bg-card p-4">
-          <h2 className="text-body font-semibold">Marca da organização</h2>
-          <p className="mt-1 text-meta text-muted-foreground">
-            Deixe o nome vazio para não assinar o slide. Marca vazia não imprime nada.
+      <div className="mx-auto w-full max-w-[1100px] px-4 pb-24 pt-6 sm:px-6">
+        <header className="mb-6">
+          <h1 className="text-[26px] font-bold leading-tight sm:text-[30px]" style={{ color: COR.tinta }}>
+            Configurações
+          </h1>
+          <p className="mt-1 max-w-[560px] text-[14px]" style={{ color: COR.suave }}>
+            A assinatura que sai nos cards e as chaves de IA usadas nas suas gerações.
           </p>
+        </header>
 
-          {carregando ? (
-            <div className="mt-4 space-y-2" aria-busy="true">
-              <div className="h-9 animate-pulse rounded-md bg-secondary" />
-              <div className="h-9 animate-pulse rounded-md bg-secondary" />
+        <div className="grid gap-4">
+          <section
+            aria-labelledby="assinatura-titulo"
+            className="rounded-2xl bg-white p-4 sm:p-5"
+            style={{ border: `1px solid ${COR.borda}` }}
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 id="assinatura-titulo" className="text-[15px] font-semibold" style={{ color: COR.tinta }}>
+                Sua assinatura
+              </h2>
+              <span className="text-[12px]" style={{ color: COR.fraco }}>
+                Aplicada a todo carrossel novo
+              </span>
             </div>
-          ) : (
-            <form
-              className="mt-4 space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void salvar(nome.trim());
-              }}
-            >
-              <div className="space-y-1.5">
-                <label htmlFor="marca-nome" className="text-meta font-medium">
-                  Nome no slide
-                </label>
-                <Input
-                  id="marca-nome"
-                  value={nome}
-                  maxLength={60}
-                  placeholder="Nome da clínica ou do perfil"
-                  onChange={(e) => {
-                    setNome(e.target.value);
-                    setEstado("ocioso");
-                  }}
-                />
-                <p className="text-meta text-muted-foreground">
-                  É o nome que aparece na assinatura do slide.
-                </p>
-              </div>
+            <p className="mt-1 text-[13px]" style={{ color: COR.suave }}>
+              Deixe em branco para assinar sem nome. Carrossel antigo mantém a assinatura de quando
+              foi criado.
+            </p>
 
-              <div className="space-y-1.5">
-                <label htmlFor="marca-handle" className="text-meta font-medium">
-                  @ do perfil
-                </label>
-                <Input
-                  id="marca-handle"
-                  value={handle}
-                  placeholder="@seuperfil"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  onChange={(e) => {
-                    setHandle(e.target.value);
-                    setEstado("ocioso");
-                  }}
-                  onBlur={() => {
-                    const normalizado = normalizarHandle(handle);
-                    if (normalizado.ok) setHandle(normalizado.valor);
-                  }}
-                />
-                <p className="text-meta text-muted-foreground">
-                  Minúsculo, sem espaço e com um único @ no começo.
-                </p>
+            {carregando ? (
+              <div className="mt-4 grid gap-2" aria-busy="true" aria-live="polite">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-11 animate-pulse rounded-xl"
+                    style={{ backgroundColor: "#EEF1F4" }}
+                  />
+                ))}
+                <span className="sr-only">Carregando sua assinatura</span>
               </div>
+            ) : (
+              <form
+                className="mt-4 grid gap-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void salvar(nome.trim());
+                }}
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-1.5">
+                    <span className="text-[13px] font-medium" style={{ color: COR.tinta }}>
+                      Nome no slide
+                    </span>
+                    <input
+                      value={nome}
+                      maxLength={60}
+                      placeholder="Ex.: Studio Lima"
+                      onChange={(e) => {
+                        setNome(e.target.value);
+                        setEstado("ocioso");
+                      }}
+                      className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+                      style={campoEstilo()}
+                    />
+                    <span className="text-[12px]" style={{ color: COR.fraco }}>
+                      Aparece na assinatura do rodapé.
+                    </span>
+                  </label>
 
-              <div className="space-y-1.5">
-                <label htmlFor="marca-avatar" className="text-meta font-medium">
-                  URL do avatar (opcional)
+                  <label className="grid gap-1.5">
+                    <span className="text-[13px] font-medium" style={{ color: COR.tinta }}>
+                      @ do perfil
+                    </span>
+                    <input
+                      value={handle}
+                      placeholder="@seuperfil"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      aria-invalid={erro ? true : undefined}
+                      onChange={(e) => {
+                        setHandle(e.target.value);
+                        setEstado("ocioso");
+                        setErro(null);
+                      }}
+                      onBlur={() => {
+                        const normalizado = normalizarHandle(handle);
+                        if (normalizado.ok) setHandle(normalizado.valor);
+                      }}
+                      className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+                      style={campoEstilo(Boolean(erro))}
+                    />
+                    <span className="text-[12px]" style={{ color: COR.fraco }}>
+                      Minúsculo, sem espaço, um único @ no começo.
+                    </span>
+                  </label>
+                </div>
+
+                <label className="grid gap-1.5">
+                  <span className="text-[13px] font-medium" style={{ color: COR.tinta }}>
+                    URL do avatar <span style={{ color: COR.fraco }}>(opcional)</span>
+                  </span>
+                  <input
+                    value={avatar}
+                    placeholder="https://..."
+                    onChange={(e) => {
+                      setAvatar(e.target.value);
+                      setEstado("ocioso");
+                    }}
+                    className="h-11 w-full rounded-xl px-3 text-[14px] outline-none focus:ring-2"
+                    style={campoEstilo()}
+                  />
                 </label>
-                <Input
-                  id="marca-avatar"
-                  value={avatar}
-                  placeholder="https://…"
-                  onChange={(e) => {
-                    setAvatar(e.target.value);
-                    setEstado("ocioso");
-                  }}
-                />
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="submit" disabled={estado === "salvando"}>
-                  {estado === "salvando" ? "Salvando…" : "Salvar marca"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={estado === "salvando"}
-                  onClick={() => void salvar(null)}
+                {/* Prévia real do rodapé: evita preencher campo no escuro. */}
+                <div
+                  className="rounded-xl px-3 py-2.5"
+                  style={{ backgroundColor: "#FFFFFF", border: "1px dashed #C7D2DC" }}
                 >
-                  Usar o nome da organização
-                </Button>
-                {estado === "salvo" && (
-                  <span className="text-meta text-muted-foreground">Marca salva.</span>
-                )}
-              </div>
+                  <span className="text-[12px] font-medium" style={{ color: COR.suave }}>
+                    Como sai no card
+                  </span>
+                  <p className="mt-1 text-[15px] font-medium" style={{ color: COR.tinta }}>
+                    {assinatura || "Sem assinatura: o card não leva nome nem @."}
+                  </p>
+                </div>
 
-              {erro && (
-                <p role="alert" className="text-meta text-destructive">
-                  {erro}
-                </p>
-              )}
-              {aviso && <p className="text-meta text-muted-foreground">{aviso}</p>}
-            </form>
-          )}
-        </section>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={ocupado}
+                    className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold text-white transition active:translate-y-px disabled:opacity-60"
+                    style={{ backgroundColor: COR.acao }}
+                  >
+                    {ocupado ? "Salvando..." : "Salvar assinatura"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={ocupado}
+                    onClick={() => {
+                      const ok = window.confirm(
+                        "Remover a assinatura de todos os carrosséis novos? Os já criados não mudam.",
+                      );
+                      if (!ok) return;
+                      setNome("");
+                      setHandle("");
+                      void salvar("");
+                    }}
+                    className="min-h-[44px] rounded-xl px-4 py-2.5 text-[14px] font-semibold disabled:opacity-60"
+                    style={{ backgroundColor: "#FFFFFF", color: COR.erro, border: `1px solid ${COR.borda}` }}
+                  >
+                    Remover assinatura
+                  </button>
+                  <span
+                    role="status"
+                    aria-live="polite"
+                    className="text-[13px] font-semibold"
+                    style={{ color: estado === "salvo" ? COR.ok : COR.erro, minHeight: 18 }}
+                  >
+                    {estado === "salvo" ? "Assinatura salva." : erro ?? ""}
+                  </span>
+                </div>
+              </form>
+            )}
+          </section>
 
-        {/* Chaves de IA do próprio usuário: sobrepõem a global do painel. */}
-        <div className="mt-6">
           <ChavesIA />
         </div>
       </div>
     </main>
+  );
+}
+
+/** Chrome igual à de `/projetos` e `/admin`: uma barra, três destinos, um menu. */
+function Cabecalho({ usuario }: { usuario: UsuarioCarrossel | null }) {
+  return (
+    <header
+      className="sticky top-0 z-20 border-b"
+      style={{ backgroundColor: "#FFFFFFEE", borderColor: COR.borda, backdropFilter: "blur(8px)" }}
+    >
+      <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between px-4 sm:px-6">
+        <a href="/" className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[15px] font-bold text-white"
+            style={{ backgroundColor: COR.acao }}
+          >
+            X
+          </span>
+          <span className="hidden text-[16px] font-bold tracking-tight sm:inline" style={{ color: COR.tinta }}>
+            CONTENT<span style={{ color: COR.acao }}>X</span>
+          </span>
+        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href="/projetos"
+            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
+            style={{ color: COR.tinta, border: `1px solid ${COR.borda}`, backgroundColor: "#fff" }}
+          >
+            <span className="sm:hidden">Projetos</span>
+            <span className="hidden sm:inline">Meus projetos</span>
+          </a>
+          <a
+            href="/"
+            className="rounded-lg px-3 py-2 text-[13px] font-semibold"
+            style={{ color: COR.tinta, border: `1px solid ${COR.borda}`, backgroundColor: "#fff" }}
+          >
+            <span className="sm:hidden">Estúdio</span>
+            <span className="hidden sm:inline">Ir ao estúdio</span>
+          </a>
+          <MenuConta usuario={usuario ?? undefined} />
+        </div>
+      </div>
+    </header>
   );
 }
